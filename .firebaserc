@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "minhas-financas-75277"
+  },
+  "targets": {
+    "minhas-financas-75277": {
+      "hosting": {
+        "previsa": [
+          "previsa"
+        ]
+      }
+    }
   }
 }

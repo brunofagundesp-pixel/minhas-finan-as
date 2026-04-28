@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "target": "previsa",
     "public": "dist/previsa",
     "ignore": [
       "firebase.json",
