@@ -49,6 +49,11 @@ interface DayProjection {
   status: 'negative' | 'warning' | 'healthy';
 }
 
+interface ActiveDayDetails {
+  month: MonthSummary;
+  day: DayProjection;
+}
+
 interface MonthSummary {
   key: string;
   title: string;
@@ -156,6 +161,7 @@ export class AppComponent implements OnInit {
   dataError = '';
   isSavingLaunch = false;
   entriesFeedback = '';
+  activeDayDetails: ActiveDayDetails | null = null;
   deletingEventIds = new Set<string>();
   payingEventIds = new Set<string>();
   payingInvoiceKeys = new Set<string>();
@@ -1366,6 +1372,7 @@ export class AppComponent implements OnInit {
         paidAt,
       };
     });
+    this.refreshActiveDayDetails();
 
     this.payingEventIds.add(eventId);
     this.entriesFeedback = '';
@@ -1373,10 +1380,12 @@ export class AppComponent implements OnInit {
     this.financeApi.updateMonth(month).subscribe({
       next: () => {
         this.payingEventIds.delete(eventId);
+        this.refreshActiveDayDetails();
       },
       error: () => {
         month.events = previousEvents;
         this.payingEventIds.delete(eventId);
+        this.refreshActiveDayDetails();
         this.entriesFeedback = 'Nao foi possivel atualizar o status de pagamento do lancamento.';
       }
     });
@@ -1551,6 +1560,37 @@ export class AppComponent implements OnInit {
     if (upRect.top < viewportPadding) {
       details.classList.remove('day-notes--upward');
     }
+  }
+
+  openDayDetails(month: MonthSummary, day: DayProjection): void {
+    this.activeDayDetails = { month, day };
+  }
+
+  closeDayDetails(): void {
+    this.activeDayDetails = null;
+  }
+
+  getDayDetailsTitle(month: MonthSummary, day: DayProjection): string {
+    return `${day.day} de ${month.title} de ${month.year}`;
+  }
+
+  private refreshActiveDayDetails(): void {
+    if (!this.activeDayDetails) {
+      return;
+    }
+
+    const currentMonth = this.monthSummaries.find((month) => month.key === this.activeDayDetails?.month.key);
+    const currentDay = currentMonth?.projection.find((day) => day.day === this.activeDayDetails?.day.day);
+
+    if (!currentMonth || !currentDay) {
+      this.activeDayDetails = null;
+      return;
+    }
+
+    this.activeDayDetails = {
+      month: currentMonth,
+      day: currentDay,
+    };
   }
 
   goToCurrentMonth(): void {

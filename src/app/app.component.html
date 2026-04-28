@@ -162,6 +162,23 @@
             <span class="ledger-day-wrap">
               <span class="ledger-day" [class.ledger-day--today]="isCurrentDay(month, day.day)">{{ day.day }}</span>
 
+              <button
+                *ngIf="getDayDetailCount(day) > 0"
+                type="button"
+                class="day-notes-mobile-trigger"
+                (click)="openDayDetails(month, day)"
+                [attr.aria-label]="'Ver ' + getDayDetailCount(day) + ' itens do dia ' + day.day + ' de ' + month.title + ' de ' + month.year"
+              >
+                <span class="ledger-note-count" [class.ledger-note-count--paid]="isDayFullyPaid(day)">
+                  <ng-container *ngIf="isDayFullyPaid(day) && activeDayDetails?.day !== day && day.cardInvoiceForecasts.length === 0; else mobileCountValue">
+                    <svg class="ledger-note-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  </ng-container>
+                  <ng-template #mobileCountValue>{{ getDayDetailCount(day) }}</ng-template>
+                </span>
+              </button>
+
               <details class="day-notes" *ngIf="getDayDetailCount(day) > 0" (toggle)="onDayNotesToggle($event)">
                 <summary aria-label="Ver lancamentos do dia">
                   <span class="ledger-note-count" [class.ledger-note-count--paid]="isDayFullyPaid(day)">
@@ -312,6 +329,96 @@
   <section *ngIf="activeTab === 'cards'" class="cards-tab-view">
     <app-cards-tab #cardsTab (faturaFechada)="onFaturaFechada($event)"></app-cards-tab>
   </section>
+
+  <div
+    *ngIf="activeDayDetails"
+    class="day-details-mobile-backdrop"
+    (click)="closeDayDetails()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'Detalhes do dia ' + getDayDetailsTitle(activeDayDetails.month, activeDayDetails.day)"
+  >
+    <div class="day-details-mobile-card panel" (click)="$event.stopPropagation()">
+      <button type="button" class="day-details-mobile-close" (click)="closeDayDetails()" aria-label="Fechar detalhes do dia">&times;</button>
+      <p class="eyebrow">detalhes do dia</p>
+      <h3>{{ getDayDetailsTitle(activeDayDetails.month, activeDayDetails.day) }}</h3>
+      <strong class="day-details-mobile-count">
+        {{ getDayDetailCount(activeDayDetails.day) }} {{ getDayDetailCount(activeDayDetails.day) === 1 ? 'item em ' : 'itens em ' }}{{ getDayDetailsTitle(activeDayDetails.month, activeDayDetails.day) }}
+      </strong>
+
+      <div class="day-details-mobile-list">
+        <ul>
+          <li *ngFor="let event of activeDayDetails.day.events; trackBy: trackEventBy" [class]="'event-item event-item--' + event.type" [class.event-item--paid]="isEventPaid(event)">
+            <span class="day-event-main">
+              <span class="event-kind-badge" [class]="'event-kind-badge event-kind-badge--' + event.type">
+                <span class="event-kind-icon">{{ getEventTypeIcon(event.type) }}</span>
+                <span>{{ getEventTypeLabel(event.type) }}</span>
+              </span>
+              <span>{{ describeEvent(event, activeDayDetails.month.key) }}</span>
+              <span *ngIf="canTogglePaid(event)" class="event-paid-badge" [class.event-paid-badge--paid]="isEventPaid(event)">
+                {{ isEventPaid(event) ? 'Pago' : 'Pendente' }}
+              </span>
+            </span>
+            <span class="day-event-actions">
+              <button
+                *ngIf="canTogglePaid(event)"
+                type="button"
+                class="pay-event-button"
+                [class.pay-event-button--paid]="isEventPaid(event)"
+                (click)="toggleEventPaid(activeDayDetails.month.key, event)"
+                [disabled]="isPayingEvent(event.id) || isDeletingEvent(event.id)"
+              >
+                {{ isPayingEvent(event.id) ? '...' : (isEventPaid(event) ? 'Desmarcar' : 'Marcar pago') }}
+              </button>
+              <button
+                type="button"
+                class="edit-event-button"
+                (click)="openEventActionPrompt('edit', activeDayDetails.month.key, event)"
+                [disabled]="isDeletingEvent(event.id)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="delete-event-button"
+                (click)="openEventActionPrompt('delete', activeDayDetails.month.key, event)"
+                [disabled]="isDeletingEvent(event.id)"
+              >
+                {{ isDeletingEvent(event.id) ? '...' : 'Excluir' }}
+              </button>
+            </span>
+          </li>
+
+          <li
+            *ngFor="let forecast of activeDayDetails.day.cardInvoiceForecasts"
+            class="event-item event-item--card-forecast"
+            [class.event-item--paid]="forecast.isPaid"
+          >
+            <span class="day-event-main">
+              <span class="event-kind-badge event-kind-badge--expense">
+                <span class="event-kind-icon">&#128179;</span>
+                <span>Cartao</span>
+              </span>
+              <span>{{ getCardInvoiceForecastLabel(forecast) }}</span>
+              <span class="event-paid-badge" [class.event-paid-badge--paid]="forecast.isPaid">
+                {{ forecast.isPaid ? 'Pago' : 'Pendente' }}
+              </span>
+            </span>
+            <span class="day-event-actions">
+              <button
+                class="pay-event-button"
+                [class.pay-event-button--paid]="forecast.isPaid"
+                type="button"
+                [disabled]="forecast.isPaid || isPayingInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
+                (click)="payCardInvoiceForecast(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
+                [title]="forecast.isPaid ? 'Fatura ja paga' : 'Marcar fatura como paga'"
+              >{{ isPayingInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber) ? '...' : (forecast.isPaid ? 'Pago' : 'Pagar') }}</button>
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
   <section *ngIf="activeTab === 'dashboard'" class="dashboard-view">
     <section class="panel window-panel">
