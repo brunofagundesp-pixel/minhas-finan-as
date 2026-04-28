@@ -1,5 +1,5 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
-import { CardLaunch, CreditCard, FinanceApiService, LaunchRepeatMode } from './finance-api.service';
+import { CardLaunch, CreditCard, FinanceApiService, LaunchRepeatMode } from '../../../core/services/finance-api.service';
 import { forkJoin } from 'rxjs';
 
 type CardDeleteScope = 'single' | 'forward' | 'series';
@@ -858,6 +858,12 @@ export class CardsTabComponent implements OnInit {
     if (this.selectedCard) {
       this.invoiceMonth = this.getPreferredInvoiceMonth(this.selectedCard);
     }
+    this.scrollToFirstLaunchDay();
+  }
+
+  focusInvoiceMonth(cardId: string | number, year: number, month: number): void {
+    this.selectedCardId = cardId;
+    this.invoiceMonth = { year, month };
     this.scrollToFirstLaunchDay();
   }
 

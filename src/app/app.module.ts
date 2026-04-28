@@ -7,8 +7,8 @@ import { AngularFireAuthModule } from '@angular/fire/compat/auth';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { CardsTabComponent } from './cards-tab.component';
-import { LoginComponent } from './login.component';
+import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.component';
+import { LoginComponent } from './features/auth/login/login.component';
 import { environment } from '../environments/environment';
 
 @NgModule({

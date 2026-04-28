@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 import { Observable } from 'rxjs';
-import { environment } from '../environments/environment';
+import { environment } from '../../../environments/environment';
 
 const EMAIL_KEY = 'emailForSignIn';
 

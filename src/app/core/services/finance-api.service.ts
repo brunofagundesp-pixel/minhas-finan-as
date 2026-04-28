@@ -52,6 +52,7 @@ export interface FinancialEvent {
   label: string;
   amount: number;
   type: EventType;
+  tags?: string[];
 }
 
 export interface MonthDefinition {

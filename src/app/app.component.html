@@ -1,25 +1,36 @@
 <ng-container *ngIf="(auth.user$ | async) !== null; else loginTpl">
 <main class="shell">
   <header class="topbar">
-    <div class="topbar-brand">
-      <p class="eyebrow">previsa</p>
-      <h1 class="app-title">Previsa</h1>
-      <p class="topbar-subtitle">lancamentos diarios + dashboard de previsibilidade</p>
+    <button
+      class="mobile-topbar-toggle"
+      type="button"
+      (click)="toggleMobileTopbarMenu()"
+      [attr.aria-expanded]="mobileTopbarMenuOpen"
+      aria-label="Abrir menu"
+      title="Menu"
+    >☰</button>
+
+    <div class="topbar-mobile-content" [class.topbar-mobile-content--open]="mobileTopbarMenuOpen">
+      <div class="topbar-brand">
+        <p class="eyebrow">previsa</p>
+        <h1 class="app-title">Previsa</h1>
+        <p class="topbar-subtitle">lancamentos diarios + dashboard de previsibilidade</p>
+      </div>
+
+      <nav class="app-tabs" aria-label="Navegacao principal">
+        <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'dashboard'" (click)="setActiveTab('dashboard')">
+          Dashboard
+        </button>
+        <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'entries'" (click)="setActiveTab('entries')">
+          Lancamentos
+        </button>
+        <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'cards'" (click)="setActiveTab('cards')">
+          Cartoes
+        </button>
+      </nav>
+
+      <button class="topbar-help-btn" type="button" (click)="openOnboarding(); mobileTopbarMenuOpen = false" aria-label="Abrir guia de inicio" title="Ver guia de inicio">?</button>
     </div>
-
-    <nav class="app-tabs" aria-label="Navegacao principal">
-      <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'dashboard'" (click)="setActiveTab('dashboard')">
-        Dashboard
-      </button>
-      <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'entries'" (click)="setActiveTab('entries')">
-        Lancamentos
-      </button>
-      <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'cards'" (click)="setActiveTab('cards')">
-        Cartoes
-      </button>
-    </nav>
-
-    <button class="topbar-help-btn" type="button" (click)="openOnboarding()" aria-label="Abrir guia de inicio" title="Ver guia de inicio">?</button>
 
     <div class="topbar-user" *ngIf="auth.user$ | async as user">
       <div class="user-avatar-wrap" (click)="toggleUserMenu()" [class.user-avatar-wrap--open]="userMenuOpen">
@@ -59,26 +70,47 @@
     </div>
   </header>
 
-  <section *ngIf="activeTab === 'entries'" class="entries-view">
-    <header class="entries-toolbar">
+  <section *ngIf="activeTab === 'entries'" class="entries-view" [class.entries-view--simplified]="viewMode === '1month'">
+    <header class="entries-toolbar" [class.entries-toolbar--simplified]="viewMode === '1month'">
       <div>
         <p class="eyebrow">visao principal</p>
         <h2>{{ entriesTitle }}</h2>
       </div>
 
-      <div class="view-controls">
-        <div class="view-mode-picker" role="group" aria-label="Modo de visualizacao">
-          <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '3month'" (click)="setViewMode('3month')">3 meses</button>
-          <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '12month'" (click)="setViewMode('12month')">12 meses</button>
-          <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === 'custom'" (click)="setViewMode('custom')">personalizado</button>
+      <button
+        class="mobile-entries-toggle"
+        type="button"
+        (click)="toggleMobileEntriesControls()"
+        [attr.aria-expanded]="mobileEntriesControlsOpen"
+        aria-label="Abrir filtros e periodo"
+      >
+        {{ mobileEntriesControlsOpen ? 'ocultar filtros e periodo' : 'filtros e periodo' }}
+      </button>
+
+      <div class="entries-controls-mobile" [class.entries-controls-mobile--open]="mobileEntriesControlsOpen">
+        <div class="view-controls">
+          <div class="view-mode-picker" role="group" aria-label="Modo de visualizacao">
+            <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '1month'" (click)="setViewMode('1month')">simplificado</button>
+            <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '3month'" (click)="setViewMode('3month')">3 meses</button>
+            <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '12month'" (click)="setViewMode('12month')">12 meses</button>
+            <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === 'custom'" (click)="setViewMode('custom')">personalizado</button>
+          </div>
+
+          <button class="current-month-button" type="button" (click)="goToCurrentMonth()" [disabled]="!hasCurrentMonthInData">
+            mes atual
+          </button>
         </div>
 
-        <button class="current-month-button" type="button" (click)="goToCurrentMonth()" [disabled]="!hasCurrentMonthInData">
-          mes atual
-        </button>
-      </div>
+        <div class="entries-nav">
+        <ng-container *ngIf="viewMode === '1month'">
+          <div class="month-switch" aria-label="Navegacao mensal">
+            <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver mes anterior">←</button>
+            <strong>{{ entriesTitle }}</strong>
+            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximo mes">→</button>
+          </div>
+          <small class="month-progress">{{ singleMonthProgressLabel }}</small>
+        </ng-container>
 
-      <div class="entries-nav">
         <ng-container *ngIf="viewMode === '3month'">
           <div class="month-switch" aria-label="Navegacao de meses">
             <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver 3 meses anteriores">←</button>
@@ -109,6 +141,7 @@
           </div>
           <small class="month-progress">12 meses de {{ twelveMonthWindowLabel }}</small>
         </ng-container>
+        </div>
       </div>
     </header>
 
@@ -124,23 +157,239 @@
       <p>{{ entriesFeedback }}</p>
     </div>
 
-    <section class="ledger-grid" [class.ledger-grid--multi]="viewMode === '12month' || (viewMode === 'custom' && launchMonths.length > 3)">
-      <article class="panel ledger-card" *ngFor="let month of launchMonths; trackBy: trackMonthBy" [class.ledger-card--current]="isCurrentMonth(month)">
-        <div class="ledger-header">
+    <section class="ledger-grid" [class.ledger-grid--multi]="viewMode === '12month' || (viewMode === 'custom' && launchMonths.length > 3)" [class.ledger-grid--single]="viewMode === '1month'">
+      <article class="panel ledger-card" *ngFor="let month of launchMonths; trackBy: trackMonthBy" [class.ledger-card--current]="isCurrentMonth(month)" [class.ledger-card--single]="viewMode === '1month'">
+        <div class="ledger-header" [class.ledger-header--simplified]="viewMode === '1month'">
           <div>
             <p class="eyebrow">
               {{ month.title }} {{ month.year }}
               <span *ngIf="isCurrentMonth(month)" class="current-chip">mes atual</span>
             </p>
-            <strong>{{ formatCurrency(month.closingBalance) }}</strong>
+            <strong *ngIf="viewMode !== '1month'">{{ formatCurrency(month.closingBalance) }}</strong>
           </div>
 
-          <div class="ledger-header-meta">
+          <div class="ledger-header-meta" *ngIf="viewMode !== '1month'">
             <span>receitas {{ formatCurrency(month.totalIncome) }}</span>
             <span>despesas {{ formatCurrency(month.totalExpenses + month.totalInvestments + month.totalFixedCosts) }}</span>
           </div>
         </div>
 
+        <ng-container *ngIf="viewMode === '1month'; else detailedMonthView">
+          <div class="simplified-shell" *ngIf="getSimplifiedMonthEntries(month) as entries">
+            <aside
+              class="simplified-summary-card"
+              [class.simplified-summary-card--mobile-open]="mobileSimplifiedSummaryOpen"
+              aria-label="Resumo do mes"
+            >
+              <div class="simplified-summary-top">
+                <div>
+                  <p class="eyebrow">Resumo</p>
+                  <strong>{{ formatCurrency(month.closingBalance) }}</strong>
+                </div>
+
+                <button
+                  type="button"
+                  class="simplified-summary-toggle"
+                  (click)="toggleMobileSimplifiedSummary()"
+                  [attr.aria-expanded]="mobileSimplifiedSummaryOpen"
+                  [attr.aria-label]="mobileSimplifiedSummaryOpen ? 'Recolher resumo' : 'Expandir resumo'"
+                >
+                  <span class="simplified-summary-toggle-text">Resumo</span>
+                  <span class="simplified-summary-toggle-icon" [class.simplified-summary-toggle-icon--open]="mobileSimplifiedSummaryOpen" aria-hidden="true">▾</span>
+                </button>
+              </div>
+
+              <div class="simplified-summary-list">
+                <div class="simplified-summary-row">
+                  <span>Saldo inicial</span>
+                  <strong>{{ formatCurrency(month.openingBalance) }}</strong>
+                </div>
+                <div class="simplified-summary-row">
+                  <span>Receitas</span>
+                  <strong class="simplified-entry-value--income">{{ formatCurrency(month.totalIncome) }}</strong>
+                </div>
+                <div class="simplified-summary-row">
+                  <span>Saidas</span>
+                  <strong class="simplified-entry-value--expense">{{ formatCurrency(month.totalExpenses) }}</strong>
+                </div>
+                <div class="simplified-summary-row">
+                  <span>Investido</span>
+                  <strong class="simplified-entry-value--investment">{{ formatCurrency(month.totalInvestments) }}</strong>
+                </div>
+                <div class="simplified-summary-row">
+                  <span>Diario</span>
+                  <strong>{{ formatCurrency(month.totalFixedCosts) }}</strong>
+                </div>
+                <div class="simplified-summary-row">
+                  <span>Performance</span>
+                  <strong [ngClass]="getBalanceClass(getMonthPerformance(month))">{{ formatCurrency(getMonthPerformance(month)) }}</strong>
+                </div>
+                <div class="simplified-summary-row">
+                  <span>Media diaria</span>
+                  <strong [ngClass]="getBalanceClass(getMonthDailyAverage(month))">{{ formatCurrency(getMonthDailyAverage(month)) }}</strong>
+                </div>
+                <div class="simplified-summary-row">
+                  <span>Saida total</span>
+                  <strong [ngClass]="getMonthOutflowRiskClass(month)">{{ formatCurrency(getMonthTotalOutflow(month)) }}</strong>
+                </div>
+                <div class="simplified-summary-row">
+                  <span>Minimo do mes</span>
+                  <strong [ngClass]="getBalanceClass(month.minBalance)">{{ formatCurrency(month.minBalance) }}</strong>
+                </div>
+              </div>
+            </aside>
+
+            <section class="simplified-launches-card" aria-label="Lancamentos do mes">
+              <header class="simplified-launches-head">
+                <strong>Lancamentos</strong>
+                <span>{{ entries.length }} {{ entries.length === 1 ? 'item' : 'itens' }}</span>
+              </header>
+
+              <div class="simplified-list" *ngIf="entries.length; else simplifiedMonthEmpty">
+                <ng-container *ngFor="let entry of entries; trackBy: trackSimplifiedEntryBy">
+                  <article class="simplified-entry" [class.simplified-entry--interactive]="entry.kind === 'card-forecast'" [class.simplified-entry--paid]="entry.paid" [class.simplified-entry--menu-open]="openSimplifiedEntryMenuKey === entry.key" (click)="closeSimplifiedEntryMenus()">
+                    <span class="simplified-entry-dot" [ngClass]="getSimplifiedEntryAmountClass(entry)" aria-hidden="true"></span>
+
+                    <span class="simplified-entry-date">{{ entry.dateLabel }}</span>
+
+                    <span class="simplified-entry-main">
+                      <span class="simplified-entry-title-row">
+                        <strong>{{ entry.title }}</strong>
+                        <span *ngIf="entry.kind === 'card-forecast'" class="simplified-entry-icon" aria-hidden="true">💳</span>
+                      </span>
+
+                      <span class="simplified-entry-status" [ngClass]="getSimplifiedEntryStatusClass(entry)">{{ entry.statusLabel }}</span>
+
+                      <span class="simplified-entry-tags" *ngIf="entry.secondaryTag">
+                        <span class="simplified-entry-tag simplified-entry-tag--soft">{{ entry.secondaryTag }}</span>
+                      </span>
+
+                      <span class="simplified-entry-user-tags" *ngIf="entry.tags && entry.tags.length > 0">
+                        <span class="simplified-entry-tag" *ngFor="let tag of entry.tags" [ngStyle]="getTagBadgeStyle(tag)">{{ tag }}</span>
+                      </span>
+                    </span>
+
+                    <strong class="simplified-entry-value" [ngClass]="getSimplifiedEntryAmountClass(entry)">{{ formatCurrency(entry.amount) }}</strong>
+
+                    <div class="simplified-entry-actions">
+                      <div class="simplified-entry-actions-desktop">
+                        <button
+                          *ngIf="canSimplifiedEntryTogglePaid(entry)"
+                          type="button"
+                          class="simplified-entry-icon-action simplified-entry-icon-action--pay"
+                          [class.simplified-entry-icon-action--pay-active]="entry.paid"
+                          (click)="toggleSimplifiedEntryPaid(entry); $event.stopPropagation()"
+                          [disabled]="isSimplifiedEntryPayDisabled(entry)"
+                          [attr.aria-label]="getSimplifiedEntryPayLabel(entry)"
+                          [title]="getSimplifiedEntryPayLabel(entry)"
+                        >
+                          {{ getSimplifiedEntryPayLabel(entry) === '...' ? '...' : (entry.paid ? '✓' : '○') }}
+                        </button>
+
+                        <button
+                          *ngIf="entry.kind === 'event'"
+                          type="button"
+                          class="simplified-entry-icon-action"
+                          (click)="editSimplifiedEntry(entry); $event.stopPropagation()"
+                          [disabled]="!entry.event || isDeletingEvent(entry.event.id)"
+                          aria-label="Editar lancamento"
+                          title="Editar"
+                        >
+                          ✎
+                        </button>
+
+                        <button
+                          *ngIf="entry.kind === 'event'"
+                          type="button"
+                          class="simplified-entry-icon-action simplified-entry-icon-action--danger"
+                          (click)="deleteSimplifiedEntry(entry); $event.stopPropagation()"
+                          [disabled]="!entry.event || isDeletingEvent(entry.event.id)"
+                          aria-label="Excluir lancamento"
+                          title="Excluir"
+                        >
+                          {{ entry.event && isDeletingEvent(entry.event.id) ? '...' : '×' }}
+                        </button>
+
+                        <button
+                          *ngIf="entry.kind === 'card-forecast'"
+                          type="button"
+                          class="simplified-entry-icon-action simplified-entry-icon-action--primary"
+                          (click)="openCardForecastMonth(entry); $event.stopPropagation()"
+                          [attr.aria-label]="'Abrir fatura de ' + entry.title + ' em cartoes'"
+                          [title]="'Abrir cartao'"
+                        >
+                          💳
+                        </button>
+                      </div>
+
+                      <!-- Mobile menu -->
+                      <div class="simplified-entry-menu-mobile">
+                        <button
+                          type="button"
+                          class="simplified-entry-menu-button"
+                          (click)="toggleSimplifiedEntryMenu(entry); $event.stopPropagation()"
+                          [attr.aria-expanded]="openSimplifiedEntryMenuKey === entry.key"
+                          aria-label="Abrir menu de acoes"
+                        >
+                          ⋮
+                        </button>
+
+                        <div class="simplified-entry-menu-popup" *ngIf="openSimplifiedEntryMenuKey === entry.key">
+                          <button
+                            *ngIf="canSimplifiedEntryTogglePaid(entry)"
+                            type="button"
+                            class="simplified-entry-menu-item"
+                            (click)="toggleSimplifiedEntryPaid(entry); closeSimplifiedEntryMenus()"
+                            [disabled]="isSimplifiedEntryPayDisabled(entry)"
+                          >
+                            {{ getSimplifiedEntryPayLabel(entry) }}
+                          </button>
+
+                          <ng-container *ngIf="entry.kind === 'event'">
+                            <button
+                              type="button"
+                              class="simplified-entry-menu-item"
+                              (click)="editSimplifiedEntry(entry); closeSimplifiedEntryMenus()"
+                              [disabled]="!entry.event || isDeletingEvent(entry.event.id)"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              class="simplified-entry-menu-item simplified-entry-menu-item--danger"
+                              (click)="deleteSimplifiedEntry(entry); closeSimplifiedEntryMenus()"
+                              [disabled]="!entry.event || isDeletingEvent(entry.event.id)"
+                            >
+                              {{ entry.event && isDeletingEvent(entry.event.id) ? '...' : 'Excluir' }}
+                            </button>
+                          </ng-container>
+
+                          <button
+                            *ngIf="entry.kind === 'card-forecast'"
+                            type="button"
+                            class="simplified-entry-menu-item"
+                            (click)="openCardForecastMonth(entry); closeSimplifiedEntryMenus()"
+                          >
+                            Abrir cartao
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </ng-container>
+              </div>
+
+              <ng-template #simplifiedMonthEmpty>
+                <div class="simplified-empty">
+                  <strong>Sem lancamentos visiveis neste mes</strong>
+                  <p>Entradas, saidas, investimentos e faturas previstas aparecerao aqui em ordem de data.</p>
+                </div>
+              </ng-template>
+            </section>
+          </div>
+        </ng-container>
+
+        <ng-template #detailedMonthView>
         <div class="ledger-table">
           <div class="ledger-row ledger-row--head">
             <span>dia</span>
@@ -203,34 +452,46 @@
                           <span class="event-kind-icon">{{ getEventTypeIcon(event.type) }}</span>
                           <span>{{ getEventTypeLabel(event.type) }}</span>
                         </span>
-                        <span>{{ describeEvent(event, month.key) }}</span>
+                        <span class="day-event-content">
+                          <span class="day-event-description">{{ describeEvent(event, month.key) }}</span>
+                          <span class="day-event-tags" *ngIf="event.tags && event.tags.length > 0">
+                            <span class="day-event-tag" *ngFor="let tag of event.tags" [ngStyle]="getTagBadgeStyle(tag)">{{ tag }}</span>
+                          </span>
+                        </span>
                       </span>
                       <span class="day-event-actions">
                         <button
                           *ngIf="canTogglePaid(event)"
                           type="button"
-                          class="pay-event-button"
-                          [class.pay-event-button--paid]="isEventPaid(event)"
+                          class="day-event-quick-action day-event-quick-action--paid"
                           (click)="toggleEventPaid(month.key, event)"
                           [disabled]="isPayingEvent(event.id) || isDeletingEvent(event.id)"
+                          [attr.aria-label]="isEventPaid(event) ? 'Lancamento pago' : 'Marcar lancamento como pago'"
+                          [title]="isEventPaid(event) ? 'Pago' : 'Marcar pago'"
                         >
-                          {{ isPayingEvent(event.id) ? '...' : (isEventPaid(event) ? 'Pago' : 'Marcar pago') }}
+                          {{ isPayingEvent(event.id) ? '...' : (isEventPaid(event) ? '✓' : '○') }}
                         </button>
+
                         <button
                           type="button"
-                          class="edit-event-button"
+                          class="day-event-quick-action"
                           (click)="openEventActionPrompt('edit', month.key, event)"
                           [disabled]="isDeletingEvent(event.id)"
+                          aria-label="Editar lancamento"
+                          title="Editar"
                         >
-                          Editar
+                          ✎
                         </button>
+
                         <button
                           type="button"
-                          class="delete-event-button"
+                          class="day-event-quick-action day-event-quick-action--danger"
                           (click)="openEventActionPrompt('delete', month.key, event)"
                           [disabled]="isDeletingEvent(event.id)"
+                          aria-label="Excluir lancamento"
+                          title="Excluir"
                         >
-                          {{ isDeletingEvent(event.id) ? '...' : 'Excluir' }}
+                          {{ isDeletingEvent(event.id) ? '...' : '×' }}
                         </button>
                       </span>
                     </li>
@@ -245,7 +506,9 @@
                           <span class="event-kind-icon">💳</span>
                           <span>Cartao</span>
                         </span>
-                        <span>{{ getCardInvoiceForecastLabel(forecast) }}</span>
+                        <span class="day-event-content">
+                          <span class="day-event-description">{{ getCardInvoiceForecastLabel(forecast) }}</span>
+                        </span>
                       </span>
                       <span class="event-actions">
                         <button
@@ -269,8 +532,9 @@
             <span class="ledger-balance" [ngClass]="getBalanceClass(day.closingBalance)">{{ formatCurrency(day.closingBalance) }}</span>
           </div>
         </div>
+        </ng-template>
 
-        <div class="ledger-footer" aria-label="Resumo do mes">
+        <div class="ledger-footer" aria-label="Resumo do mes" *ngIf="viewMode !== '1month'">
           <article class="ledger-footer-item">
             <span
               class="ledger-footer-label"
@@ -351,7 +615,7 @@
                 <span class="event-kind-icon">{{ getEventTypeIcon(event.type) }}</span>
                 <span>{{ getEventTypeLabel(event.type) }}</span>
               </span>
-              <span>{{ describeEvent(event, activeDayDetails.month.key) }}</span>
+              <span class="day-event-description">{{ describeEvent(event, activeDayDetails.month.key) }}</span>
             </span>
             <span class="day-event-actions">
               <button
@@ -393,7 +657,7 @@
                 <span class="event-kind-icon">&#128179;</span>
                 <span>Cartao</span>
               </span>
-              <span>{{ getCardInvoiceForecastLabel(forecast) }}</span>
+              <span class="day-event-description">{{ getCardInvoiceForecastLabel(forecast) }}</span>
             </span>
             <span class="day-event-actions">
               <button
@@ -761,6 +1025,55 @@
         Etiqueta
         <input type="text" name="launchLabel" [(ngModel)]="launchForm.label" maxlength="40" placeholder="Ex: mercado, aluguel, renda extra" />
       </label>
+
+      <div class="launch-tags-section">
+        <label>
+          Tags (categorias)
+          <div class="launch-tags-input-row launch-tags-input-row--select">
+            <select
+              name="existingTagSelect"
+              [ngModel]="selectedExistingTag"
+              (ngModelChange)="onExistingTagSelected($event)"
+            >
+              <option [ngValue]="''">Selecionar tag existente</option>
+              <option *ngFor="let tag of availableTagsForSelection" [ngValue]="tag.name">{{ tag.name }}</option>
+            </select>
+          </div>
+
+          <div class="launch-tags-input-row">
+            <input 
+              type="text" 
+              name="newTagInput" 
+              [(ngModel)]="newTagInput" 
+              (keydown.enter)="onTagInputEnter($event)"
+              maxlength="30" 
+              placeholder="Criar nova tag" 
+            />
+            <button 
+              type="button" 
+              (click)="createNewTagFromInput()" 
+              class="btn-tag-add"
+              [disabled]="!newTagInput.trim()"
+            >
+              +
+            </button>
+          </div>
+        </label>
+
+        <div class="launch-tags-list" *ngIf="launchForm.tags.length > 0">
+          <span class="launch-tag-chip" *ngFor="let tag of launchForm.tags" [ngStyle]="getTagBadgeStyle(tag)">
+            {{ tag }}
+            <button 
+              type="button" 
+              class="launch-tag-remove" 
+              (click)="removeTagFromLaunch(tag)"
+              aria-label="Remover tag"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      </div>
 
       <label *ngIf="supportsRecurrence && !isEditingSingleLaunch">
         Tipo de recorrencia

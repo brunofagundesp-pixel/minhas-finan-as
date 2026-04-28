@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
-import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, MonthDefinition, RecurrenceKind, RepeatMode } from './finance-api.service';
-import { CardsTabComponent } from './cards-tab.component';
-import { AuthService } from './auth.service';
+import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, MonthDefinition, RecurrenceKind, RepeatMode } from './core/services/finance-api.service';
+import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.component';
+import { AuthService } from './core/services/auth.service';
 import { forkJoin } from 'rxjs';
 
 type LaunchType = EventType;
@@ -33,6 +33,8 @@ interface CardInvoiceForecast {
   cardName: string;
   amount: number;
   launchesCount: number;
+  invoiceYear: number;
+  invoiceMonth: number;
   isPaid?: boolean;
 }
 
@@ -69,6 +71,26 @@ interface MonthSummary {
   negativeDays: number;
   chartHeights: number[];
   projection: DayProjection[];
+}
+
+interface SimplifiedMonthEntry {
+  key: string;
+  monthKey: string;
+  kind: 'event' | 'card-forecast';
+  type: EventType | 'card';
+  title: string;
+  dateLabel: string;
+  tagLabel: string;
+  secondaryTag?: string;
+  tags?: string[];
+  amount: number;
+  statusLabel: string;
+  paid: boolean;
+  day: number;
+  monthYear: number;
+  monthNumber: number;
+  event?: FinancialEvent;
+  forecast?: CardInvoiceForecast;
 }
 
 interface WindowSummary {
@@ -110,6 +132,11 @@ interface DashboardExpenseSlice {
   color: string;
 }
 
+interface LaunchTagCatalogItem {
+  name: string;
+  color: string;
+}
+
 interface LaunchFormState {
   type: LaunchType;
   amount: number | null;
@@ -118,6 +145,7 @@ interface LaunchFormState {
   recurrenceKind: RecurrenceKind;
   repeatMode: RepeatMode;
   installments: number;
+  tags: string[];
 }
 
 interface LaunchDecisionAdvice {
@@ -170,6 +198,10 @@ export class AppComponent implements OnInit {
   private seededMonthsUserId: string | null = null;
 
   userMenuOpen = false;
+  mobileTopbarMenuOpen = false;
+  mobileEntriesControlsOpen = false;
+  mobileSimplifiedSummaryOpen = false;
+  openSimplifiedEntryMenuKey: string | null = null;
   darkMode = false;
 
   showOnboarding = false;
@@ -206,8 +238,9 @@ export class AppComponent implements OnInit {
     {
       icon: '📅',
       title: 'Modos de visualizacao',
-      body: 'Use os botoes no topo da aba Lancamentos para alternar entre tres modos:',
+      body: 'Use os botoes no topo da aba Lancamentos para alternar entre quatro modos:',
       bullets: [
+        'Simplificado — lista apenas os dias com movimento no mes, sem repetir o diario dia a dia',
         '3 meses — tres colunas lado a lado, ideal para acompanhamento diario',
         '12 meses — visao anual em blocos, otima para planejamento de longo prazo',
         'Personalizado — selecione exatamente os meses que quer comparar'
@@ -226,7 +259,7 @@ export class AppComponent implements OnInit {
     }
   ];
 
-  viewMode: 'custom' | '3month' | '12month' = '3month';
+  viewMode: 'custom' | '1month' | '3month' | '12month' = '3month';
   twelveMonthYear = new Date().getFullYear();
   customStartIndex = 0;
   customEndIndex = 2;
@@ -250,7 +283,8 @@ export class AppComponent implements OnInit {
     label: '',
     recurrenceKind: 'single',
     repeatMode: 'monthly',
-    installments: 1
+    installments: 1,
+    tags: []
   };
   launchAmountInput = '';
 
@@ -311,6 +345,12 @@ export class AppComponent implements OnInit {
     }
   ];
 
+  availableTags: LaunchTagCatalogItem[] = [];
+  newTagInput = '';
+  selectedExistingTag = '';
+
+  private readonly tagPalette = ['#1168d9', '#0f9f78', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#4d7c0f', '#be185d'];
+
   private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
@@ -365,10 +405,35 @@ export class AppComponent implements OnInit {
 
     this.loadMonths();
     this.loadCardForecastData();
+    this.loadAvailableTags();
   }
 
   toggleUserMenu(): void {
     this.userMenuOpen = !this.userMenuOpen;
+  }
+
+  toggleMobileTopbarMenu(): void {
+    this.mobileTopbarMenuOpen = !this.mobileTopbarMenuOpen;
+  }
+
+  toggleMobileEntriesControls(): void {
+    this.mobileEntriesControlsOpen = !this.mobileEntriesControlsOpen;
+  }
+
+  toggleMobileSimplifiedSummary(): void {
+    this.mobileSimplifiedSummaryOpen = !this.mobileSimplifiedSummaryOpen;
+  }
+
+  toggleSimplifiedEntryMenu(entry: SimplifiedMonthEntry): void {
+    if (this.openSimplifiedEntryMenuKey === entry.key) {
+      this.openSimplifiedEntryMenuKey = null;
+    } else {
+      this.openSimplifiedEntryMenuKey = entry.key;
+    }
+  }
+
+  closeSimplifiedEntryMenus(): void {
+    this.openSimplifiedEntryMenuKey = null;
   }
 
   toggleDarkMode(): void {
@@ -574,6 +639,34 @@ export class AppComponent implements OnInit {
     return `conic-gradient(${segments.join(', ')})`;
   }
 
+  get availableTagNames(): string[] {
+    return this.availableTags.map((tag) => tag.name);
+  }
+
+  get tagSuggestions(): LaunchTagCatalogItem[] {
+    const normalizedInput = this.normalizeTagName(this.newTagInput);
+    if (!normalizedInput) {
+      return [];
+    }
+
+    return this.availableTags
+      .filter((tag) => {
+        const normalizedName = this.normalizeTagName(tag.name);
+        if (!normalizedName.includes(normalizedInput)) {
+          return false;
+        }
+
+        return !this.launchForm.tags.some((selectedTag) => this.normalizeTagName(selectedTag) === normalizedName);
+      })
+      .slice(0, 6);
+  }
+
+  get availableTagsForSelection(): LaunchTagCatalogItem[] {
+    return this.availableTags.filter(
+      (tag) => !this.launchForm.tags.some((selected) => this.normalizeTagName(selected) === this.normalizeTagName(tag.name))
+    );
+  }
+
   get launchMonths(): MonthSummary[] {
     if (this.viewMode === '12month') {
       return this.monthSummaries.filter((month) => month.year === this.twelveMonthYear);
@@ -581,10 +674,17 @@ export class AppComponent implements OnInit {
     if (this.viewMode === 'custom') {
       return this.monthSummaries.slice(this.customStartIndex, this.customEndIndex + 1);
     }
+    if (this.viewMode === '1month') {
+      return this.monthSummaries.slice(this.windowStartIndex, this.windowStartIndex + 1);
+    }
     return this.visibleMonths;
   }
 
   get entriesTitle(): string {
+    if (this.viewMode === '1month') {
+      const month = this.launchMonths[0];
+      return month ? `${month.title} de ${month.year}` : 'Lancamentos';
+    }
     if (this.viewMode === '12month') {
       return `Lancamentos de ${this.twelveMonthYear}`;
     }
@@ -617,6 +717,14 @@ export class AppComponent implements OnInit {
 
   get canGoNext(): boolean {
     return this.viewMode !== 'custom' && this.monthSummaries.length > 0;
+  }
+
+  get singleMonthProgressLabel(): string {
+    if (!this.monthSummaries.length) {
+      return '0 de 0 meses';
+    }
+
+    return `${this.windowStartIndex + 1} de ${this.monthSummaries.length} meses`;
   }
 
   get twelveMonthWindowLabel(): string {
@@ -1142,6 +1250,148 @@ export class AppComponent implements OnInit {
     return `Fatura prevista ${forecast.cardName}: ${this.formatCurrency(forecast.amount)} (${launchLabel})`;
   }
 
+  getSimplifiedMonthEntries(month: MonthSummary): SimplifiedMonthEntry[] {
+    return month.projection
+      .flatMap((day) => {
+        const eventEntries = day.events
+          .filter((event) => event.type !== 'daily')
+          .map((event, index) => this.buildSimplifiedEventEntry(month, day, event, index));
+        const cardEntries = day.cardInvoiceForecasts
+          .map((forecast, index) => this.buildSimplifiedCardForecastEntry(month, day, forecast, index));
+
+        return [...eventEntries, ...cardEntries];
+      })
+      .sort((left, right) => {
+        if (left.day !== right.day) {
+          return left.day - right.day;
+        }
+
+        if (left.kind !== right.kind) {
+          return left.kind === 'event' ? -1 : 1;
+        }
+
+        return left.title.localeCompare(right.title);
+      });
+  }
+
+  getSimplifiedEntryAmountClass(entry: SimplifiedMonthEntry): string {
+    switch (entry.type) {
+      case 'income':
+        return 'simplified-entry-value--income';
+      case 'investment':
+        return 'simplified-entry-value--investment';
+      default:
+        return 'simplified-entry-value--expense';
+    }
+  }
+
+  getSimplifiedEntryStatusClass(entry: SimplifiedMonthEntry): string {
+    if (entry.paid) {
+      return 'simplified-entry-status--paid';
+    }
+
+    if (entry.type === 'expense' || entry.type === 'card') {
+      return 'simplified-entry-status--pending';
+    }
+
+    return 'simplified-entry-status--info';
+  }
+
+  canSimplifiedEntryTogglePaid(entry: SimplifiedMonthEntry): boolean {
+    if (entry.kind === 'card-forecast') {
+      return true;
+    }
+
+    return !!entry.event && this.canTogglePaid(entry.event);
+  }
+
+  isSimplifiedEntryPayDisabled(entry: SimplifiedMonthEntry): boolean {
+    if (entry.kind === 'card-forecast') {
+      const forecast = entry.forecast;
+      return !forecast || forecast.isPaid || this.isPayingInvoice(forecast.cardId, entry.monthYear, entry.monthNumber);
+    }
+
+    const event = entry.event;
+    return !event || this.isPayingEvent(event.id) || this.isDeletingEvent(event.id);
+  }
+
+  getSimplifiedEntryPayLabel(entry: SimplifiedMonthEntry): string {
+    if (entry.kind === 'card-forecast') {
+      const forecast = entry.forecast;
+      if (!forecast) {
+        return 'Pagar';
+      }
+
+      if (this.isPayingInvoice(forecast.cardId, entry.monthYear, entry.monthNumber)) {
+        return '...';
+      }
+
+      return forecast.isPaid ? 'Pago' : 'Pagar';
+    }
+
+    const event = entry.event;
+    if (!event) {
+      return 'Marcar pago';
+    }
+
+    if (this.isPayingEvent(event.id)) {
+      return '...';
+    }
+
+    return this.isEventPaid(event) ? 'Pago' : 'Marcar pago';
+  }
+
+  toggleSimplifiedEntryPaid(entry: SimplifiedMonthEntry): void {
+    if (!this.canSimplifiedEntryTogglePaid(entry) || this.isSimplifiedEntryPayDisabled(entry)) {
+      return;
+    }
+
+    if (entry.kind === 'card-forecast') {
+      const forecast = entry.forecast;
+      if (!forecast) {
+        return;
+      }
+
+      this.payCardInvoiceForecast(forecast.cardId, entry.monthYear, entry.monthNumber);
+      return;
+    }
+
+    if (!entry.event) {
+      return;
+    }
+
+    this.toggleEventPaid(entry.monthKey, entry.event);
+  }
+
+  editSimplifiedEntry(entry: SimplifiedMonthEntry): void {
+    if (!entry.event || this.isDeletingEvent(entry.event.id)) {
+      return;
+    }
+
+    this.openEventActionPrompt('edit', entry.monthKey, entry.event);
+  }
+
+  deleteSimplifiedEntry(entry: SimplifiedMonthEntry): void {
+    if (!entry.event || this.isDeletingEvent(entry.event.id)) {
+      return;
+    }
+
+    this.openEventActionPrompt('delete', entry.monthKey, entry.event);
+  }
+
+  openCardForecastMonth(entry: SimplifiedMonthEntry): void {
+    const forecast = entry.forecast;
+    if (!forecast) {
+      return;
+    }
+
+    this.setActiveTab('cards');
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.cardsTab?.focusInvoiceMonth(forecast.cardId, entry.monthYear, entry.monthNumber);
+    }, 0);
+  }
+
   isPayingInvoice(cardId: string, year: number, monthNumber: number): boolean {
     return this.payingInvoiceKeys.has(`${cardId}-${year}-${monthNumber}`);
   }
@@ -1315,6 +1565,7 @@ export class AppComponent implements OnInit {
 
   setActiveTab(tab: AppTab): void {
     this.activeTab = tab;
+    this.mobileTopbarMenuOpen = false;
   }
 
   retryLoadData(): void {
@@ -1449,6 +1700,10 @@ export class AppComponent implements OnInit {
     return `${event.seriesId ?? 'evt'}-${event.day}-${event.amount}-${event.type}-${index}`;
   }
 
+  trackSimplifiedEntryBy(_index: number, entry: SimplifiedMonthEntry): string {
+    return entry.key;
+  }
+
   hasSeries(event: FinancialEvent): boolean {
     return !!event.seriesId && event.recurrenceKind !== 'single';
   }
@@ -1507,8 +1762,10 @@ export class AppComponent implements OnInit {
     this.deleteEvent(monthKey, event.id, scope);
   }
 
-  setViewMode(mode: 'custom' | '3month' | '12month'): void {
+  setViewMode(mode: 'custom' | '1month' | '3month' | '12month'): void {
     this.viewMode = mode;
+    this.mobileEntriesControlsOpen = false;
+    this.mobileSimplifiedSummaryOpen = false;
 
     if (mode === '12month') {
       const anchor = this.visibleMonths[0] ?? this.monthSummaries[0];
@@ -1605,6 +1862,9 @@ export class AppComponent implements OnInit {
   }
 
   goToCurrentMonth(): void {
+    this.mobileEntriesControlsOpen = false;
+    this.mobileSimplifiedSummaryOpen = false;
+
     const today = new Date();
     const currentMonthIndex = this.findMonthIndex(today.getFullYear(), today.getMonth() + 1);
 
@@ -1621,6 +1881,11 @@ export class AppComponent implements OnInit {
     if (this.viewMode === '12month') {
       this.twelveMonthYear = today.getFullYear();
       this.ensureYearMonths(this.twelveMonthYear);
+      return;
+    }
+
+    if (this.viewMode === '1month') {
+      this.windowStartIndex = currentMonthIndex;
       return;
     }
 
@@ -1661,13 +1926,17 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    if (this.viewMode === '1month') {
+      this.mobileSimplifiedSummaryOpen = false;
+    }
+
     if (this.viewMode === '12month') {
       this.twelveMonthYear -= 1;
       this.ensureYearMonths(this.twelveMonthYear);
       return;
     }
 
-    const step = 3;
+    const step = this.viewMode === '1month' ? 1 : this.windowSize;
     this.windowStartIndex = Math.max(0, this.windowStartIndex - step);
   }
 
@@ -1676,14 +1945,18 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    if (this.viewMode === '1month') {
+      this.mobileSimplifiedSummaryOpen = false;
+    }
+
     if (this.viewMode === '12month') {
       this.twelveMonthYear += 1;
       this.ensureYearMonths(this.twelveMonthYear);
       return;
     }
 
-    const step = 3;
-    const visibleCount = this.windowSize;
+    const step = this.viewMode === '1month' ? 1 : this.windowSize;
+    const visibleCount = this.viewMode === '1month' ? 1 : this.windowSize;
     const requiredEnd = this.windowStartIndex + visibleCount + step;
     if (requiredEnd > this.monthSummaries.length) {
       this.ensureFutureMonths(requiredEnd - this.monthSummaries.length);
@@ -1703,6 +1976,7 @@ export class AppComponent implements OnInit {
     this.editingSourceMonthKey = null;
     this.editingAnchorDay = null;
     this.launchForm = this.createEmptyLaunchForm();
+    this.selectedExistingTag = '';
     this.syncLaunchAmountInput();
     this.isLaunchFormOpen = true;
   }
@@ -1744,8 +2018,10 @@ export class AppComponent implements OnInit {
       label: data.description,
       recurrenceKind: 'single',
       repeatMode: 'monthly',
-      installments: 1
+      installments: 1,
+      tags: []
     };
+    this.selectedExistingTag = '';
     this.syncLaunchAmountInput();
     this.isLaunchFormOpen = true;
   }
@@ -1770,8 +2046,10 @@ export class AppComponent implements OnInit {
       label: event.label,
       recurrenceKind: scope !== 'single' ? event.recurrenceKind ?? 'single' : 'single',
       repeatMode: scope !== 'single' ? event.repeatMode ?? 'monthly' : 'monthly',
-      installments: scope !== 'single' ? event.seriesOccurrences ?? 1 : 1
+      installments: scope !== 'single' ? event.seriesOccurrences ?? 1 : 1,
+      tags: event.tags ?? []
     };
+    this.selectedExistingTag = '';
     this.syncLaunchAmountInput();
     this.isLaunchFormOpen = true;
   }
@@ -1805,6 +2083,8 @@ export class AppComponent implements OnInit {
   closeLaunchForm(): void {
     this.isLaunchFormOpen = false;
     this.launchError = '';
+    this.newTagInput = '';
+    this.selectedExistingTag = '';
     this.saveAndNewLaunchRequested = false;
     this.editingEventId = null;
     this.editingSeriesId = null;
@@ -1933,6 +2213,8 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    this.commitPendingTagInput();
+
     const keepOpenAfterSave = this.saveAndNewLaunchRequested && !this.isEditingLaunch;
     this.saveAndNewLaunchRequested = false;
 
@@ -2012,7 +2294,9 @@ export class AppComponent implements OnInit {
       label,
       recurrenceKind,
       repeatMode,
-      installments
+      installments,
+      undefined,
+      this.launchForm.tags
     );
 
     if (!touchedMonths.length) {
@@ -2024,6 +2308,7 @@ export class AppComponent implements OnInit {
     forkJoin(touchedMonths.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
+        this.syncTagCatalogWithEvents();
         if (keepOpenAfterSave) {
           this.launchError = '';
           this.launchForm = this.createEmptyLaunchForm();
@@ -2257,7 +2542,8 @@ export class AppComponent implements OnInit {
       day: parsedDate.getDate(),
       amount,
       label,
-      type: this.launchForm.type
+      type: this.launchForm.type,
+      tags: this.launchForm.tags.length > 0 ? this.launchForm.tags : undefined
     };
 
     targetMonth.events = [...targetMonth.events, updatedEvent];
@@ -2514,7 +2800,8 @@ export class AppComponent implements OnInit {
       this.launchForm.recurrenceKind,
       this.launchForm.repeatMode,
       installments,
-      this.editingSeriesId
+      this.editingSeriesId,
+      this.launchForm.tags
     );
 
     const monthsToSave = this.monthDefinitions.filter((month) => {
@@ -2601,7 +2888,8 @@ export class AppComponent implements OnInit {
       this.launchForm.recurrenceKind,
       this.launchForm.repeatMode,
       installments,
-      this.editingSeriesId
+      this.editingSeriesId,
+      this.launchForm.tags
     );
 
     const monthsToSave = this.monthDefinitions.filter((month) => backups.has(month.key) || touchedMonths.some((item) => item.key === month.key));
@@ -2624,6 +2912,35 @@ export class AppComponent implements OnInit {
         this.launchError = 'Nao foi possivel salvar este lancamento e os proximos.';
       }
     });
+  }
+
+  getTagBadgeStyle(tagName: string): Record<string, string> {
+    const base = this.getTagColor(tagName);
+    return {
+      '--tag-bg': this.hexToRgba(base, 0.16),
+      '--tag-border': this.hexToRgba(base, 0.36),
+      '--tag-fg': base
+    };
+  }
+
+  selectSuggestedTag(tagName: string): void {
+    this.addTagToLaunch(tagName);
+    this.newTagInput = '';
+  }
+
+  onExistingTagSelected(tagName: string): void {
+    this.selectedExistingTag = tagName;
+    if (!tagName) {
+      return;
+    }
+
+    this.addTagToLaunch(tagName);
+    this.selectedExistingTag = '';
+  }
+
+  onTagInputEnter(event: Event): void {
+    event.preventDefault();
+    this.createNewTagFromInput();
   }
 
   private defaultLabelForType(type: LaunchType): string {
@@ -2650,7 +2967,8 @@ export class AppComponent implements OnInit {
       label: '',
       recurrenceKind: 'single',
       repeatMode: 'monthly',
-      installments: 1
+      installments: 1,
+      tags: []
     };
   }
 
@@ -2662,6 +2980,207 @@ export class AppComponent implements OnInit {
       recurrenceKind: 'fixed',
       installments: 1
     };
+  }
+
+  addTagToLaunch(tag: string): void {
+    const trimmedTag = this.normalizeTagLabel(tag);
+    if (!trimmedTag) {
+      return;
+    }
+
+    const catalogTag = this.findTagInCatalog(trimmedTag) ?? this.createCatalogTag(trimmedTag);
+    const tagExists = this.launchForm.tags.some(t => this.normalizeTagName(t) === this.normalizeTagName(catalogTag.name));
+    if (!tagExists) {
+      this.launchForm.tags.push(catalogTag.name);
+      this.newTagInput = '';
+    }
+  }
+
+  removeTagFromLaunch(tag: string): void {
+    this.launchForm.tags = this.launchForm.tags.filter(t => t !== tag);
+  }
+
+  createNewTagFromInput(): void {
+    const newTag = this.normalizeTagLabel(this.newTagInput);
+    if (!newTag) {
+      this.newTagInput = '';
+      return;
+    }
+
+    const existingTag = this.findTagInCatalog(newTag);
+    if (existingTag) {
+      this.addTagToLaunch(existingTag.name);
+      this.newTagInput = '';
+      return;
+    }
+
+    const createdTag = this.createCatalogTag(newTag);
+    this.addTagToLaunch(createdTag.name);
+    this.persistAvailableTags();
+  }
+
+  private commitPendingTagInput(): void {
+    if (!this.newTagInput.trim()) {
+      return;
+    }
+
+    this.createNewTagFromInput();
+  }
+
+  getTagColor(tagName: string): string {
+    return this.findTagInCatalog(tagName)?.color ?? '#1f5cc2';
+  }
+
+  private loadAvailableTags(): void {
+    const stored = localStorage.getItem('financial-tags');
+    if (!stored) {
+      this.availableTags = [];
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      this.availableTags = this.normalizeStoredTagCatalog(parsed);
+    } catch {
+      this.availableTags = [];
+    }
+  }
+
+  private persistAvailableTags(): void {
+    localStorage.setItem('financial-tags', JSON.stringify(this.availableTags));
+  }
+
+  private syncTagCatalogWithEvents(): void {
+    const normalizedNames = new Set(this.availableTags.map((tag) => this.normalizeTagName(tag.name)));
+    let changed = false;
+
+    for (const month of this.monthDefinitions) {
+      for (const event of month.events) {
+        for (const rawTag of event.tags ?? []) {
+          const tagName = this.normalizeTagLabel(rawTag);
+          if (!tagName) {
+            continue;
+          }
+
+          const normalizedName = this.normalizeTagName(tagName);
+          if (normalizedNames.has(normalizedName)) {
+            continue;
+          }
+
+          this.availableTags.push({
+            name: tagName,
+            color: this.pickTagColor(this.availableTags)
+          });
+          normalizedNames.add(normalizedName);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      this.persistAvailableTags();
+    }
+  }
+
+  private normalizeStoredTagCatalog(payload: unknown): LaunchTagCatalogItem[] {
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+
+    const normalized: LaunchTagCatalogItem[] = [];
+
+    for (const item of payload) {
+      if (typeof item === 'string') {
+        const label = this.normalizeTagLabel(item);
+        if (!label || normalized.some((tag) => this.normalizeTagName(tag.name) === this.normalizeTagName(label))) {
+          continue;
+        }
+
+        normalized.push({
+          name: label,
+          color: this.pickTagColor(normalized)
+        });
+        continue;
+      }
+
+      if (item && typeof item === 'object') {
+        const candidate = item as { name?: unknown; color?: unknown };
+        const label = this.normalizeTagLabel(String(candidate.name ?? ''));
+        if (!label || normalized.some((tag) => this.normalizeTagName(tag.name) === this.normalizeTagName(label))) {
+          continue;
+        }
+
+        const color = typeof candidate.color === 'string' && candidate.color.trim().length
+          ? candidate.color.trim()
+          : this.pickTagColor(normalized);
+
+        normalized.push({ name: label, color });
+      }
+    }
+
+    return normalized;
+  }
+
+  private createCatalogTag(tagName: string): LaunchTagCatalogItem {
+    const normalizedName = this.normalizeTagLabel(tagName);
+    const existing = this.findTagInCatalog(normalizedName);
+    if (existing) {
+      return existing;
+    }
+
+    const created: LaunchTagCatalogItem = {
+      name: normalizedName,
+      color: this.pickTagColor(this.availableTags)
+    };
+
+    this.availableTags = [...this.availableTags, created];
+    this.persistAvailableTags();
+    return created;
+  }
+
+  private findTagInCatalog(tagName: string): LaunchTagCatalogItem | undefined {
+    const normalized = this.normalizeTagName(tagName);
+    return this.availableTags.find((tag) => this.normalizeTagName(tag.name) === normalized);
+  }
+
+  private normalizeTagName(value: string): string {
+    return this.normalizeText(value).trim().toLocaleLowerCase('pt-BR');
+  }
+
+  private normalizeTagLabel(value: string): string {
+    const normalized = this.normalizeText(value).trim();
+    if (!normalized) {
+      return '';
+    }
+
+    return normalized.replace(/\s+/g, ' ');
+  }
+
+  private pickTagColor(catalog: LaunchTagCatalogItem[]): string {
+    const usedColors = new Set(catalog.map((tag) => tag.color.toLowerCase()));
+    const availableColor = this.tagPalette.find((color) => !usedColors.has(color.toLowerCase()));
+    if (availableColor) {
+      return availableColor;
+    }
+
+    return this.tagPalette[catalog.length % this.tagPalette.length];
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const cleaned = hex.replace('#', '');
+    if (cleaned.length !== 6) {
+      return `rgba(31, 92, 194, ${alpha})`;
+    }
+
+    const r = parseInt(cleaned.slice(0, 2), 16);
+    const g = parseInt(cleaned.slice(2, 4), 16);
+    const b = parseInt(cleaned.slice(4, 6), 16);
+
+    if ([r, g, b].some((component) => Number.isNaN(component))) {
+      return `rgba(31, 92, 194, ${alpha})`;
+    }
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
   private getDailyRepeatMode(): RepeatMode | null {
@@ -2721,6 +3240,7 @@ export class AppComponent implements OnInit {
           this.windowStartIndex = 0;
           this.customStartIndex = 0;
           this.customEndIndex = 0;
+          this.syncTagCatalogWithEvents();
           this.isLoading = false;
           return;
         }
@@ -2730,6 +3250,8 @@ export class AppComponent implements OnInit {
         if (!hadMonthsBefore) {
           this.syncWindowToCurrentMonth();
         }
+
+        this.syncTagCatalogWithEvents();
 
         this.isLoading = false;
       },
@@ -2769,7 +3291,8 @@ export class AppComponent implements OnInit {
     recurrenceKind: RecurrenceKind,
     repeatMode: RepeatMode,
     installments: number,
-    forcedSeriesId?: string
+    forcedSeriesId?: string,
+    tags?: string[]
   ): MonthDefinition[] {
     const touched = new Map<string, MonthDefinition>();
     const startIndex = this.findMonthIndex(startDate.getFullYear(), startDate.getMonth() + 1);
@@ -2783,7 +3306,7 @@ export class AppComponent implements OnInit {
     const day = startDate.getDate();
 
     if (recurrenceKind === 'single') {
-      this.pushEventToMonth(this.monthDefinitions[startIndex], this.createEvent(day, label, amount, type), touched);
+      this.pushEventToMonth(this.monthDefinitions[startIndex], this.createEvent(day, label, amount, type, undefined, undefined, undefined, undefined, tags), touched);
       return Array.from(touched.values());
     }
 
@@ -2794,7 +3317,7 @@ export class AppComponent implements OnInit {
       for (let offset = 0; offset < totalOccurrences; offset += 1) {
         this.pushEventToMonth(
           this.monthDefinitions[startIndex + offset],
-          this.createEvent(day, label, amount, type, seriesId, recurrenceKind, repeatMode, seriesOccurrences),
+          this.createEvent(day, label, amount, type, seriesId, recurrenceKind, repeatMode, seriesOccurrences, tags),
           touched
         );
       }
@@ -2813,7 +3336,7 @@ export class AppComponent implements OnInit {
       if (monthIndex >= 0) {
         this.pushEventToMonth(
           this.monthDefinitions[monthIndex],
-          this.createEvent(cursor.getDate(), label, amount, type, seriesId, recurrenceKind, repeatMode, seriesOccurrences),
+          this.createEvent(cursor.getDate(), label, amount, type, seriesId, recurrenceKind, repeatMode, seriesOccurrences, tags),
           touched
         );
 
@@ -3346,7 +3869,8 @@ export class AppComponent implements OnInit {
     seriesId?: string,
     recurrenceKind?: RecurrenceKind,
     repeatMode?: RepeatMode,
-    seriesOccurrences?: number | null
+    seriesOccurrences?: number | null,
+    tags?: string[]
   ): FinancialEvent {
     return {
       id: this.generateEventId(),
@@ -3357,7 +3881,8 @@ export class AppComponent implements OnInit {
       day,
       label,
       amount,
-      type
+      type,
+      tags: tags && tags.length > 0 ? tags : undefined
     };
   }
 
@@ -3410,6 +3935,58 @@ export class AppComponent implements OnInit {
       : seriesEvents.length;
 
     return `${fallbackIndex + 1}/${total}`;
+  }
+
+  private buildSimplifiedEventEntry(month: MonthSummary, day: DayProjection, event: FinancialEvent, index: number): SimplifiedMonthEntry {
+    const installmentRef = this.getInstallmentReference(event, month.key);
+    const typeLabel = this.getEventTypeLabel(event.type);
+    const isExpense = event.type === 'expense';
+    const statusLabel = isExpense
+      ? (this.isEventPaid(event) ? 'Pago' : 'Em aberto')
+      : (event.type === 'income' ? 'Previsto' : 'Planejado');
+
+    return {
+      key: event.id ?? `${month.key}-${day.day}-${event.type}-${index}`,
+      monthKey: month.key,
+      kind: 'event',
+      type: event.type,
+      title: this.normalizeText(event.label),
+      dateLabel: this.formatDateLabel(new Date(month.year, month.monthNumber - 1, day.day)),
+      tagLabel: typeLabel,
+      secondaryTag: installmentRef ? `Parcela ${installmentRef}` : undefined,
+      tags: event.tags,
+      amount: event.amount,
+      statusLabel,
+      paid: this.isEventPaid(event),
+      day: day.day,
+      monthYear: month.year,
+      monthNumber: month.monthNumber,
+      event,
+    };
+  }
+
+  private buildSimplifiedCardForecastEntry(month: MonthSummary, day: DayProjection, forecast: CardInvoiceForecast, index: number): SimplifiedMonthEntry {
+    const launchesLabel = forecast.launchesCount === 1 ? '1 compra' : `${forecast.launchesCount} compras`;
+    const invoiceYear = forecast.invoiceYear || month.year;
+    const invoiceMonth = forecast.invoiceMonth || month.monthNumber;
+
+    return {
+      key: `card-${forecast.cardId}-${month.key}-${day.day}-${index}`,
+      monthKey: month.key,
+      kind: 'card-forecast',
+      type: 'card',
+      title: `Fatura ${forecast.cardName}`,
+      dateLabel: this.formatDateLabel(new Date(month.year, month.monthNumber - 1, day.day)),
+      tagLabel: 'Cartao',
+      secondaryTag: launchesLabel,
+      amount: forecast.amount,
+      statusLabel: forecast.isPaid ? 'Pago' : 'Abrir cartao',
+      paid: !!forecast.isPaid,
+      day: day.day,
+      monthYear: invoiceYear,
+      monthNumber: invoiceMonth,
+      forecast,
+    };
   }
 
   private normalizeText(text: string): string {
@@ -3751,6 +4328,8 @@ export class AppComponent implements OnInit {
       if (existing) {
         existing.amount = Number((existing.amount + launch.amount).toFixed(2));
         existing.launchesCount += 1;
+        existing.invoiceYear = invoiceMonth.year;
+        existing.invoiceMonth = invoiceMonth.month;
         existing.isPaid = !!existing.isPaid && !!launch.paid;
       } else {
         forecasts.push({
@@ -3758,6 +4337,8 @@ export class AppComponent implements OnInit {
           cardName: card.name,
           amount: Number(launch.amount.toFixed(2)),
           launchesCount: 1,
+          invoiceYear: invoiceMonth.year,
+          invoiceMonth: invoiceMonth.month,
           isPaid: !!launch.paid
         });
       }
