@@ -1562,6 +1562,17 @@ export class AppComponent implements OnInit {
     }
   }
 
+  closeDayNotes(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const trigger = event.target as HTMLElement | null;
+    const details = trigger?.closest('details.day-notes') as HTMLDetailsElement | null;
+    if (details) {
+      details.open = false;
+      details.classList.remove('day-notes--upward');
+    }
+  }
+
   openDayDetails(month: MonthSummary, day: DayProjection): void {
     this.activeDayDetails = { month, day };
   }

@@ -690,18 +690,21 @@
 	left: 0;
 	top: calc(100% + 6px);
 	width: max-content;
-	min-width: 240px;
-	max-width: min(440px, calc(100vw - 24px));
+	min-width: 320px;
+	max-width: min(560px, calc(100vw - 24px));
 	padding: 8px 10px;
+	max-height: min(70vh, 560px);
 	border-radius: 10px;
 	border: 1px solid #cfd8e8;
 	background: #ffffff;
 	box-shadow: 0 8px 18px rgba(29, 42, 62, 0.18);
 	z-index: 30;
+	overflow: hidden;
+	display: none;
 
 	strong {
 		display: block;
-		margin: 0 0 6px;
+		margin: 0;
 		font-size: 0.7rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
@@ -713,6 +716,9 @@
 		padding-left: 14px;
 		display: grid;
 		gap: 4px;
+		overflow: auto;
+		max-height: calc(min(70vh, 560px) - 42px);
+		padding-right: 2px;
 	}
 
 	li {
@@ -725,6 +731,28 @@
 		color: var(--ink-strong);
 		padding: 3px 0;
 	}
+}
+
+.day-notes-popover-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+
+.day-notes-close-button {
+	width: 24px;
+	height: 24px;
+	border-radius: 999px;
+	border: 1px solid #d4dae5;
+	background: #f5f7fa;
+	color: #6b7788;
+	font: inherit;
+	font-size: 0.95rem;
+	line-height: 1;
+	cursor: pointer;
+	flex-shrink: 0;
 }
 
 .day-details-mobile-backdrop {
@@ -832,17 +860,20 @@
 }
 
 .day-event-main {
-	display: inline-flex;
-	align-items: center;
+	display: flex;
+	align-items: flex-start;
+	flex-wrap: wrap;
 	gap: 6px;
 	min-width: 0;
 	flex: 1;
 	max-width: 100%;
 }
 
-.day-event-main > span:last-child {
+.day-event-main > span:nth-child(2) {
 	white-space: normal;
 	word-break: break-word;
+	flex: 1 1 140px;
+	min-width: 0;
 }
 
 .event-paid-badge {
@@ -860,6 +891,7 @@
 	letter-spacing: 0.03em;
 	text-transform: uppercase;
 	flex-shrink: 0;
+	white-space: nowrap;
 }
 
 .event-paid-badge--paid {
