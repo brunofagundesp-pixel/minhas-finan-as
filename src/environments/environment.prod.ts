@@ -3,7 +3,7 @@ export const environment = {
   appUrl: 'https://previsa.web.app',
   firebase: {
     apiKey: 'AIzaSyCp-DVWCcRwJvCQwb0i0xuyMTl1geKDDYA',
-    authDomain: 'previsa.firebaseapp.com',
+    authDomain: 'minhas-financas-75277.firebaseapp.com',
     projectId: 'minhas-financas-75277',
     storageBucket: 'minhas-financas-75277.firebasestorage.app',
     messagingSenderId: '694437607652',
