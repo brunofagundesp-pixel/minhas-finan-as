@@ -3729,8 +3729,9 @@ export class AppComponent implements OnInit {
       }
 
       const invoiceMonth = this.getCardInvoiceMonthForDate(launch.date, card);
-      const dueDay = this.getSafeDayForMonth(invoiceMonth.year, invoiceMonth.month, card.dueDay);
-      const monthKey = this.getYearMonthKey(invoiceMonth.year, invoiceMonth.month);
+      const dueDate = this.getDueDateForInvoiceMonth(invoiceMonth, card);
+      const dueDay = dueDate.getDate();
+      const monthKey = this.getYearMonthKey(dueDate.getFullYear(), dueDate.getMonth() + 1);
       const dayTotals = result.get(monthKey) ?? new Map<number, CardInvoiceForecast[]>();
       const forecasts = dayTotals.get(dueDay) ?? [];
       const cardId = String(card.id ?? launch.cardId);
@@ -3797,13 +3798,14 @@ export class AppComponent implements OnInit {
   }
 
   private getDueDateForInvoiceMonth(invoiceMonth: { year: number; month: number }, card: CreditCard): Date {
-    const dueDay = this.getSafeDayForMonth(invoiceMonth.year, invoiceMonth.month, card.dueDay);
-    return new Date(invoiceMonth.year, invoiceMonth.month - 1, dueDay);
+    const dueRef = new Date(invoiceMonth.year, invoiceMonth.month, 1);
+    const dueDay = this.getSafeDayForMonth(dueRef.getFullYear(), dueRef.getMonth() + 1, card.dueDay);
+    return new Date(dueRef.getFullYear(), dueRef.getMonth(), dueDay);
   }
 
   private getClosingDateForInvoiceMonth(invoiceMonth: { year: number; month: number }, card: CreditCard): Date {
-    const dueDate = this.getDueDateForInvoiceMonth(invoiceMonth, card);
-    const closingDate = new Date(dueDate);
+    const closingDay = this.getSafeDayForMonth(invoiceMonth.year, invoiceMonth.month, card.dueDay);
+    const closingDate = new Date(invoiceMonth.year, invoiceMonth.month - 1, closingDay);
     closingDate.setDate(closingDate.getDate() - card.closeDaysBefore);
     return closingDate;
   }

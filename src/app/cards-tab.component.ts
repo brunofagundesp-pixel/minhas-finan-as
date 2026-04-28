@@ -1145,21 +1145,21 @@ export class CardsTabComponent implements OnInit {
   }
 
   private getDueDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
-    return new Date(invoiceMonth.year, invoiceMonth.month - 1, card.dueDay);
+    const dueRef = new Date(invoiceMonth.year, invoiceMonth.month, 1);
+    const dueDay = new Date(dueRef.getFullYear(), dueRef.getMonth() + 1, 0).getDate();
+    return new Date(dueRef.getFullYear(), dueRef.getMonth(), Math.min(card.dueDay, dueDay));
   }
 
   private getClosingDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
-    const dueDate = this.getDueDateForInvoiceMonth(invoiceMonth, card);
-    const closingDate = new Date(dueDate);
+    const anchorDay = new Date(invoiceMonth.year, invoiceMonth.month, 0).getDate();
+    const closingDate = new Date(invoiceMonth.year, invoiceMonth.month - 1, Math.min(card.dueDay, anchorDay));
     closingDate.setDate(closingDate.getDate() - card.closeDaysBefore);
     return closingDate;
   }
 
   private getCycleStartDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
-    const dueDate = this.getDueDateForInvoiceMonth(invoiceMonth, card);
-    const previousDueDate = new Date(dueDate.getFullYear(), dueDate.getMonth() - 1, card.dueDay);
-    const previousClosingDate = new Date(previousDueDate);
-    previousClosingDate.setDate(previousClosingDate.getDate() - card.closeDaysBefore);
+    const previousInvoiceMonth = this.shiftInvoiceMonth(invoiceMonth, -1);
+    const previousClosingDate = this.getClosingDateForInvoiceMonth(previousInvoiceMonth, card);
     previousClosingDate.setDate(previousClosingDate.getDate() + 1);
     return previousClosingDate;
   }
