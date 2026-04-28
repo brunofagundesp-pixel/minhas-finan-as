@@ -3,22 +3,26 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { AngularFireModule } from '@angular/fire/compat';
 import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
+import { AngularFireAuthModule } from '@angular/fire/compat/auth';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CardsTabComponent } from './cards-tab.component';
+import { LoginComponent } from './login.component';
 import { environment } from '../environments/environment';
 
 @NgModule({
   declarations: [
     AppComponent,
-    CardsTabComponent
+    CardsTabComponent,
+    LoginComponent
   ],
   imports: [
     BrowserModule,
     FormsModule,
     AngularFireModule.initializeApp(environment.firebase),
     AngularFirestoreModule,
+    AngularFireAuthModule,
     AppRoutingModule
   ],
   providers: [],

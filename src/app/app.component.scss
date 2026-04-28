@@ -56,6 +56,41 @@
 	gap: 4px;
 }
 
+.topbar-user {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-left: auto;
+}
+
+.topbar-user-name {
+	font-size: 0.82rem;
+	color: var(--ink-soft);
+	max-width: 180px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.btn-logout {
+	border: 1px solid #d4dae5;
+	background: transparent;
+	border-radius: 6px;
+	font: inherit;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--ink-soft);
+	padding: 5px 12px;
+	cursor: pointer;
+	transition: background 150ms ease, color 150ms ease;
+
+	&:hover {
+		background: #fee2e2;
+		border-color: #fca5a5;
+		color: #b91c1c;
+	}
+}
+
 .tab-button {
 	border: 0;
 	background: transparent;

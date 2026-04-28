@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "deploy": "ng build --configuration production && firebase deploy --only hosting"
   },
   "private": true,
   "dependencies": {
@@ -30,6 +31,7 @@
     "@angular/compiler-cli": "^15.2.0",
     "@types/jasmine": "~4.3.0",
     "concurrently": "^9.1.2",
+    "firebase-admin": "^13.8.0",
     "jasmine-core": "~4.5.0",
     "json-server": "^1.0.0-beta.3",
     "karma": "~6.4.0",

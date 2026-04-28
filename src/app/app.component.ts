@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, MonthDefinition, RecurrenceKind, RepeatMode } from './finance-api.service';
 import { CardsTabComponent } from './cards-tab.component';
+import { AuthService } from './auth.service';
 import { forkJoin } from 'rxjs';
 
 type LaunchType = EventType;
@@ -232,7 +233,7 @@ export class AppComponent implements OnInit {
     projection: []
   };
 
-  constructor(private readonly financeApi: FinanceApiService) {}
+  constructor(private readonly financeApi: FinanceApiService, public readonly auth: AuthService) {}
 
   ngOnInit(): void {
     this.loadMonths();

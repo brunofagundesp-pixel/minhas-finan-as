@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
+  appUrl: 'http://localhost:4200',
   firebase: {
     apiKey: 'AIzaSyCp-DVWCcRwJvCQwb0i0xuyMTl1geKDDYA',
     authDomain: 'minhas-financas-75277.firebaseapp.com',

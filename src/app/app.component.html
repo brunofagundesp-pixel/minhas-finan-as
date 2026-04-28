@@ -1,8 +1,9 @@
+<ng-container *ngIf="(auth.user$ | async) !== null; else loginTpl">
 <main class="shell">
   <header class="topbar">
     <div class="topbar-brand">
-      <p class="eyebrow">minhas financas</p>
-      <h1 class="app-title">Controle de caixa</h1>
+      <p class="eyebrow">previsa</p>
+      <h1 class="app-title">Previsa</h1>
       <p class="topbar-subtitle">lancamentos diarios + dashboard de previsibilidade</p>
     </div>
 
@@ -17,6 +18,13 @@
         Cartoes
       </button>
     </nav>
+
+    <div class="topbar-user" *ngIf="auth.user$ | async as user">
+      <span class="topbar-user-name" title="{{ user.email ?? '' }}">{{ user.displayName || user.email }}</span>
+      <button class="btn-logout" type="button" (click)="auth.logout()" title="Sair">
+        Sair
+      </button>
+    </div>
   </header>
 
   <section *ngIf="activeTab === 'entries'" class="entries-view">
@@ -624,3 +632,8 @@
     </form>
   </div>
 </main>
+</ng-container>
+
+<ng-template #loginTpl>
+  <app-login></app-login>
+</ng-template>
