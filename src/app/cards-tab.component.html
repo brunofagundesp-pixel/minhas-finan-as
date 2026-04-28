@@ -215,7 +215,7 @@
     <div class="launch-grid two-cols">
       <label>
         Valor (R$) *
-        <input type="number" name="launchAmount" [(ngModel)]="launchForm.amount" min="0.01" step="0.01" placeholder="0,00" required />
+        <input type="text" name="launchAmount" [ngModel]="launchAmountInput" (ngModelChange)="onLaunchAmountInputChange($event)" inputmode="numeric" autocomplete="off" placeholder="0,00" required />
       </label>
 
       <label>

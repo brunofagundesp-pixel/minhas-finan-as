@@ -74,6 +74,7 @@ export class CardsTabComponent implements OnInit {
   launchRepeatFilter: 'all' | 'single' | 'installment' | 'fixed' = 'all';
   invoiceMonth: InvoiceMonth = this.currentYearMonth();
   launchForm: CardLaunchFormState = this.createEmptyLaunchForm();
+  launchAmountInput = '';
 
   readonly cardTypeOptions = ['Cartao de Credito'];
   private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
@@ -572,6 +573,7 @@ export class CardsTabComponent implements OnInit {
       this.getSuggestedLaunchDate(),
       this.formatInvoiceMonthRef(this.invoiceMonth)
     );
+    this.syncLaunchAmountInput();
     this.launchError = null;
     this.isLaunchModalOpen = true;
   }
@@ -617,8 +619,15 @@ export class CardsTabComponent implements OnInit {
       notes: launch.notes,
       tags: launch.tags,
     };
+    this.syncLaunchAmountInput();
     this.launchError = null;
     this.isLaunchModalOpen = true;
+  }
+
+  onLaunchAmountInputChange(rawValue: string): void {
+    const masked = this.maskCurrencyFromDigits(rawValue);
+    this.launchAmountInput = masked.display;
+    this.launchForm.amount = masked.amount;
   }
 
   closeLaunchModal(): void {
@@ -911,6 +920,30 @@ export class CardsTabComponent implements OnInit {
       notes: '',
       tags: '',
     };
+  }
+
+  private syncLaunchAmountInput(): void {
+    this.launchAmountInput = this.launchForm.amount === null ? '' : this.formatCurrencyInput(this.launchForm.amount);
+  }
+
+  private maskCurrencyFromDigits(rawValue: string): { display: string; amount: number | null } {
+    const digits = (rawValue ?? '').replace(/\D/g, '');
+    if (!digits) {
+      return { display: '', amount: null };
+    }
+
+    const amount = Number((Number(digits) / 100).toFixed(2));
+    return {
+      display: this.formatCurrencyInput(amount),
+      amount
+    };
+  }
+
+  private formatCurrencyInput(value: number): string {
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   }
 
   private hasRecurringDeleteOptions(launch: CardLaunch): boolean {

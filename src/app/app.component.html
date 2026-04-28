@@ -651,7 +651,7 @@
 
       <label>
         Valor
-        <input type="number" name="launchAmount" [(ngModel)]="launchForm.amount" min="0.01" step="0.01" placeholder="0,00" />
+        <input type="text" name="launchAmount" [ngModel]="launchAmountInput" (ngModelChange)="onLaunchAmountInputChange($event)" inputmode="numeric" autocomplete="off" placeholder="0,00" />
       </label>
 
       <label>
@@ -684,6 +684,11 @@
       </label>
 
       <p class="launch-preview" *ngIf="recurrencePreviewText">{{ recurrencePreviewText }}</p>
+      <div class="launch-advice" *ngIf="launchDecisionAdvice as advice" [class.launch-advice--good]="advice.tone === 'good'" [class.launch-advice--warn]="advice.tone === 'warn'" [class.launch-advice--risk]="advice.tone === 'risk'">
+        <strong>{{ advice.title }}</strong>
+        <p>{{ advice.summary }}</p>
+        <small>{{ advice.detail }}</small>
+      </div>
       <p class="launch-help">Para tipo Diario, o valor atualiza o custo diario do mes selecionado pela data.</p>
       <p class="launch-error" *ngIf="launchError">{{ launchError }}</p>
 
@@ -714,7 +719,7 @@
 
       <label>
         Valor do diario
-        <input type="number" name="dailyAmount" [(ngModel)]="dailyForm.amount" min="0.01" step="0.01" placeholder="0,00" />
+        <input type="text" name="dailyAmount" [ngModel]="dailyAmountInput" (ngModelChange)="onDailyAmountInputChange($event)" inputmode="numeric" autocomplete="off" placeholder="0,00" />
       </label>
 
       <label>

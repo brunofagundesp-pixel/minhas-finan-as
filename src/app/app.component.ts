@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, MonthDefinition, RecurrenceKind, RepeatMode } from './finance-api.service';
 import { CardsTabComponent } from './cards-tab.component';
 import { AuthService } from './auth.service';
@@ -115,6 +115,13 @@ interface LaunchFormState {
   installments: number;
 }
 
+interface LaunchDecisionAdvice {
+  tone: 'good' | 'warn' | 'risk';
+  title: string;
+  summary: string;
+  detail: string;
+}
+
 interface DailyFormState {
   amount: number | null;
   effectiveDate: string;
@@ -141,6 +148,8 @@ type AppTab = 'entries' | 'dashboard' | 'cards';
 export class AppComponent implements OnInit {
   readonly title = 'minhas-financas';
   private readonly windowSize = 3;
+  private readonly planningHorizonMonths = 24;
+  private readonly planningEndYear = 2028;
   activeTab: AppTab = 'entries';
   windowStartIndex = 0;
   isLoading = true;
@@ -237,6 +246,8 @@ export class AppComponent implements OnInit {
     repeatMode: 'monthly',
     installments: 1
   };
+  launchAmountInput = '';
+
   dailyForm: DailyFormState = {
     amount: null,
     effectiveDate: '',
@@ -244,6 +255,7 @@ export class AppComponent implements OnInit {
     recurrenceKind: 'fixed',
     installments: 1
   };
+  dailyAmountInput = '';
 
   @ViewChild('cardsTab', { static: false }) cardsTab?: CardsTabComponent;
 
@@ -323,7 +335,7 @@ export class AppComponent implements OnInit {
     projection: []
   };
 
-  constructor(private readonly financeApi: FinanceApiService, public readonly auth: AuthService) {}
+  constructor(private readonly financeApi: FinanceApiService, public readonly auth: AuthService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     const saved = localStorage.getItem('previsa-dark');
@@ -710,6 +722,7 @@ export class AppComponent implements OnInit {
     const first = this.formatMonthRef(preview.firstMonthIndex);
     const last = this.formatMonthRef(preview.lastMonthIndex);
     const isInstallment = this.launchForm.recurrenceKind === 'installment';
+    const isFixedSeries = this.launchForm.recurrenceKind === 'fixed';
     const valueStr = this.formatCurrency(this.launchForm.amount || 0);
 
     if (preview.occurrences === 1) {
@@ -720,7 +733,352 @@ export class AppComponent implements OnInit {
       return `Vai criar ${preview.occurrences} parcelas de ${valueStr} cada entre ${first} e ${last}. O valor inserido ja e o valor de cada parcela.`;
     }
 
+    if (isFixedSeries) {
+      return `Vai criar lancamentos recorrentes de ${valueStr} entre ${first} e ${last}. A serie continua nos novos meses ate voce excluir.`;
+    }
+
     return `Vai criar ${preview.occurrences} lancamentos de ${valueStr} entre ${first} e ${last}.`;
+  }
+
+  get launchDecisionAdvice(): LaunchDecisionAdvice | null {
+    if (this.isDailyFormOpen || this.isEditingLaunch) {
+      return null;
+    }
+
+    if (!this.launchForm.date || !this.monthDefinitions.length) {
+      return null;
+    }
+
+    if (this.launchForm.amount === null || Number.isNaN(this.launchForm.amount) || this.launchForm.amount <= 0) {
+      return null;
+    }
+
+    const parsedDate = new Date(`${this.launchForm.date}T00:00:00`);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return null;
+    }
+
+    const startIndex = this.findMonthIndex(parsedDate.getFullYear(), parsedDate.getMonth() + 1);
+    if (startIndex < 0) {
+      return null;
+    }
+
+    const installments = this.showInstallmentsField ? this.launchForm.installments : 1;
+    const scenarioMonths = this.cloneMonthDefinitions(this.monthDefinitions);
+    const touchedMonths = this.applyRecurringLaunchesToDefinitions(
+      scenarioMonths,
+      parsedDate,
+      this.launchForm.type,
+      Number(this.launchForm.amount.toFixed(2)),
+      this.normalizeText(this.launchForm.label.trim()) || this.defaultLabelForType(this.launchForm.type),
+      this.launchForm.recurrenceKind,
+      this.launchForm.repeatMode,
+      installments
+    );
+
+    if (!touchedMonths.length) {
+      return null;
+    }
+
+    const currentSummaries = this.monthSummaries;
+    const scenarioSummaries = this.buildMonthSummariesFor(scenarioMonths);
+
+    // Encontrar primeiro dia no vermelho em cada cenário
+    const findFirstRedDay = (summaries: MonthSummary[]): { day: string; balance: number } | null => {
+      for (const month of summaries) {
+        const redDay = month.projection.find((day) => day.closingBalance < 0);
+        if (redDay) {
+          return { day: `${redDay.day} de ${month.title}`, balance: redDay.closingBalance };
+        }
+      }
+      return null;
+    };
+
+    const currentRed = findFirstRedDay(currentSummaries);
+    const scenarioRed = findFirstRedDay(scenarioSummaries);
+
+    const currentWorst = currentSummaries.length
+      ? Math.min(...currentSummaries.flatMap((month) => month.projection.map((day) => day.closingBalance)))
+      : 0;
+    const scenarioWorst = scenarioSummaries.length
+      ? Math.min(...scenarioSummaries.flatMap((month) => month.projection.map((day) => day.closingBalance)))
+      : 0;
+    const worstDelta = Number((scenarioWorst - currentWorst).toFixed(2));
+
+    // Encontrar melhor saldo após o lançamento (se voltou a positivo)
+    const launchDateObj = new Date(`${this.launchForm.date}T00:00:00`);
+    const findBestAfterLaunch = (summaries: MonthSummary[]): number => {
+      let best = 0;
+      let foundLaunch = false;
+      for (const month of summaries) {
+        for (const day of month.projection) {
+          const dayDate = new Date(month.year, month.monthNumber - 1, day.day);
+          if (!foundLaunch && dayDate >= launchDateObj) {
+            foundLaunch = true;
+          }
+          if (foundLaunch && day.closingBalance > best) {
+            best = day.closingBalance;
+          }
+        }
+      }
+      return best;
+    };
+
+    const bestAfterLaunch = findBestAfterLaunch(scenarioSummaries);
+
+    // Encontrar saldo no dia específico do lançamento (ANTES de aplicar)
+    const findDayBalance = (summaries: MonthSummary[], date: Date): number | null => {
+      for (const month of summaries) {
+        if (month.year === date.getFullYear() && month.monthNumber === date.getMonth() + 1) {
+          const day = month.projection.find((d) => d.day === date.getDate());
+          return day ? day.closingBalance : null;
+        }
+      }
+      return null;
+    };
+
+    const currentDayBalance = findDayBalance(currentSummaries, parsedDate);
+
+    // Encontrar próximo dia com saldo bom (>500) após o lançamento
+    const findNextGoodDay = (summaries: MonthSummary[], afterDate: Date): { day: string; balance: number } | null => {
+      for (const month of summaries) {
+        for (const day of month.projection) {
+          const dayDate = new Date(month.year, month.monthNumber - 1, day.day);
+          if (dayDate > afterDate && day.closingBalance > 500) {
+            return { day: `${day.day} de ${month.title}`, balance: day.closingBalance };
+          }
+        }
+      }
+      return null;
+    };
+
+    // Casos de entrada (income)
+    if (this.launchForm.type === 'income') {
+      if (scenarioWorst > currentWorst) {
+        return {
+          tone: 'good',
+          title: 'Essa entrada reforça o caixa',
+          summary: `Melhora o menor saldo previsto em ${this.formatCurrency(worstDelta)}.`,
+          detail: !scenarioRed
+            ? 'Depois dela, a janela fica sem pontos de aperto.'
+            : `Reduz o tempo em vermelho. O primeiro dia crítico fica em ${scenarioRed.day}.`
+        };
+      }
+      return null;
+    }
+
+    // Casos de despesa (expense) ou investimento (investment)
+
+    // SUPER IMPORTANTE: Verificar o saldo do DIA do lançamento
+    if (currentDayBalance !== null && currentDayBalance < 0) {
+      // Está no vermelho naquele dia - é péssimo fazer ali
+      const nextGood = findNextGoodDay(currentSummaries, parsedDate);
+      return {
+        tone: 'risk',
+        title: 'Pessimo dia pra fazer essa despesa',
+        summary: `No dia ${parsedDate.getDate()}, o saldo ja esta em ${this.formatCurrency(currentDayBalance)}.`,
+        detail: nextGood
+          ? `Melhor esperar até ${nextGood.day}, quando o saldo fica em ${this.formatCurrency(nextGood.balance)}.`
+          : `Seu caixa fica no vermelho nesse período. Espere uma entrada.`
+      };
+    }
+
+    // Saldo do dia está muito apertado (0 a 250)
+    if (currentDayBalance !== null && currentDayBalance >= 0 && currentDayBalance < 250) {
+      const nextGood = findNextGoodDay(currentSummaries, parsedDate);
+      return {
+        tone: 'warn',
+        title: 'Dia muito apertado pra essa compra',
+        summary: `No dia ${parsedDate.getDate()}, o saldo fica em apenas ${this.formatCurrency(currentDayBalance)}.`,
+        detail: nextGood
+          ? `Prefere esperar? No dia ${nextGood.day} o saldo fica em ${this.formatCurrency(nextGood.balance)}.`
+          : `Tem pouca folga nesse dia. Vale acompanhar de perto.`
+      };
+    }
+
+    // Saldo do dia é BOM (>1000) - não importa dias vermelhos no passado
+    if (currentDayBalance !== null && currentDayBalance > 1000) {
+      // Mas se é parcelado de valor alto, precisa checar o impacto global
+      if (this.launchForm.recurrenceKind === 'installment' && installments > 1) {
+        const monthlyInstallment = Number((this.launchForm.amount / installments).toFixed(2));
+        
+        // Se as parcelas reduzem MAS tem impacto significativo, avisar
+        if (worstDelta < -1000) {
+          return {
+            tone: 'warn',
+            title: 'Parcelado reduz bastante no futuro',
+            summary: `${installments} parcelas de ${this.formatCurrency(monthlyInstallment)} cada mês.`,
+            detail: `O menor saldo da janela cai ${this.formatCurrency(Math.abs(worstDelta))} nos próximos meses. Sustentavel, mas aperta.`
+          };
+        }
+
+        // Se fica negativo em algum ponto, é risco
+        if (scenarioWorst < 0) {
+          return {
+            tone: 'risk',
+            title: 'Parcelado quebra o caixa nos próximos meses',
+            summary: `${installments} parcelas de ${this.formatCurrency(monthlyInstallment)} cada.`,
+            detail: `O caixa fica no vermelho em algum ponto. Reduz a quantidade ou o valor?`
+          };
+        }
+      }
+
+      return {
+        tone: 'good',
+        title: 'Essa compra e tranquila nesse dia',
+        summary: `No dia ${parsedDate.getDate()}, o saldo esta em ${this.formatCurrency(currentDayBalance)}.`,
+        detail: `Tem folga confortavel. Segue firme com a compra.`
+      };
+    }
+
+    // Saldo do dia é positivo e razoável (250 a 1000)
+    if (currentDayBalance !== null && currentDayBalance >= 250 && currentDayBalance <= 1000) {
+      // Se é parcelado, avaliar impacto nos próximos meses
+      if (this.launchForm.recurrenceKind === 'installment' && installments > 1) {
+        const monthlyInstallment = Number((this.launchForm.amount / installments).toFixed(2));
+        
+        // Se fica negativo, é risco
+        if (scenarioWorst < 0) {
+          return {
+            tone: 'risk',
+            title: 'Parcelado quebra o caixa nos próximos meses',
+            summary: `${installments} parcelas de ${this.formatCurrency(monthlyInstallment)} cada.`,
+            detail: `O caixa fica no vermelho. Reduz a quantidade ou o valor?`
+          };
+        }
+
+        // Se reduz muito, é atenção
+        if (worstDelta < -500) {
+          return {
+            tone: 'warn',
+            title: 'Parcelado aperta nos próximos meses',
+            summary: `${installments} parcelas de ${this.formatCurrency(monthlyInstallment)} cada.`,
+            detail: `O caixa fica bem apertado depois. Tem entrada vindo?`
+          };
+        }
+      }
+
+      return {
+        tone: 'good',
+        title: 'Essa compra cabe bem nesse dia',
+        summary: `No dia ${parsedDate.getDate()}, o saldo esta em ${this.formatCurrency(currentDayBalance)}.`,
+        detail: `Positivo e com margem. Voce pode fazer a compra tranquilo.`
+      };
+    }
+
+    // Cenário 1: Despesa cria novo dia no vermelho que antes não existia
+    if (!currentRed && scenarioRed) {
+      const bestAfter = bestAfterLaunch;
+      if (bestAfter > 2000) {
+        // Volta bem depois
+        return {
+          tone: 'warn',
+          title: 'Essa despesa aperta, mas volta rápido',
+          summary: `Você fica no vermelho em ${scenarioRed.day} com saldo de ${this.formatCurrency(scenarioRed.balance)}.`,
+          detail: `Mas depois volta a ${this.formatCurrency(bestAfter)}. E uma situacao temporaria.`
+        };
+      }
+      // Fica vermelho e não volta bem
+      return {
+        tone: 'risk',
+        title: 'Essa despesa quebra o fluxo',
+        summary: `Você fica no vermelho em ${scenarioRed.day}.`,
+        detail: `Depois disso o saldo fica em torno de ${this.formatCurrency(bestAfter)}. Prefere remarcar ou buscar uma entrada?`
+      };
+    }
+
+    // Cenário 2: Já tinha dia vermelho, despesa piora a situação
+    if (currentRed && scenarioRed) {
+      // Piora significativamente
+      if (worstDelta < -500) {
+        return {
+          tone: 'risk',
+          title: 'Essa despesa aperta muito',
+          summary: `Já existem dias em vermelho. Essa ainda reduz mais o saldo em ${this.formatCurrency(Math.abs(worstDelta))}.`,
+          detail: `O pior fica em ${this.formatCurrency(scenarioWorst)}. Tem entrada vindo que regularize?`
+        };
+      }
+
+      // Se lançamento é DEPOIS do dia vermelho e volta bem
+      const launchAfterRed = launchDateObj > new Date(currentRed.day);
+      if (launchAfterRed && bestAfterLaunch > 2000) {
+        return {
+          tone: 'good',
+          title: 'Você coloca isso depois dos dias criticos',
+          summary: `Os dias em vermelho ja estao agendados (${currentRed.day}).`,
+          detail: `Seu lancamento no dia 25 e depois disso, e o caixa volta pra ${this.formatCurrency(bestAfterLaunch)}. Tranquilo.`
+        };
+      }
+
+      // Já tinha vermelho, não piora muito
+      return {
+        tone: 'warn',
+        title: 'Ja tem dias comprometidos no horizonte',
+        summary: `O primeiro fica em ${currentRed.day} com saldo de ${this.formatCurrency(currentRed.balance)}.`,
+        detail: `Essa despesa piora um pouco mais. Mas se ja esta planejando, segue o plano.`
+      };
+    }
+
+    // Cenário 3: Não tem vermelho em nenhum cenário
+    if (scenarioWorst < 0) {
+      return {
+        tone: 'risk',
+        title: 'Essa despesa quebra o fluxo',
+        summary: `Derruba o menor saldo para ${this.formatCurrency(scenarioWorst)}.`,
+        detail: `Isso cria uma situacao de deficit. Prefere remarcar ou buscar uma entrada antes?`
+      };
+    }
+
+    if (scenarioWorst < -1000) {
+      return {
+        tone: 'risk',
+        title: 'Essa despesa aperta muito',
+        summary: `O caixa cai para ${this.formatCurrency(scenarioWorst)}.`,
+        detail: `Um deficit grande assim pode criar problemas. Vale a pena esperar uma entrada?`
+      };
+    }
+
+    // Atenção: reduz folga significativa
+    if (worstDelta < -500) {
+      return {
+        tone: 'warn',
+        title: 'Essa despesa aperta o caixa',
+        summary: `Reduz o menor saldo em ${this.formatCurrency(Math.abs(worstDelta))}.`,
+        detail: `Depois dela o saldo minimo fica em ${this.formatCurrency(scenarioWorst)}. Tem folga, mas pouca.`
+      };
+    }
+
+    // Atenção: despesa parcelada
+    if (this.launchForm.recurrenceKind === 'installment' && installments > 1) {
+      return {
+        tone: 'warn',
+        title: 'Essa despesa e parcelada',
+        summary: `${installments} parcelas de ${this.formatCurrency(this.launchForm.amount)} cada.`,
+        detail: `Lembre de levar em conta as outras ${installments - 1} proximas no planejamento.`
+      };
+    }
+
+    // Confortável
+    if (scenarioWorst > 500) {
+      return {
+        tone: 'good',
+        title: 'Essa despesa e tranquila',
+        summary: `Cabe bem no caixa atual.`,
+        detail: `O menor saldo continua confortavel em ${this.formatCurrency(scenarioWorst)}.`
+      };
+    }
+
+    // Seguro, mas com pouca folga
+    if (scenarioWorst > 0) {
+      return {
+        tone: 'warn',
+        title: 'Essa despesa deixa pouca folga',
+        summary: `O menor saldo fica em ${this.formatCurrency(scenarioWorst)}.`,
+        detail: `E positivo, mas vale acompanhar o caixa depois.`
+      };
+    }
+
+    return null;
   }
 
   formatCurrency(value: number): string {
@@ -1269,6 +1627,7 @@ export class AppComponent implements OnInit {
     this.editingSourceMonthKey = null;
     this.editingAnchorDay = null;
     this.launchForm = this.createEmptyLaunchForm();
+    this.syncLaunchAmountInput();
     this.isLaunchFormOpen = true;
   }
 
@@ -1283,6 +1642,7 @@ export class AppComponent implements OnInit {
     this.editingSourceMonthKey = null;
     this.editingAnchorDay = null;
     this.dailyForm = this.createEmptyDailyForm();
+    this.syncDailyAmountInput();
     this.isDailyFormOpen = true;
   }
 
@@ -1310,6 +1670,7 @@ export class AppComponent implements OnInit {
       repeatMode: 'monthly',
       installments: 1
     };
+    this.syncLaunchAmountInput();
     this.isLaunchFormOpen = true;
   }
 
@@ -1335,6 +1696,7 @@ export class AppComponent implements OnInit {
       repeatMode: scope !== 'single' ? event.repeatMode ?? 'monthly' : 'monthly',
       installments: scope !== 'single' ? event.seriesOccurrences ?? 1 : 1
     };
+    this.syncLaunchAmountInput();
     this.isLaunchFormOpen = true;
   }
 
@@ -1360,6 +1722,7 @@ export class AppComponent implements OnInit {
       recurrenceKind: scope !== 'single' && (event.recurrenceKind ?? 'single') !== 'single' ? (event.recurrenceKind ?? 'fixed') : 'fixed',
       installments: scope !== 'single' && event.recurrenceKind === 'installment' ? (event.seriesOccurrences ?? 1) : 1
     };
+    this.syncDailyAmountInput();
     this.isDailyFormOpen = true;
   }
 
@@ -1588,6 +1951,7 @@ export class AppComponent implements OnInit {
         if (keepOpenAfterSave) {
           this.launchError = '';
           this.launchForm = this.createEmptyLaunchForm();
+          this.syncLaunchAmountInput();
           return;
         }
 
@@ -1718,6 +2082,20 @@ export class AppComponent implements OnInit {
     this.launchForm.repeatMode = mode;
   }
 
+
+  onLaunchAmountInputChange(rawValue: string): void {
+    const masked = this.maskCurrencyFromDigits(rawValue);
+    this.launchAmountInput = masked.display;
+    this.launchForm.amount = masked.amount;
+    this.cdr.markForCheck();
+  }
+
+  onDailyAmountInputChange(rawValue: string): void {
+    const masked = this.maskCurrencyFromDigits(rawValue);
+    this.dailyAmountInput = masked.display;
+    this.dailyForm.amount = masked.amount;
+    this.cdr.markForCheck();
+  }
   onDailyRepeatModeChange(mode: DailyRepeatSelection): void {
     if (this.isEditingSingleLaunch) {
       return;
@@ -1741,6 +2119,34 @@ export class AppComponent implements OnInit {
     if (kind !== 'installment') {
       this.dailyForm.installments = 1;
     }
+  }
+
+  private syncLaunchAmountInput(): void {
+    this.launchAmountInput = this.launchForm.amount === null ? '' : this.formatCurrencyInput(this.launchForm.amount);
+  }
+
+  private syncDailyAmountInput(): void {
+    this.dailyAmountInput = this.dailyForm.amount === null ? '' : this.formatCurrencyInput(this.dailyForm.amount);
+  }
+
+  private maskCurrencyFromDigits(rawValue: string): { display: string; amount: number | null } {
+    const digits = (rawValue ?? '').replace(/\D/g, '');
+    if (!digits) {
+      return { display: '', amount: null };
+    }
+
+    const amount = Number((Number(digits) / 100).toFixed(2));
+    return {
+      display: this.formatCurrencyInput(amount),
+      amount
+    };
+  }
+
+  private formatCurrencyInput(value: number): string {
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   }
 
   private submitLaunchEdit(parsedDate: Date, amount: number, label: string): void {
@@ -2232,7 +2638,8 @@ export class AppComponent implements OnInit {
         if (!this.monthDefinitions.length) {
           if (this.currentUserId && this.seededMonthsUserId !== this.currentUserId) {
             this.seededMonthsUserId = this.currentUserId;
-            this.ensureYearMonths(new Date().getFullYear());
+            const now = new Date();
+            this.ensureMonthsForDateRange(now, this.getPlanningHorizonEndDate(now));
           }
 
           this.windowStartIndex = 0;
@@ -2241,6 +2648,8 @@ export class AppComponent implements OnInit {
           this.isLoading = false;
           return;
         }
+
+        this.ensurePlanningHorizonMonths();
 
         if (!hadMonthsBefore) {
           this.syncWindowToCurrentMonth();
@@ -2422,13 +2831,135 @@ export class AppComponent implements OnInit {
   }
 
   private ensureMonthsForDateRange(startDate: Date, endDate: Date): void {
+    const created = this.ensureMonthsForDateRangeInMemory(startDate, endDate);
+    if (!created.length) {
+      return;
+    }
+
+    const propagated = this.propagateFixedMonthlySeriesToMonths(created);
+    const monthsToPersistMap = new Map<string, MonthDefinition>();
+
+    for (const month of [...created, ...propagated]) {
+      monthsToPersistMap.set(month.key, month);
+    }
+
+    const monthsToPersist = Array.from(monthsToPersistMap.values());
+    forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
+      error: () => {
+        this.entriesFeedback = 'Nao foi possivel persistir alguns meses futuros no backend.';
+      }
+    });
+  }
+
+  private ensureMonthsForDateRangeInMemory(startDate: Date, endDate: Date): MonthDefinition[] {
+    const created: MonthDefinition[] = [];
     const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
     const limit = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
 
     while (cursor <= limit) {
-      this.ensureMonthExists(cursor.getFullYear(), cursor.getMonth() + 1);
+      const month = this.ensureMonthExists(cursor.getFullYear(), cursor.getMonth() + 1);
+      if (month) {
+        created.push(month);
+      }
       cursor.setMonth(cursor.getMonth() + 1);
     }
+
+    return created;
+  }
+
+  private ensurePlanningHorizonMonths(): void {
+    if (!this.monthDefinitions.length) {
+      return;
+    }
+
+    const now = new Date();
+    const created = this.ensureMonthsForDateRangeInMemory(now, this.getPlanningHorizonEndDate(now));
+    if (!created.length) {
+      return;
+    }
+
+    const propagated = this.propagateFixedMonthlySeriesToMonths(created);
+    const monthsToPersistMap = new Map<string, MonthDefinition>();
+
+    for (const month of [...created, ...propagated]) {
+      monthsToPersistMap.set(month.key, month);
+    }
+
+    const monthsToPersist = Array.from(monthsToPersistMap.values());
+    forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
+      error: () => {
+        this.entriesFeedback = 'Nao foi possivel atualizar o horizonte de meses no backend.';
+      }
+    });
+  }
+
+  private propagateFixedMonthlySeriesToMonths(targetMonths: MonthDefinition[]): MonthDefinition[] {
+    if (!targetMonths.length || !this.monthDefinitions.length) {
+      return [];
+    }
+
+    const templateBySeriesId = new Map<string, FinancialEvent>();
+
+    for (const month of this.monthDefinitions) {
+      for (const event of month.events) {
+        if (!event.seriesId || event.recurrenceKind !== 'fixed' || event.repeatMode !== 'monthly') {
+          continue;
+        }
+
+        if (!templateBySeriesId.has(event.seriesId)) {
+          templateBySeriesId.set(event.seriesId, event);
+        }
+      }
+    }
+
+    if (!templateBySeriesId.size) {
+      return [];
+    }
+
+    const changed: MonthDefinition[] = [];
+
+    for (const month of targetMonths) {
+      let monthChanged = false;
+      const maxDay = new Date(month.year, month.monthNumber, 0).getDate();
+
+      for (const template of templateBySeriesId.values()) {
+        const alreadyExists = month.events.some((event) => event.seriesId === template.seriesId);
+        if (alreadyExists) {
+          continue;
+        }
+
+        month.events = [
+          ...month.events,
+          this.createEvent(
+            Math.min(template.day, maxDay),
+            template.label,
+            template.amount,
+            template.type,
+            template.seriesId,
+            'fixed',
+            'monthly',
+            null
+          )
+        ];
+        monthChanged = true;
+      }
+
+      if (monthChanged) {
+        changed.push(month);
+      }
+    }
+
+    return changed;
+  }
+
+  private getPlanningHorizonEndDate(referenceDate: Date): Date {
+    const rollingEnd = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+    rollingEnd.setMonth(rollingEnd.getMonth() + Math.max(0, this.planningHorizonMonths - 1));
+    const rollingMonthLastDay = new Date(rollingEnd.getFullYear(), rollingEnd.getMonth() + 1, 0).getDate();
+    rollingEnd.setDate(rollingMonthLastDay);
+
+    const fixedEnd = new Date(this.planningEndYear, 11, 31);
+    return fixedEnd > rollingEnd ? fixedEnd : rollingEnd;
   }
 
   private ensureFutureMonths(monthsToCreate: number): void {
@@ -2467,6 +2998,13 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    const propagated = this.propagateFixedMonthlySeriesToMonths(created);
+    const monthsToPersistMap = new Map<string, MonthDefinition>();
+    for (const month of [...created, ...propagated]) {
+      monthsToPersistMap.set(month.key, month);
+    }
+    const monthsToPersist = Array.from(monthsToPersistMap.values());
+
     this.monthDefinitions = [...this.monthDefinitions, ...created].sort((a, b) => {
       if (a.year === b.year) {
         return a.monthNumber - b.monthNumber;
@@ -2474,7 +3012,7 @@ export class AppComponent implements OnInit {
       return a.year - b.year;
     });
 
-    forkJoin(created.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
         this.entriesFeedback = 'Nao foi possivel persistir alguns meses futuros no backend.';
       }
@@ -2495,7 +3033,14 @@ export class AppComponent implements OnInit {
       return;
     }
 
-    forkJoin(created.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    const propagated = this.propagateFixedMonthlySeriesToMonths(created);
+    const monthsToPersistMap = new Map<string, MonthDefinition>();
+    for (const month of [...created, ...propagated]) {
+      monthsToPersistMap.set(month.key, month);
+    }
+    const monthsToPersist = Array.from(monthsToPersistMap.values());
+
+    forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
         this.entriesFeedback = 'Nao foi possivel persistir alguns meses do ano selecionado no backend.';
       }
@@ -2593,6 +3138,10 @@ export class AppComponent implements OnInit {
   }
 
   private buildMonthSummaries(): MonthSummary[] {
+    return this.buildMonthSummariesFor(this.monthDefinitions);
+  }
+
+  private buildMonthSummariesFor(definitions: MonthDefinition[]): MonthSummary[] {
     const summaries: MonthSummary[] = [];
     const cardInvoiceForecastByMonth = this.buildCardInvoiceForecastByMonth();
     let carryState: DailyCarryState = {
@@ -2601,7 +3150,7 @@ export class AppComponent implements OnInit {
     };
     let previousClosingBalance: number | undefined;
 
-    for (const definition of this.monthDefinitions) {
+    for (const definition of definitions) {
       const openingOverride = previousClosingBalance !== undefined ? previousClosingBalance : definition.openingBalance;
       const summary = this.buildMonthSummary(
         definition,
@@ -2635,6 +3184,82 @@ export class AppComponent implements OnInit {
   private pushEventToMonth(month: MonthDefinition, event: FinancialEvent, touched: Map<string, MonthDefinition>): void {
     month.events = [...month.events, event];
     touched.set(month.id, month);
+  }
+
+  private cloneMonthDefinitions(definitions: MonthDefinition[]): MonthDefinition[] {
+    return definitions.map((month) => ({
+      ...month,
+      events: month.events.map((event) => ({ ...event }))
+    }));
+  }
+
+  private applyRecurringLaunchesToDefinitions(
+    definitions: MonthDefinition[],
+    startDate: Date,
+    type: EventType,
+    amount: number,
+    label: string,
+    recurrenceKind: RecurrenceKind,
+    repeatMode: RepeatMode,
+    installments: number,
+    forcedSeriesId?: string
+  ): MonthDefinition[] {
+    const touched = new Map<string, MonthDefinition>();
+    const startIndex = definitions.findIndex((month) => month.year === startDate.getFullYear() && month.monthNumber === (startDate.getMonth() + 1));
+    const seriesId = recurrenceKind === 'single' ? undefined : (forcedSeriesId ?? this.generateEventId());
+    const seriesOccurrences = recurrenceKind === 'installment' ? installments : null;
+
+    if (startIndex < 0) {
+      return [];
+    }
+
+    const day = startDate.getDate();
+
+    if (recurrenceKind === 'single') {
+      this.pushEventToMonth(definitions[startIndex], this.createEvent(day, label, amount, type), touched);
+      return Array.from(touched.values());
+    }
+
+    if (repeatMode === 'monthly') {
+      const maxMonths = definitions.length - startIndex;
+      const totalOccurrences = recurrenceKind === 'installment' ? Math.min(installments, maxMonths) : maxMonths;
+
+      for (let offset = 0; offset < totalOccurrences; offset += 1) {
+        this.pushEventToMonth(
+          definitions[startIndex + offset],
+          this.createEvent(day, label, amount, type, seriesId, recurrenceKind, repeatMode, seriesOccurrences),
+          touched
+        );
+      }
+
+      return Array.from(touched.values());
+    }
+
+    const stepDays = repeatMode === 'weekly' ? 7 : 1;
+    const lastMonth = definitions[definitions.length - 1];
+    const endDate = new Date(lastMonth.year, lastMonth.monthNumber, 0);
+    const cursor = new Date(startDate);
+    let applied = 0;
+
+    while (cursor <= endDate) {
+      const monthIndex = definitions.findIndex((month) => month.year === cursor.getFullYear() && month.monthNumber === (cursor.getMonth() + 1));
+      if (monthIndex >= 0) {
+        this.pushEventToMonth(
+          definitions[monthIndex],
+          this.createEvent(cursor.getDate(), label, amount, type, seriesId, recurrenceKind, repeatMode, seriesOccurrences),
+          touched
+        );
+
+        applied += 1;
+        if (recurrenceKind === 'installment' && applied >= installments) {
+          break;
+        }
+      }
+
+      cursor.setDate(cursor.getDate() + stepDays);
+    }
+
+    return Array.from(touched.values());
   }
 
   private createEvent(
@@ -3183,7 +3808,11 @@ export class AppComponent implements OnInit {
   }
 
   private findNextPressurePoint(): string {
-    for (const month of this.monthSummaries) {
+    return this.findNextPressurePointFor(this.monthSummaries);
+  }
+
+  private findNextPressurePointFor(months: MonthSummary[]): string {
+    for (const month of months) {
       const pressureDay = month.projection.find((day) => day.status !== 'healthy');
 
       if (pressureDay) {

@@ -1812,6 +1812,58 @@
 	border: 1px solid #d9e7ff;
 }
 
+.launch-advice {
+	margin: 0;
+	padding: 10px 12px;
+	border-radius: 10px;
+	display: grid;
+	gap: 4px;
+	border: 1px solid transparent;
+
+	strong,
+	p,
+	small {
+		margin: 0;
+	}
+
+	strong {
+		font-size: 0.84rem;
+		font-weight: 700;
+	}
+
+	p,
+	small {
+		font-size: 0.76rem;
+		line-height: 1.45;
+	}
+
+	p {
+		font-weight: 500;
+	}
+
+	small {
+		opacity: 0.85;
+	}
+}
+
+.launch-advice--good {
+	background: #f0fdf9;
+	border-color: #d4f0eb;
+	color: #0d5f47;
+}
+
+.launch-advice--warn {
+	background: #fffbf0;
+	border-color: #f0e0ce;
+	color: #8b5a0b;
+}
+
+.launch-advice--risk {
+	background: #fff9f9;
+	border-color: #f3d3db;
+	color: #9d1f39;
+}
+
 .launch-error {
 	margin: 0;
 	padding: 8px 10px;
