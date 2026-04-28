@@ -151,6 +151,8 @@ export class AppComponent implements OnInit {
   payingEventIds = new Set<string>();
   payingInvoiceKeys = new Set<string>();
   private saveAndNewLaunchRequested = false;
+  private currentUserId: string | null = null;
+  private seededMonthsUserId: string | null = null;
 
   userMenuOpen = false;
   darkMode = false;
@@ -329,9 +331,20 @@ export class AppComponent implements OnInit {
       this.darkMode = true;
       document.body.classList.add('dark');
     }
-    if (!localStorage.getItem('previsa-onboarding-v1')) {
-      this.showOnboarding = true;
-    }
+
+    this.auth.user$.subscribe((user) => {
+      this.userMenuOpen = false;
+      this.currentUserId = user?.uid ?? null;
+
+      if (!user) {
+        this.showOnboarding = false;
+        this.seededMonthsUserId = null;
+        return;
+      }
+
+      this.showOnboarding = !localStorage.getItem(this.getOnboardingStorageKey(user.uid));
+    });
+
     this.loadMonths();
     this.loadCardForecastData();
   }
@@ -353,7 +366,7 @@ export class AppComponent implements OnInit {
 
   closeOnboarding(): void {
     this.showOnboarding = false;
-    localStorage.setItem('previsa-onboarding-v1', 'true');
+    localStorage.setItem(this.getOnboardingStorageKey(), 'true');
   }
 
   nextOnboardingStep(): void {
@@ -2191,10 +2204,11 @@ export class AppComponent implements OnInit {
   private loadMonths(): void {
     this.isLoading = true;
     this.dataError = '';
-    let firstLoad = true;
 
     this.financeApi.getMonths().subscribe({
       next: (months) => {
+        const hadMonthsBefore = this.monthDefinitions.length > 0;
+
         this.monthDefinitions = this.normalizeMonths(months)
           .sort((a, b) => {
             if (a.year === b.year) {
@@ -2215,16 +2229,23 @@ export class AppComponent implements OnInit {
             return acc;
           }, []);
 
-        if (firstLoad) {
-          firstLoad = false;
-          const now = new Date();
-          const currentIndex = this.monthDefinitions.findIndex(
-            (m) => m.year === now.getFullYear() && m.monthNumber === (now.getMonth() + 1)
-          );
-          this.windowStartIndex = currentIndex >= 0 ? currentIndex : 0;
-          this.customStartIndex = this.windowStartIndex;
-          this.customEndIndex = Math.min(this.windowStartIndex + 2, Math.max(this.monthDefinitions.length - 1, 0));
+        if (!this.monthDefinitions.length) {
+          if (this.currentUserId && this.seededMonthsUserId !== this.currentUserId) {
+            this.seededMonthsUserId = this.currentUserId;
+            this.ensureYearMonths(new Date().getFullYear());
+          }
+
+          this.windowStartIndex = 0;
+          this.customStartIndex = 0;
+          this.customEndIndex = 0;
+          this.isLoading = false;
+          return;
         }
+
+        if (!hadMonthsBefore) {
+          this.syncWindowToCurrentMonth();
+        }
+
         this.isLoading = false;
       },
       error: () => {
@@ -2514,6 +2535,21 @@ export class AppComponent implements OnInit {
     });
 
     return createdMonth;
+  }
+
+  private syncWindowToCurrentMonth(): void {
+    const now = new Date();
+    const currentIndex = this.monthDefinitions.findIndex(
+      (month) => month.year === now.getFullYear() && month.monthNumber === (now.getMonth() + 1)
+    );
+
+    this.windowStartIndex = currentIndex >= 0 ? currentIndex : 0;
+    this.customStartIndex = this.windowStartIndex;
+    this.customEndIndex = Math.min(this.windowStartIndex + 2, Math.max(this.monthDefinitions.length - 1, 0));
+  }
+
+  private getOnboardingStorageKey(uid = this.currentUserId ?? 'guest'): string {
+    return `previsa-onboarding-v1:${uid}`;
   }
 
   private getPreviousMonthRef(year: number, monthNumber: number): { year: number; monthNumber: number } {

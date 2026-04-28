@@ -20,13 +20,14 @@ export class AuthService {
    */
   async loginWithEmailPassword(email: string, password: string): Promise<firebase.auth.UserCredential> {
     try {
-      return await this.afAuth.signInWithEmailAndPassword(email, password);
+      return await this.afAuth.createUserWithEmailAndPassword(email, password);
     } catch (err: any) {
       const code: string = err?.code ?? '';
-      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/invalid-email') {
-        // Usuário não existe — cria a conta
-        return await this.afAuth.createUserWithEmailAndPassword(email, password);
+
+      if (code === 'auth/email-already-in-use') {
+        return await this.afAuth.signInWithEmailAndPassword(email, password);
       }
+
       throw err;
     }
   }
