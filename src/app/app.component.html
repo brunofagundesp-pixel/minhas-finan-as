@@ -19,11 +19,43 @@
       </button>
     </nav>
 
+    <button class="topbar-help-btn" type="button" (click)="openOnboarding()" aria-label="Abrir guia de inicio" title="Ver guia de inicio">?</button>
+
     <div class="topbar-user" *ngIf="auth.user$ | async as user">
-      <span class="topbar-user-name" title="{{ user.email ?? '' }}">{{ user.displayName || user.email }}</span>
-      <button class="btn-logout" type="button" (click)="auth.logout()" title="Sair">
-        Sair
-      </button>
+      <div class="user-avatar-wrap" (click)="toggleUserMenu()" [class.user-avatar-wrap--open]="userMenuOpen">
+        <img
+          *ngIf="user.photoURL; else avatarInitials"
+          class="user-avatar"
+          [src]="user.photoURL"
+          [alt]="user.displayName || user.email || 'Usuário'"
+          referrerpolicy="no-referrer"
+        />
+        <ng-template #avatarInitials>
+          <div class="user-avatar user-avatar--initials">
+            {{ (user.displayName || user.email || '?')[0].toUpperCase() }}
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="user-dropdown" *ngIf="userMenuOpen" (click)="$event.stopPropagation()">
+        <div class="user-dropdown-header">
+          <span class="user-dropdown-name">{{ user.displayName || user.email }}</span>
+          <span class="user-dropdown-email" *ngIf="user.displayName">{{ user.email }}</span>
+        </div>
+        <div class="user-dropdown-divider"></div>
+        <button class="user-dropdown-item" type="button" (click)="toggleDarkMode()">
+          <span class="user-dropdown-item-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
+          {{ darkMode ? 'Modo claro' : 'Modo escuro' }}
+        </button>
+        <div class="user-dropdown-divider"></div>
+        <button class="user-dropdown-item user-dropdown-item--danger" type="button" (click)="auth.logout(); userMenuOpen = false">
+          <span class="user-dropdown-item-icon">↪</span>
+          Sair
+        </button>
+      </div>
+
+      <!-- overlay para fechar ao clicar fora -->
+      <div class="user-menu-overlay" *ngIf="userMenuOpen" (click)="userMenuOpen = false"></div>
     </div>
   </header>
 
@@ -186,13 +218,30 @@
                       </span>
                     </li>
 
-                    <li *ngFor="let forecast of day.cardInvoiceForecasts" class="event-item event-item--card-forecast">
+                    <li
+                      *ngFor="let forecast of day.cardInvoiceForecasts"
+                      class="event-item event-item--card-forecast"
+                      [class.event-item--paid]="forecast.isPaid"
+                    >
                       <span class="day-event-main">
                         <span class="event-kind-badge event-kind-badge--expense">
                           <span class="event-kind-icon">💳</span>
                           <span>Cartao</span>
                         </span>
                         <span>{{ getCardInvoiceForecastLabel(forecast) }}</span>
+                        <span class="event-paid-badge" [class.event-paid-badge--paid]="forecast.isPaid">
+                          {{ forecast.isPaid ? 'Pago' : 'Pendente' }}
+                        </span>
+                      </span>
+                      <span class="event-actions">
+                        <button
+                          class="pay-event-button"
+                          [class.pay-event-button--paid]="forecast.isPaid"
+                          type="button"
+                          [disabled]="forecast.isPaid || isPayingInvoice(forecast.cardId, month.year, month.monthNumber)"
+                          (click)="payCardInvoiceForecast(forecast.cardId, month.year, month.monthNumber)"
+                          [title]="forecast.isPaid ? 'Fatura ja paga' : 'Marcar fatura como paga'"
+                        >{{ isPayingInvoice(forecast.cardId, month.year, month.monthNumber) ? '...' : (forecast.isPaid ? 'Pago' : 'Pagar') }}</button>
                       </span>
                     </li>
                   </ul>
@@ -265,44 +314,13 @@
   </section>
 
   <section *ngIf="activeTab === 'dashboard'" class="dashboard-view">
-    <header class="hero panel">
-      <div class="hero-copy">
-        <p class="eyebrow">horizonte de caixa</p>
-        <h2>Uma leitura por janelas de 3 meses, com fluxo e folego em vez de grade de planilha.</h2>
-        <p class="hero-text">
-          Cada janela mostra o que entra, o que drena, o que vira investimento e como o custo diario empurra o saldo acumulado.
-          A navegacao por setas te leva sempre para os proximos 3 meses sem perder o contexto do saldo corrido.
-        </p>
-      </div>
-
-      <div class="hero-metrics">
-        <article class="metric-card emphasis">
-          <span>saldo no fim do horizonte</span>
-          <strong>{{ formatCurrency(projectedBalance) }}</strong>
-          <small>Fechamento do ultimo mes projetado.</small>
-        </article>
-
-        <article class="metric-card">
-          <span>menor piso previsto</span>
-          <strong>{{ formatCurrency(worstProjectedBalance) }}</strong>
-          <small>Melhor leitura para evitar assumir novos compromissos cedo demais.</small>
-        </article>
-
-        <article class="metric-card">
-          <span>dias com caixa protegido</span>
-          <strong>{{ protectedDays }} dias</strong>
-          <small>Primeiro ponto de atencao: {{ nextPressurePoint }}.</small>
-        </article>
-      </div>
-    </header>
-
     <section class="panel window-panel">
       <div class="window-head">
         <div>
           <p class="eyebrow">janela trimestral</p>
           <h2>{{ visibleWindow.label }}</h2>
           <p class="section-text">
-            Em vez de colunas secas, esta leitura organiza o periodo como um recorte de caixa com impulso, drenagem, aporte e ritmo fixo.
+            Resumo dos proximos 3 meses com os totais principais: entrada, saida, investimentos, custos fixos e saldo final.
           </p>
         </div>
 
@@ -318,27 +336,27 @@
 
       <div class="window-overview">
         <article class="window-pill">
-          <span>arranque</span>
+          <span>saldo inicial</span>
           <strong>{{ formatCurrency(visibleWindow.openingBalance) }}</strong>
         </article>
         <article class="window-pill">
-          <span>impulso de entrada</span>
+          <span>entrada</span>
           <strong>{{ formatCurrency(visibleWindow.totalIncome) }}</strong>
         </article>
         <article class="window-pill">
-          <span>drenagem</span>
+          <span>saida</span>
           <strong>{{ formatCurrency(visibleWindow.totalExpenses) }}</strong>
         </article>
         <article class="window-pill">
-          <span>capital semeado</span>
+          <span>investimentos</span>
           <strong>{{ formatCurrency(visibleWindow.totalInvestments) }}</strong>
         </article>
         <article class="window-pill">
-          <span>ritmo fixo</span>
+          <span>custos fixos</span>
           <strong>{{ formatCurrency(visibleWindow.totalFixedCosts) }}</strong>
         </article>
         <article class="window-pill emphasis-soft">
-          <span>fechamento</span>
+          <span>saldo final</span>
           <strong>{{ formatCurrency(visibleWindow.closingBalance) }}</strong>
         </article>
       </div>
@@ -362,23 +380,23 @@
 
           <div class="month-stats">
             <div>
-              <span>Arranque</span>
+              <span>Saldo inicial</span>
               <strong>{{ formatCurrency(month.openingBalance) }}</strong>
             </div>
             <div>
-              <span>Entradas</span>
+              <span>Entrada</span>
               <strong>{{ formatCurrency(month.totalIncome) }}</strong>
             </div>
             <div>
-              <span>Drenagem</span>
+              <span>Saida</span>
               <strong>{{ formatCurrency(month.totalExpenses) }}</strong>
             </div>
             <div>
-              <span>Capital semeado</span>
+              <span>Investimentos</span>
               <strong>{{ formatCurrency(month.totalInvestments) }}</strong>
             </div>
             <div>
-              <span>Ritmo diario</span>
+              <span>Custos fixos</span>
               <strong>{{ formatCurrency(month.totalFixedCosts) }}</strong>
             </div>
             <div>
@@ -415,7 +433,7 @@
           </div>
 
           <p class="section-text">
-            O detalhe diario continua sendo o centro da previsibilidade, mas com termos de fluxo: impulso, drenagem, aporte e saldo corrido.
+            Visao diaria do mes para entender como cada dia afeta o saldo.
           </p>
         </div>
 
@@ -436,13 +454,13 @@
 
             <div class="projection-main">
               <div class="projection-values">
-                <span class="income" *ngIf="day.income">Impulso {{ formatCurrency(day.income) }}</span>
-                <span class="expense" *ngIf="day.expense">Drenagem {{ formatCurrency(day.expense) }}</span>
-                <span class="investment" *ngIf="day.investment">Semeado {{ formatCurrency(day.investment) }}</span>
-                <span class="fixed">Ritmo {{ formatCurrency(day.fixedCost) }}</span>
+                <span class="income" *ngIf="day.income">Entrada {{ formatCurrency(day.income) }}</span>
+                <span class="expense" *ngIf="day.expense">Saida {{ formatCurrency(day.expense) }}</span>
+                <span class="investment" *ngIf="day.investment">Investimentos {{ formatCurrency(day.investment) }}</span>
+                <span class="fixed">Custos fixos {{ formatCurrency(day.fixedCost) }}</span>
               </div>
 
-              <small>{{ day.notes.length ? day.notes.join(' • ') : 'Dia limpo, apenas o ritmo fixo atuando.' }}</small>
+              <small>{{ day.notes.length ? day.notes.join(' • ') : 'Sem lancamentos neste dia, apenas custos fixos.' }}</small>
             </div>
 
             <div class="projection-balance">
@@ -630,6 +648,45 @@
         <button class="btn-primary" type="submit" [disabled]="isSavingLaunch">{{ isSavingLaunch ? 'Salvando...' : (isEditingLaunch ? 'Salvar diario' : 'Criar diario') }}</button>
       </footer>
     </form>
+  </div>
+
+  <!-- Onboarding modal -->
+  <div class="onboarding-backdrop" *ngIf="showOnboarding" (click)="closeOnboarding()" role="presentation">
+    <div class="onboarding-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button class="onboarding-close" type="button" (click)="closeOnboarding()" aria-label="Fechar guia">×</button>
+
+      <div class="onboarding-step">
+        <div class="onboarding-icon">{{ onboardingSteps[onboardingStep].icon }}</div>
+        <h2 class="onboarding-title">{{ onboardingSteps[onboardingStep].title }}</h2>
+        <p class="onboarding-body">{{ onboardingSteps[onboardingStep].body }}</p>
+        <ul class="onboarding-bullets" *ngIf="onboardingSteps[onboardingStep].bullets?.length">
+          <li *ngFor="let bullet of onboardingSteps[onboardingStep].bullets">{{ bullet }}</li>
+        </ul>
+        <p class="onboarding-tip" *ngIf="onboardingSteps[onboardingStep].tip">
+          <span aria-hidden="true">💡</span> {{ onboardingSteps[onboardingStep].tip }}
+        </p>
+      </div>
+
+      <div class="onboarding-footer">
+        <div class="onboarding-dots" role="tablist" aria-label="Passos do guia">
+          <button
+            class="onboarding-dot"
+            *ngFor="let step of onboardingSteps; let i = index"
+            [class.onboarding-dot--active]="onboardingStep === i"
+            (click)="onboardingStep = i"
+            [attr.aria-label]="'Ir para passo ' + (i + 1)"
+            type="button"
+          ></button>
+        </div>
+        <div class="onboarding-nav">
+          <span class="onboarding-counter">{{ onboardingStep + 1 }} de {{ onboardingSteps.length }}</span>
+          <button class="btn-light" type="button" (click)="prevOnboardingStep()" [disabled]="onboardingStep === 0">← Voltar</button>
+          <button class="btn-primary" type="button" (click)="nextOnboardingStep()">
+            {{ onboardingStep === onboardingSteps.length - 1 ? 'Vamos la! 🚀' : 'Proximo →' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </main>
 </ng-container>

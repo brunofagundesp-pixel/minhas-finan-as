@@ -103,20 +103,12 @@
           <span>{{ launchTotal | number:'1.2-2' }}</span>
         </div>
         <div class="summary-row">
-          <span>Total conciliado</span>
-          <span>{{ paidTotal | number:'1.2-2' }}</span>
-        </div>
-        <div class="summary-row">
-          <span>Total nao conciliado</span>
-          <span>{{ pendingTotal | number:'1.2-2' }}</span>
-        </div>
-        <div class="summary-row">
           <span>Despesas fixas</span>
-          <span>{{ 0 | number:'1.2-2' }}</span>
+          <span>{{ fixedLaunchesTotal | number:'1.2-2' }}</span>
         </div>
         <div class="summary-row">
           <span>Parcelas futuras</span>
-          <span>{{ 0 | number:'1.2-2' }}</span>
+          <span>{{ futureParcelsTotal | number:'1.2-2' }}</span>
         </div>
       </div>
     </div>
@@ -232,12 +224,7 @@
       </label>
     </div>
 
-    <div class="launch-grid two-cols">
-      <label>
-        Conta *
-        <input type="text" name="launchAccount" [(ngModel)]="launchForm.account" placeholder="Ex: Inter" required />
-      </label>
-
+    <div class="launch-grid" [class.two-cols]="showInstallmentCountField" [class.one-col]="!showInstallmentCountField">
       <label>
         Repeticao
         <select name="launchRepeatMode" [(ngModel)]="launchForm.repeatMode">
@@ -246,10 +233,7 @@
           <option value="fixed">Fixa</option>
         </select>
       </label>
-    </div>
-
-    <div class="launch-grid two-cols" *ngIf="showInstallmentCountField">
-      <label>
+      <label *ngIf="showInstallmentCountField">
         Quantidade de parcelas
         <input
           type="number"

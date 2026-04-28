@@ -33,6 +33,7 @@ interface CardInvoiceForecast {
   cardName: string;
   amount: number;
   launchesCount: number;
+  isPaid?: boolean;
 }
 
 interface DayProjection {
@@ -104,6 +105,14 @@ interface DailyFormState {
   installments: number;
 }
 
+interface OnboardingStep {
+  icon: string;
+  title: string;
+  body: string;
+  bullets?: string[];
+  tip?: string;
+}
+
 type AppTab = 'entries' | 'dashboard' | 'cards';
 
 @Component({
@@ -122,7 +131,65 @@ export class AppComponent implements OnInit {
   entriesFeedback = '';
   deletingEventIds = new Set<string>();
   payingEventIds = new Set<string>();
+  payingInvoiceKeys = new Set<string>();
   private saveAndNewLaunchRequested = false;
+
+  userMenuOpen = false;
+  darkMode = false;
+
+  showOnboarding = false;
+  onboardingStep = 0;
+  readonly onboardingSteps: OnboardingStep[] = [
+    {
+      icon: '👋',
+      title: 'Bem-vindo ao Previsa',
+      body: 'Um gestor financeiro pessoal focado em previsibilidade. Lance entradas, saidas e investimentos e veja para onde o seu caixa vai — mes a mes — antes de acontecer.',
+      tip: 'Use o botao ? no canto superior para abrir este guia novamente a qualquer momento.'
+    },
+    {
+      icon: '➕',
+      title: 'Adicionando lancamentos',
+      body: 'Clique no botao azul + no canto inferior direito para abrir o formulario. Voce pode lancar:',
+      bullets: [
+        'Entrada — receitas recebidas (salario, freelance, transferencia)',
+        'Saida — despesas e contas a pagar',
+        'Investido — reserva que sai do caixa',
+        'Diario — custo que se repete diariamente (ex: transporte R$ 8 por dia)'
+      ],
+      tip: 'Lancamentos parcelados usam o valor de cada parcela, nao o total da compra.'
+    },
+    {
+      icon: '✏️',
+      title: 'Editando e excluindo',
+      body: 'Passe o mouse sobre qualquer linha da tabela de dias para ver os botoes de acao.',
+      bullets: [
+        'Lancamentos unicos sao alterados diretamente.',
+        'Para series (parcelados ou fixos), voce escolhe: so este, este e os proximos, ou toda a serie.',
+        'Despesas podem ser marcadas como pagas — o registro permanece visivel no mes.'
+      ]
+    },
+    {
+      icon: '📅',
+      title: 'Modos de visualizacao',
+      body: 'Use os botoes no topo da aba Lancamentos para alternar entre tres modos:',
+      bullets: [
+        '3 meses — tres colunas lado a lado, ideal para acompanhamento diario',
+        '12 meses — visao anual em blocos, otima para planejamento de longo prazo',
+        'Personalizado — selecione exatamente os meses que quer comparar'
+      ],
+      tip: 'O botao "mes atual" leva voce de volta ao mes de hoje com um clique.'
+    },
+    {
+      icon: '💳',
+      title: 'Cartoes de credito',
+      body: 'Cadastre seus cartoes na aba Cartoes e registre compras com a data da compra.',
+      bullets: [
+        'O Previsa calcula a fatura prevista e projeta o debito no mes do vencimento.',
+        'O impacto aparece como uma linha roxa na tabela de dias desse mes.',
+        'Voce enxerga o peso da fatura no caixa antes de ela chegar.'
+      ]
+    }
+  ];
 
   viewMode: 'custom' | '3month' | '12month' = '3month';
   twelveMonthYear = new Date().getFullYear();
@@ -236,8 +303,50 @@ export class AppComponent implements OnInit {
   constructor(private readonly financeApi: FinanceApiService, public readonly auth: AuthService) {}
 
   ngOnInit(): void {
+    const saved = localStorage.getItem('previsa-dark');
+    if (saved === 'true' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      this.darkMode = true;
+      document.body.classList.add('dark');
+    }
+    if (!localStorage.getItem('previsa-onboarding-v1')) {
+      this.showOnboarding = true;
+    }
     this.loadMonths();
     this.loadCardForecastData();
+  }
+
+  toggleUserMenu(): void {
+    this.userMenuOpen = !this.userMenuOpen;
+  }
+
+  toggleDarkMode(): void {
+    this.darkMode = !this.darkMode;
+    document.body.classList.toggle('dark', this.darkMode);
+    localStorage.setItem('previsa-dark', String(this.darkMode));
+  }
+
+  openOnboarding(): void {
+    this.onboardingStep = 0;
+    this.showOnboarding = true;
+  }
+
+  closeOnboarding(): void {
+    this.showOnboarding = false;
+    localStorage.setItem('previsa-onboarding-v1', 'true');
+  }
+
+  nextOnboardingStep(): void {
+    if (this.onboardingStep < this.onboardingSteps.length - 1) {
+      this.onboardingStep++;
+    } else {
+      this.closeOnboarding();
+    }
+  }
+
+  prevOnboardingStep(): void {
+    if (this.onboardingStep > 0) {
+      this.onboardingStep--;
+    }
   }
 
   get monthSummaries(): MonthSummary[] {
@@ -320,9 +429,26 @@ export class AppComponent implements OnInit {
   }
 
   get entriesTitle(): string {
-    if (this.viewMode === '12month') return 'Doze meses em blocos de tres.';
-    if (this.viewMode === 'custom') return 'Periodo personalizado, mes a mes.';
-    return 'Tres meses lado a lado, sem rolagem longa.';
+    if (this.viewMode === '12month') {
+      return `Lancamentos de ${this.twelveMonthYear}`;
+    }
+    if (this.viewMode === 'custom') {
+      const months = this.launchMonths;
+      if (!months.length) return 'Periodo personalizado';
+      if (months.length === 1) return `${months[0].title} de ${months[0].year}`;
+      const first = months[0];
+      const last = months[months.length - 1];
+      return first.year === last.year
+        ? `${first.title} a ${last.title} · ${first.year}`
+        : `${first.title}/${first.year} a ${last.title}/${last.year}`;
+    }
+    const months = this.visibleMonths;
+    if (!months.length) return 'Lancamentos';
+    const first = months[0];
+    const last = months[months.length - 1];
+    return first.year === last.year
+      ? `${first.title} a ${last.title} · ${first.year}`
+      : `${first.title}/${first.year} a ${last.title}/${last.year}`;
   }
 
   get canGoPrevious(): boolean {
@@ -487,6 +613,44 @@ export class AppComponent implements OnInit {
   getCardInvoiceForecastLabel(forecast: CardInvoiceForecast): string {
     const launchLabel = forecast.launchesCount === 1 ? '1 compra' : `${forecast.launchesCount} compras`;
     return `Fatura prevista ${forecast.cardName}: ${this.formatCurrency(forecast.amount)} (${launchLabel})`;
+  }
+
+  isPayingInvoice(cardId: string, year: number, monthNumber: number): boolean {
+    return this.payingInvoiceKeys.has(`${cardId}-${year}-${monthNumber}`);
+  }
+
+  payCardInvoiceForecast(cardId: string, year: number, monthNumber: number): void {
+    const key = `${cardId}-${year}-${monthNumber}`;
+    if (this.payingInvoiceKeys.has(key)) return;
+
+    const card = this.cards.find((c) => String(c.id) === cardId);
+    if (!card) return;
+
+    const toUpdate = this.cardLaunches.filter((l) => {
+      if (String(l.cardId) !== cardId || l.paid) return false;
+      const inv = this.getCardInvoiceMonthForDate(l.date, card);
+      return inv.year === year && inv.month === monthNumber;
+    });
+
+    if (!toUpdate.length) return;
+
+    this.payingInvoiceKeys.add(key);
+    const today = new Date().toISOString().split('T')[0];
+
+    forkJoin(
+      toUpdate.map((l) => this.financeApi.updateCardLaunch({ ...l, paid: true, paidAt: today }))
+    ).subscribe({
+      next: (updated) => {
+        this.payingInvoiceKeys.delete(key);
+        updated.forEach((u) => {
+          const idx = this.cardLaunches.findIndex((l) => String(l.id) === String(u.id));
+          if (idx >= 0) this.cardLaunches[idx] = u;
+        });
+      },
+      error: () => {
+        this.payingInvoiceKeys.delete(key);
+      }
+    });
   }
 
   getBalanceClass(balance: number): string {
@@ -794,6 +958,11 @@ export class AppComponent implements OnInit {
 
     if (type === 'edit') {
       if (scope === 'forward') {
+        if (event.type === 'daily') {
+          this.openEditDailyForm(monthKey, event, 'forward');
+        } else {
+          this.openEditLaunchForm(monthKey, event, 'forward');
+        }
         return;
       }
 
@@ -1901,12 +2070,25 @@ export class AppComponent implements OnInit {
 
     this.financeApi.getMonths().subscribe({
       next: (months) => {
-        this.monthDefinitions = this.normalizeMonths(months).sort((a, b) => {
-          if (a.year === b.year) {
-            return a.monthNumber - b.monthNumber;
-          }
-          return a.year - b.year;
-        });
+        this.monthDefinitions = this.normalizeMonths(months)
+          .sort((a, b) => {
+            if (a.year === b.year) {
+              return a.monthNumber - b.monthNumber;
+            }
+            return a.year - b.year;
+          })
+          .reduce<MonthDefinition[]>((acc, month) => {
+            const prev = acc[acc.length - 1];
+            if (prev && prev.year === month.year && prev.monthNumber === month.monthNumber) {
+              // Duplicata: manter o registro com mais eventos
+              if (month.events.length > prev.events.length) {
+                acc[acc.length - 1] = month;
+              }
+              return acc;
+            }
+            acc.push(month);
+            return acc;
+          }, []);
 
         if (firstLoad) {
           firstLoad = false;
@@ -2690,10 +2872,6 @@ export class AppComponent implements OnInit {
     const result = new Map<string, Map<number, CardInvoiceForecast[]>>();
 
     for (const launch of this.cardLaunches) {
-      if (launch.paid) {
-        continue;
-      }
-
       const card = this.cards.find((item) => String(item.id) === String(launch.cardId));
       if (!card) {
         continue;
@@ -2710,12 +2888,14 @@ export class AppComponent implements OnInit {
       if (existing) {
         existing.amount = Number((existing.amount + launch.amount).toFixed(2));
         existing.launchesCount += 1;
+        existing.isPaid = !!existing.isPaid && !!launch.paid;
       } else {
         forecasts.push({
           cardId,
           cardName: card.name,
           amount: Number(launch.amount.toFixed(2)),
-          launchesCount: 1
+          launchesCount: 1,
+          isPaid: !!launch.paid
         });
       }
 

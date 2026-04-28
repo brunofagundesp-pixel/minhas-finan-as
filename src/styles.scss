@@ -2,6 +2,8 @@
 	--bg: #eceef2;
 	--bg-strong: #e1e4e9;
 	--surface: #ffffff;
+	--surface-raised: #f5f7fa;
+	--border: #d4dae5;
 	--ink-strong: #273142;
 	--ink-soft: #6b7788;
 	--accent: #2d6cdf;
@@ -9,6 +11,27 @@
 	--danger: #e3516e;
 	--font-display: 'Segoe UI', 'Aptos', sans-serif;
 	--font-body: 'Segoe UI', 'Aptos', sans-serif;
+	--topbar-border: #d8dde6;
+	--tab-bg: #e7ebf1;
+	--tab-active-bg: #ffffff;
+	--tab-active-color: #1f5cc2;
+}
+
+body.dark {
+	--bg: #1c1f2e;
+	--bg-strong: #21253a;
+	--surface: #272b3e;
+	--surface-raised: #2e3247;
+	--border: #3c4156;
+	--ink-strong: #dde1f0;
+	--ink-soft: #8b92ad;
+	--accent: #6b7cf0;
+	--accent-deep: #5b6af0;
+	--danger: #f87171;
+	--topbar-border: #3c4156;
+	--tab-bg: #2e3247;
+	--tab-active-bg: #3c4156;
+	--tab-active-color: #a5b0ff;
 }
 
 * {
@@ -24,7 +47,8 @@ body {
 	margin: 0;
 	font-family: var(--font-body);
 	color: var(--ink-strong);
-	background: linear-gradient(180deg, #f2f4f7 0%, #eceef2 100%);
+	background: var(--bg);
+	transition: background 200ms ease, color 200ms ease;
 }
 
 body::before {

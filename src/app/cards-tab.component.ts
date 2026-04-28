@@ -179,6 +179,28 @@ export class CardsTabComponent implements OnInit {
     return Math.max(0, this.launchTotal - this.paidTotal);
   }
 
+  get fixedLaunchesTotal(): number {
+    return this.selectedCardLaunches
+      .filter((l) => l.repeatMode === 'fixed')
+      .reduce((sum, l) => sum + l.amount, 0);
+  }
+
+  get futureParcelsTotal(): number {
+    if (!this.selectedCard) return 0;
+    const card = this.selectedCard;
+    return this.launches
+      .filter((l) => {
+        if (String(l.cardId) !== String(this.selectedCardId)) return false;
+        if (l.repeatMode !== 'installment') return false;
+        const invMonth = this.getInvoiceMonthForDate(l.date, card);
+        return (
+          invMonth.year > this.invoiceMonth.year ||
+          (invMonth.year === this.invoiceMonth.year && invMonth.month > this.invoiceMonth.month)
+        );
+      })
+      .reduce((sum, l) => sum + l.amount, 0);
+  }
+
   get launchModalMonthLabel(): string {
     const months = [
       'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',

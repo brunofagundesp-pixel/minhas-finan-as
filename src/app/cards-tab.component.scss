@@ -425,7 +425,7 @@
 
 .launch-filters {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   flex-wrap: wrap;
   gap: 8px 10px;
 }
@@ -1171,6 +1171,129 @@
   display: grid;
   place-items: center;
   z-index: 70;
+}
+
+// ─── Dark Mode Overrides ───────────────────────────────────────────────────────
+:host-context(body.dark) {
+
+  // Sidebar e cards
+  .card-sidebar {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .card-selector-head {
+    border-bottom-color: var(--border);
+  }
+  .sidebar-hero {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-strong) 100%);
+    border-bottom-color: var(--border);
+  }
+  .sidebar-hero-badge {
+    background: #283258; border-color: #3c4f85; color: #a5b4f8;
+  }
+  .sidebar-hero-value { color: var(--ink-strong); }
+  .sidebar-hero-month, .sidebar-hero-meta span { color: var(--ink-soft); }
+
+  // Nav de faturas
+  .invoice-nav {
+    background: var(--bg-strong);
+    border-bottom-color: var(--border);
+  }
+  .nav-arrow-btn {
+    background: var(--surface-raised);
+    border-color: var(--border);
+    color: var(--ink-soft);
+    &:hover { background: var(--surface); border-color: var(--accent); }
+  }
+  .invoice-month-label { color: var(--ink-strong); }
+
+  // Sidebar sections
+  .sidebar-section {
+    background: var(--surface);
+    border-bottom-color: var(--border);
+  }
+  .sidebar-section--invoice.sidebar-section--ok   { background: linear-gradient(180deg, var(--surface) 0%, #1a3028 100%); }
+  .sidebar-section--invoice.sidebar-section--warn { background: linear-gradient(180deg, var(--surface) 0%, #2e2410 100%); }
+  .sidebar-section--invoice.sidebar-section--danger { background: linear-gradient(180deg, var(--surface) 0%, #2e1f24 100%); }
+  .sidebar-section-label { color: var(--ink-soft); }
+
+  // Select do cartão
+  .card-select { color: var(--ink-strong); }
+  .card-brand-label { color: var(--ink-soft); }
+  .card-icon-btn {
+    color: var(--ink-soft);
+    &:hover { background: var(--surface-raised); color: var(--accent); }
+  }
+
+  // Badges de saúde
+  .invoice-health-badge         { background: #1f2440; border-color: #35407a; color: #a5b4f8; }
+  .invoice-health-badge--ok     { background: #1a3028; border-color: #2d5040; color: #6ec99a; }
+  .invoice-health-badge--warn   { background: #2e2410; border-color: #5a4520; color: #fbbf6a; }
+  .invoice-health-badge--danger { background: #2e1f24; border-color: #5a3040; color: #f9a8ba; }
+
+  // Linhas de resumo
+  .summary-row {
+    background: var(--surface-raised);
+    border-color: var(--border);
+    color: var(--ink-soft);
+    span:last-child { color: var(--ink-strong); }
+  }
+  .summary-row--total    { background: var(--surface); border-color: var(--border); color: var(--ink-strong); }
+  .summary-row--highlight { background: #1f2440; border-color: #35407a; color: #a5b4f8; span:last-child { color: #a5b4f8; } }
+  .summary-row--highlight-ok   { background: #1a3028; border-color: #2d5040; span:last-child { color: #6ec99a; } }
+  .summary-row--highlight-warn { background: #2e2410; border-color: #5a4520; span:last-child { color: #fbbf6a; } }
+  .summary-row--highlight-danger { background: #2e1f24; border-color: #5a3040; span:last-child { color: #f9a8ba; } }
+
+  // Filtros
+  .launch-filter-field {
+    color: var(--ink-soft);
+    input, select {
+      background: var(--bg-strong);
+      border-color: var(--border);
+      color: var(--ink-strong);
+    }
+  }
+
+  // Lista de lançamentos
+  .launch-item {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .launch-item-day {
+    background: var(--surface-raised);
+    border-color: var(--border);
+  }
+  .launch-item-day-number { color: var(--ink-strong); }
+  .launch-item-day-month  { color: var(--ink-soft); }
+  .launch-item-main {
+    strong { color: var(--ink-strong); }
+    small  { color: var(--ink-soft); }
+  }
+  .launch-item-meta small { color: var(--ink-soft); }
+
+  // Ledger do cartão
+  .card-ledger-row {
+    background: var(--surface-raised);
+    border-color: var(--border);
+  }
+  .card-ledger-header { strong { color: var(--ink-strong); } .eyebrow { color: var(--ink-soft); } }
+  .card-ledger-header-meta span { color: var(--ink-soft); }
+  .current-chip { background: #283258; border-color: #3c4f85; color: #a5b4f8; }
+
+  // Launches head
+  .launches-head { h3 { color: var(--ink-strong); } small { color: var(--ink-soft); } }
+  .launches-head-meta   { color: var(--ink-soft); }
+  .launches-head-label  { color: var(--ink-soft); }
+
+  // Empty state
+  .cards-empty-wrap {
+    background: linear-gradient(145deg, var(--surface), var(--bg-strong));
+    border-color: var(--border);
+  }
+  .cards-empty-content {
+    h3 { color: var(--ink-strong); }
+    p  { color: var(--ink-soft); }
+  }
 }
 
 .card-modal-backdrop {
