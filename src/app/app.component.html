@@ -287,11 +287,11 @@
             <span
               class="ledger-footer-label"
               tabindex="0"
-              data-tooltip="Saidas + investimentos + diario."
+              data-tooltip="Saidas + investimentos + diario. Verde quando compromete pouco da entrada, amarelo quando compromete quase tudo, vermelho quando ultrapassa o que entrou no mes."
             >
               saida total
             </span>
-            <strong [ngClass]="getBalanceClass(getMonthTotalOutflow(month))">{{ formatCurrency(getMonthTotalOutflow(month)) }}</strong>
+            <strong [ngClass]="getMonthOutflowRiskClass(month)">{{ formatCurrency(getMonthTotalOutflow(month)) }}</strong>
           </article>
 
           <article class="ledger-footer-item">

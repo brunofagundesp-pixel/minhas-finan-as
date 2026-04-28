@@ -538,6 +538,18 @@
 	color: var(--ink-strong);
 }
 
+.ledger-footer-item strong.ledger-outflow--ok {
+	color: #0d6b4f;
+}
+
+.ledger-footer-item strong.ledger-outflow--warn {
+	color: #c47d00;
+}
+
+.ledger-footer-item strong.ledger-outflow--danger {
+	color: #ba3a55;
+}
+
 .ledger-row {
 	display: grid;
 	grid-template-columns: 34px 1fr 1fr 1fr 1fr 1.15fr;

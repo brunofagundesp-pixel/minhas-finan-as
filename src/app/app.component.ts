@@ -1102,6 +1102,31 @@ export class AppComponent implements OnInit {
     return month.totalExpenses + month.totalInvestments + month.totalFixedCosts;
   }
 
+  getMonthOutflowRiskClass(month: MonthSummary): string {
+    const outflow = this.getMonthTotalOutflow(month);
+    const income = month.totalIncome;
+
+    if (outflow <= 0) {
+      return 'ledger-outflow--ok';
+    }
+
+    if (income <= 0) {
+      return 'ledger-outflow--danger';
+    }
+
+    const ratio = outflow / income;
+
+    if (ratio > 1) {
+      return 'ledger-outflow--danger';
+    }
+
+    if (ratio >= 0.8) {
+      return 'ledger-outflow--warn';
+    }
+
+    return 'ledger-outflow--ok';
+  }
+
   getDayDetailCount(day: DayProjection): number {
     return day.notes.length + day.cardInvoiceForecasts.length;
   }
