@@ -1,0 +1,165 @@
+import { Injectable } from '@angular/core';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { map, Observable } from 'rxjs';
+
+export interface CreditCard {
+  id?: number | string;
+  name: string;
+  brand: string;
+  limit: number;
+  dueDay: number;
+  firstDueDate: string;
+  closeDaysBefore: number;
+  parentCardName: string;
+  avatarColor: string;
+}
+
+export type LaunchRepeatMode = 'single' | 'installment' | 'fixed';
+
+export interface CardLaunch {
+  id?: number | string;
+  cardId: number | string;
+  amount: number;
+  date: string;
+  repeatMode: LaunchRepeatMode;
+  seriesId?: string;
+  installmentNumber?: number;
+  installmentTotal?: number;
+  paid?: boolean;
+  paidAt?: string;
+  account: string;
+  description: string;
+  notes: string;
+  tags: string;
+}
+
+export type EventType = 'income' | 'expense' | 'investment' | 'daily';
+export type RepeatMode = 'daily' | 'weekly' | 'monthly';
+export type RecurrenceKind = 'single' | 'installment' | 'fixed';
+
+export interface FinancialEvent {
+  id?: string;
+  seriesId?: string;
+  recurrenceKind?: RecurrenceKind;
+  repeatMode?: RepeatMode;
+  seriesOccurrences?: number | null;
+  suppressed?: boolean;
+  dailyOccurrenceAction?: 'skip' | 'override';
+  paid?: boolean;
+  paidAt?: string;
+  day: number;
+  label: string;
+  amount: number;
+  type: EventType;
+}
+
+export interface MonthDefinition {
+  id: string;
+  key: string;
+  title: string;
+  year: number;
+  monthNumber: number;
+  openingBalance: number;
+  dailyFixedCost: number;
+  events: FinancialEvent[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class FinanceApiService {
+  private readonly monthsCollection = 'months';
+  private readonly cardsCollection = 'cards';
+  private readonly cardLaunchesCollection = 'cardLaunches';
+
+  constructor(private readonly firestore: AngularFirestore) {}
+
+  getMonths(): Observable<MonthDefinition[]> {
+    return this.firestore.collection<MonthDefinition>(this.monthsCollection).valueChanges({ idField: 'id' }).pipe(
+      map((months) => months.sort((a, b) => (a.year - b.year) || (a.monthNumber - b.monthNumber)))
+    );
+  }
+
+  updateMonth(month: MonthDefinition): Observable<MonthDefinition> {
+    const payload = JSON.parse(JSON.stringify(month));
+    return new Observable<MonthDefinition>((observer) => {
+      this.firestore.collection(this.monthsCollection).doc(String(month.id)).set(payload)
+        .then(() => {
+          observer.next(month);
+          observer.complete();
+        })
+        .catch((error) => observer.error(error));
+    });
+  }
+
+  getCards(): Observable<CreditCard[]> {
+    return this.firestore.collection<CreditCard>(this.cardsCollection).valueChanges({ idField: 'id' });
+  }
+
+  createCard(card: CreditCard): Observable<CreditCard> {
+    return new Observable<CreditCard>((observer) => {
+      this.firestore.collection<CreditCard>(this.cardsCollection).add(card)
+        .then((ref) => {
+          observer.next({ ...card, id: ref.id });
+          observer.complete();
+        })
+        .catch((error) => observer.error(error));
+    });
+  }
+
+  updateCard(card: CreditCard): Observable<CreditCard> {
+    const id = String(card.id);
+    const payload = { ...card };
+    delete payload.id;
+
+    return new Observable<CreditCard>((observer) => {
+      this.firestore.collection(this.cardsCollection).doc(id).update(payload)
+        .then(() => {
+          observer.next(card);
+          observer.complete();
+        })
+        .catch((error) => observer.error(error));
+    });
+  }
+
+  getCardLaunches(): Observable<CardLaunch[]> {
+    return this.firestore.collection<CardLaunch>(this.cardLaunchesCollection).valueChanges({ idField: 'id' });
+  }
+
+  createCardLaunch(launch: CardLaunch): Observable<CardLaunch> {
+    return new Observable<CardLaunch>((observer) => {
+      const payload = JSON.parse(JSON.stringify(launch));
+      delete payload.id;
+      this.firestore.collection<CardLaunch>(this.cardLaunchesCollection).add(payload)
+        .then((ref) => {
+          observer.next({ ...launch, id: ref.id });
+          observer.complete();
+        })
+        .catch((error) => observer.error(error));
+    });
+  }
+
+  updateCardLaunch(launch: CardLaunch): Observable<CardLaunch> {
+    const id = String(launch.id);
+    const payload = JSON.parse(JSON.stringify(launch));
+    delete payload.id;
+
+    return new Observable<CardLaunch>((observer) => {
+      this.firestore.collection(this.cardLaunchesCollection).doc(id).update(payload)
+        .then(() => {
+          observer.next(launch);
+          observer.complete();
+        })
+        .catch((error) => observer.error(error));
+    });
+  }
+
+  deleteCardLaunch(id: string | number): Observable<void> {
+    return new Observable<void>((observer) => {
+      this.firestore.collection(this.cardLaunchesCollection).doc(String(id)).delete()
+        .then(() => {
+          observer.next();
+          observer.complete();
+        })
+        .catch((error) => observer.error(error));
+    });
+  }
+}

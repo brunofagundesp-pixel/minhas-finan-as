@@ -1,0 +1,233 @@
+{
+  "months": [
+    {
+      "id": "jan-2026",
+      "key": "jan-2026",
+      "title": "Janeiro",
+      "year": 2026,
+      "monthNumber": 1,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": []
+    },
+    {
+      "id": "fev-2026",
+      "key": "fev-2026",
+      "title": "Fevereiro",
+      "year": 2026,
+      "monthNumber": 2,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": []
+    },
+    {
+      "id": "mar-2026",
+      "key": "mar-2026",
+      "title": "Marco",
+      "year": 2026,
+      "monthNumber": 3,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": []
+    },
+    {
+      "id": "abr-2026",
+      "key": "abr-2026",
+      "title": "Abril",
+      "year": 2026,
+      "monthNumber": 4,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": []
+    },
+    {
+      "id": "mai-2026",
+      "key": "mai-2026",
+      "title": "Maio",
+      "year": 2026,
+      "monthNumber": 5,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": [
+        {
+          "day": 10,
+          "label": "SalÃ¡rio",
+          "amount": 5000,
+          "type": "income",
+          "id": "3316360e-aad8-42ba-8b16-31ee1b0c3671",
+          "seriesId": "3316360e-aad8-42ba-8b16-31ee1b0c3671",
+          "recurrenceKind": "single",
+          "seriesOccurrences": 1
+        },
+        {
+          "id": "1bf93c10-f53c-4321-a3c3-c876f1d9a9f4",
+          "day": 23,
+          "label": "saida manual",
+          "amount": 80,
+          "type": "expense"
+        }
+      ]
+    },
+    {
+      "id": "jun-2026",
+      "key": "jun-2026",
+      "title": "Junho",
+      "year": 2026,
+      "monthNumber": 6,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": [
+        {
+          "day": 10,
+          "label": "SalÃ¡rio",
+          "amount": 5000,
+          "type": "income",
+          "id": "5a6780d0-0b17-4837-9c48-0744248c9e58",
+          "seriesId": "5a6780d0-0b17-4837-9c48-0744248c9e58",
+          "recurrenceKind": "single",
+          "seriesOccurrences": 1
+        }
+      ]
+    },
+    {
+      "id": "jul-2026",
+      "key": "jul-2026",
+      "title": "Julho",
+      "year": 2026,
+      "monthNumber": 7,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": [
+        {
+          "day": 10,
+          "label": "SalÃ¡rio",
+          "amount": 5000,
+          "type": "income",
+          "id": "b20ebe2e-a295-49e8-b0ec-9bd002933987",
+          "seriesId": "b20ebe2e-a295-49e8-b0ec-9bd002933987",
+          "recurrenceKind": "single",
+          "seriesOccurrences": 1
+        }
+      ]
+    },
+    {
+      "id": "ago-2026",
+      "key": "ago-2026",
+      "title": "Agosto",
+      "year": 2026,
+      "monthNumber": 8,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": [
+        {
+          "day": 10,
+          "label": "SalÃ¡rio",
+          "amount": 5000,
+          "type": "income",
+          "id": "24fd2d1a-37f1-4d2d-92fa-2793e8098acf",
+          "seriesId": "24fd2d1a-37f1-4d2d-92fa-2793e8098acf",
+          "recurrenceKind": "single",
+          "seriesOccurrences": 1
+        }
+      ]
+    },
+    {
+      "id": "set-2026",
+      "key": "set-2026",
+      "title": "Setembro",
+      "year": 2026,
+      "monthNumber": 9,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": [
+        {
+          "day": 10,
+          "label": "SalÃ¡rio",
+          "amount": 5000,
+          "type": "income",
+          "id": "cbe3886f-5c25-4176-8209-1a01bf0e81d0",
+          "seriesId": "cbe3886f-5c25-4176-8209-1a01bf0e81d0",
+          "recurrenceKind": "single",
+          "seriesOccurrences": 1
+        }
+      ]
+    },
+    {
+      "id": "out-2026",
+      "key": "out-2026",
+      "title": "Outubro",
+      "year": 2026,
+      "monthNumber": 10,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": [
+        {
+          "day": 10,
+          "label": "SalÃ¡rio",
+          "amount": 5000,
+          "type": "income",
+          "id": "39239d89-f2ca-4173-b977-555bfe893b9d",
+          "seriesId": "39239d89-f2ca-4173-b977-555bfe893b9d",
+          "recurrenceKind": "single",
+          "seriesOccurrences": 1
+        }
+      ]
+    },
+    {
+      "id": "nov-2026",
+      "key": "nov-2026",
+      "title": "Novembro",
+      "year": 2026,
+      "monthNumber": 11,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": [
+        {
+          "day": 10,
+          "label": "SalÃ¡rio",
+          "amount": 5000,
+          "type": "income",
+          "id": "eea9a03d-fa08-4819-be9f-4213160c21c1",
+          "seriesId": "eea9a03d-fa08-4819-be9f-4213160c21c1",
+          "recurrenceKind": "single",
+          "seriesOccurrences": 1
+        }
+      ]
+    },
+    {
+      "id": "dez-2026",
+      "key": "dez-2026",
+      "title": "Dezembro",
+      "year": 2026,
+      "monthNumber": 12,
+      "openingBalance": 0,
+      "dailyFixedCost": 0,
+      "events": [
+        {
+          "day": 10,
+          "label": "SalÃ¡rio",
+          "amount": 5000,
+          "type": "income",
+          "id": "d3a393ae-b141-4da6-b656-74d8fe6f20ce",
+          "seriesId": "d3a393ae-b141-4da6-b656-74d8fe6f20ce",
+          "recurrenceKind": "single",
+          "seriesOccurrences": 1
+        }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "id": "8770",
+      "name": "Inter",
+      "brand": "Cartao de Credito",
+      "limit": 3000,
+      "dueDay": 15,
+      "firstDueDate": "2026-05-15",
+      "closeDaysBefore": 7,
+      "parentCardName": "Titular",
+      "avatarColor": "#e85d26"
+    }
+  ],
+  "cardLaunches": []
+}

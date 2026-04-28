@@ -1,0 +1,626 @@
+<main class="shell">
+  <header class="topbar">
+    <div class="topbar-brand">
+      <p class="eyebrow">minhas financas</p>
+      <h1 class="app-title">Controle de caixa</h1>
+      <p class="topbar-subtitle">lancamentos diarios + dashboard de previsibilidade</p>
+    </div>
+
+    <nav class="app-tabs" aria-label="Navegacao principal">
+      <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'dashboard'" (click)="setActiveTab('dashboard')">
+        Dashboard
+      </button>
+      <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'entries'" (click)="setActiveTab('entries')">
+        Lancamentos
+      </button>
+      <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'cards'" (click)="setActiveTab('cards')">
+        Cartoes
+      </button>
+    </nav>
+  </header>
+
+  <section *ngIf="activeTab === 'entries'" class="entries-view">
+    <header class="entries-toolbar">
+      <div>
+        <p class="eyebrow">visao principal</p>
+        <h2>{{ entriesTitle }}</h2>
+      </div>
+
+      <div class="view-controls">
+        <div class="view-mode-picker" role="group" aria-label="Modo de visualizacao">
+          <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '3month'" (click)="setViewMode('3month')">3 meses</button>
+          <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '12month'" (click)="setViewMode('12month')">12 meses</button>
+          <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === 'custom'" (click)="setViewMode('custom')">personalizado</button>
+        </div>
+
+        <button class="current-month-button" type="button" (click)="goToCurrentMonth()" [disabled]="!hasCurrentMonthInData">
+          mes atual
+        </button>
+      </div>
+
+      <div class="entries-nav">
+        <ng-container *ngIf="viewMode === '3month'">
+          <div class="month-switch" aria-label="Navegacao de meses">
+            <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver 3 meses anteriores">←</button>
+            <strong>{{ visibleWindow.label }}</strong>
+            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximos 3 meses">→</button>
+          </div>
+          <small class="month-progress">{{ windowStartIndex + 1 }}–{{ windowStartIndex + visibleMonths.length }} de {{ monthSummaries.length }} meses</small>
+        </ng-container>
+
+        <ng-container *ngIf="viewMode === 'custom'">
+          <div class="custom-range">
+            <select [ngModel]="customStartIndex" (ngModelChange)="onCustomStartChange($event)" aria-label="Mes inicial">
+              <option *ngFor="let m of monthSummaries; let i = index" [ngValue]="i">{{ m.title }} {{ m.year }}</option>
+            </select>
+            <span class="custom-range-sep">ate</span>
+            <select [ngModel]="customEndIndex" (ngModelChange)="onCustomEndChange($event)" aria-label="Mes final">
+              <option *ngFor="let m of monthSummaries; let i = index" [ngValue]="i" [disabled]="i < customStartIndex">{{ m.title }} {{ m.year }}</option>
+            </select>
+            <small class="month-progress">{{ launchMonths.length }} {{ launchMonths.length === 1 ? 'mes' : 'meses' }}</small>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="viewMode === '12month'">
+          <div class="month-switch" aria-label="Navegacao de 12 meses">
+            <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver ano anterior">←</button>
+            <strong>{{ twelveMonthWindowLabel }}</strong>
+            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximo ano">→</button>
+          </div>
+          <small class="month-progress">12 meses de {{ twelveMonthWindowLabel }}</small>
+        </ng-container>
+      </div>
+    </header>
+
+    <div class="data-state" *ngIf="isLoading || dataError">
+      <p *ngIf="isLoading">Carregando dados do backend...</p>
+      <div *ngIf="dataError" class="data-state-error">
+        <span>{{ dataError }}</span>
+        <button type="button" class="btn-light" (click)="retryLoadData()">Tentar novamente</button>
+      </div>
+    </div>
+
+    <div class="data-state data-state--feedback" *ngIf="entriesFeedback && !isLoading && !dataError">
+      <p>{{ entriesFeedback }}</p>
+    </div>
+
+    <section class="ledger-grid" [class.ledger-grid--multi]="viewMode === '12month' || (viewMode === 'custom' && launchMonths.length > 3)">
+      <article class="panel ledger-card" *ngFor="let month of launchMonths; trackBy: trackMonthBy" [class.ledger-card--current]="isCurrentMonth(month)">
+        <div class="ledger-header">
+          <div>
+            <p class="eyebrow">
+              {{ month.title }} {{ month.year }}
+              <span *ngIf="isCurrentMonth(month)" class="current-chip">mes atual</span>
+            </p>
+            <strong>{{ formatCurrency(month.closingBalance) }}</strong>
+          </div>
+
+          <div class="ledger-header-meta">
+            <span>receitas {{ formatCurrency(month.totalIncome) }}</span>
+            <span>despesas {{ formatCurrency(month.totalExpenses + month.totalInvestments + month.totalFixedCosts) }}</span>
+          </div>
+        </div>
+
+        <div class="ledger-table">
+          <div class="ledger-row ledger-row--head">
+            <span>dia</span>
+            <span>entrada</span>
+            <span>saida</span>
+            <span>investido</span>
+            <span>diario</span>
+            <span>saldo</span>
+          </div>
+
+          <div
+            class="ledger-row"
+            *ngFor="let day of month.projection; trackBy: trackDayBy"
+            [class.ledger-row--warning]="day.status === 'warning'"
+            [class.ledger-row--negative]="day.status === 'negative'"
+            [class.ledger-row--today]="isCurrentDay(month, day.day)"
+            [class.ledger-row--with-notes]="day.notes.length > 0"
+          >
+            <span class="ledger-day-wrap">
+              <span class="ledger-day" [class.ledger-day--today]="isCurrentDay(month, day.day)">{{ day.day }}</span>
+
+              <details class="day-notes" *ngIf="getDayDetailCount(day) > 0" (toggle)="onDayNotesToggle($event)">
+                <summary aria-label="Ver lancamentos do dia">
+                  <span class="ledger-note-count" [class.ledger-note-count--paid]="isDayFullyPaid(day)">
+                    <ng-container *ngIf="isDayFullyPaid(day) && day.cardInvoiceForecasts.length === 0; else noteCountValue">
+                      <svg class="ledger-note-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                    </ng-container>
+                    <ng-template #noteCountValue>{{ getDayDetailCount(day) }}</ng-template>
+                  </span>
+                </summary>
+
+                <div class="day-notes-popover">
+                  <strong>{{ getDayDetailCount(day) }} {{ getDayDetailCount(day) === 1 ? 'item' : 'itens' }}</strong>
+                  <ul>
+                    <li *ngFor="let event of day.events; trackBy: trackEventBy" [class]="'event-item event-item--' + event.type" [class.event-item--paid]="isEventPaid(event)">
+                      <span class="day-event-main">
+                        <span class="event-kind-badge" [class]="'event-kind-badge event-kind-badge--' + event.type">
+                          <span class="event-kind-icon">{{ getEventTypeIcon(event.type) }}</span>
+                          <span>{{ getEventTypeLabel(event.type) }}</span>
+                        </span>
+                        <span>{{ describeEvent(event, month.key) }}</span>
+                        <span *ngIf="canTogglePaid(event)" class="event-paid-badge" [class.event-paid-badge--paid]="isEventPaid(event)">
+                          {{ isEventPaid(event) ? 'Pago' : 'Pendente' }}
+                        </span>
+                      </span>
+                      <span class="day-event-actions">
+                        <button
+                          *ngIf="canTogglePaid(event)"
+                          type="button"
+                          class="pay-event-button"
+                          [class.pay-event-button--paid]="isEventPaid(event)"
+                          (click)="toggleEventPaid(month.key, event)"
+                          [disabled]="isPayingEvent(event.id) || isDeletingEvent(event.id)"
+                        >
+                          {{ isPayingEvent(event.id) ? '...' : (isEventPaid(event) ? 'Desmarcar' : 'Marcar pago') }}
+                        </button>
+                        <button
+                          type="button"
+                          class="edit-event-button"
+                          (click)="openEventActionPrompt('edit', month.key, event)"
+                          [disabled]="isDeletingEvent(event.id)"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          class="delete-event-button"
+                          (click)="openEventActionPrompt('delete', month.key, event)"
+                          [disabled]="isDeletingEvent(event.id)"
+                        >
+                          {{ isDeletingEvent(event.id) ? '...' : 'Excluir' }}
+                        </button>
+                      </span>
+                    </li>
+
+                    <li *ngFor="let forecast of day.cardInvoiceForecasts" class="event-item event-item--card-forecast">
+                      <span class="day-event-main">
+                        <span class="event-kind-badge event-kind-badge--expense">
+                          <span class="event-kind-icon">💳</span>
+                          <span>Cartao</span>
+                        </span>
+                        <span>{{ getCardInvoiceForecastLabel(forecast) }}</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </details>
+            </span>
+            <span class="ledger-income">{{ day.income ? ('+ ' + formatCurrency(day.income)) : '—' }}</span>
+            <span class="ledger-expense">{{ day.expense ? ('- ' + formatCurrency(day.expense)) : '—' }}</span>
+            <span class="ledger-investment">{{ day.investment ? formatCurrency(day.investment) : '—' }}</span>
+            <span class="ledger-fixed">{{ formatCurrency(day.fixedCost) }}</span>
+            <span class="ledger-balance" [ngClass]="getBalanceClass(day.closingBalance)">{{ formatCurrency(day.closingBalance) }}</span>
+          </div>
+        </div>
+
+        <div class="ledger-footer" aria-label="Resumo do mes">
+          <article class="ledger-footer-item">
+            <span
+              class="ledger-footer-label"
+              tabindex="0"
+              data-tooltip="A performance e a diferenca entre quanto entrou e quanto saiu (entradas - saidas - investimentos - diario)."
+            >
+              performance
+            </span>
+            <strong [ngClass]="getBalanceClass(getMonthPerformance(month))">
+              {{ formatCurrency(getMonthPerformance(month)) }}
+            </strong>
+          </article>
+
+          <article class="ledger-footer-item">
+            <span
+              class="ledger-footer-label"
+              tabindex="0"
+              data-tooltip="Aqui e a media de gasto diario do mes. Se a media for maior que o definido em meta, ficara vermelho. Se estiver dentro do estipulado, ficara verde."
+            >
+              media diaria
+            </span>
+            <strong [ngClass]="getBalanceClass(getMonthDailyAverage(month))">
+              {{ formatCurrency(getMonthDailyAverage(month)) }}
+            </strong>
+          </article>
+
+          <article class="ledger-footer-item">
+            <span
+              class="ledger-footer-label"
+              tabindex="0"
+              data-tooltip="Saidas + investimentos + diario."
+            >
+              saida total
+            </span>
+            <strong [ngClass]="getBalanceClass(getMonthTotalOutflow(month))">{{ formatCurrency(getMonthTotalOutflow(month)) }}</strong>
+          </article>
+
+          <article class="ledger-footer-item">
+            <span
+              class="ledger-footer-label"
+              tabindex="0"
+              data-tooltip="Aqui voce vera o menor valor na planilha esse mes."
+            >
+              minimo do mes
+            </span>
+            <strong [ngClass]="getBalanceClass(month.minBalance)">{{ formatCurrency(month.minBalance) }}</strong>
+          </article>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <section *ngIf="activeTab === 'cards'" class="cards-tab-view">
+    <app-cards-tab #cardsTab (faturaFechada)="onFaturaFechada($event)"></app-cards-tab>
+  </section>
+
+  <section *ngIf="activeTab === 'dashboard'" class="dashboard-view">
+    <header class="hero panel">
+      <div class="hero-copy">
+        <p class="eyebrow">horizonte de caixa</p>
+        <h2>Uma leitura por janelas de 3 meses, com fluxo e folego em vez de grade de planilha.</h2>
+        <p class="hero-text">
+          Cada janela mostra o que entra, o que drena, o que vira investimento e como o custo diario empurra o saldo acumulado.
+          A navegacao por setas te leva sempre para os proximos 3 meses sem perder o contexto do saldo corrido.
+        </p>
+      </div>
+
+      <div class="hero-metrics">
+        <article class="metric-card emphasis">
+          <span>saldo no fim do horizonte</span>
+          <strong>{{ formatCurrency(projectedBalance) }}</strong>
+          <small>Fechamento do ultimo mes projetado.</small>
+        </article>
+
+        <article class="metric-card">
+          <span>menor piso previsto</span>
+          <strong>{{ formatCurrency(worstProjectedBalance) }}</strong>
+          <small>Melhor leitura para evitar assumir novos compromissos cedo demais.</small>
+        </article>
+
+        <article class="metric-card">
+          <span>dias com caixa protegido</span>
+          <strong>{{ protectedDays }} dias</strong>
+          <small>Primeiro ponto de atencao: {{ nextPressurePoint }}.</small>
+        </article>
+      </div>
+    </header>
+
+    <section class="panel window-panel">
+      <div class="window-head">
+        <div>
+          <p class="eyebrow">janela trimestral</p>
+          <h2>{{ visibleWindow.label }}</h2>
+          <p class="section-text">
+            Em vez de colunas secas, esta leitura organiza o periodo como um recorte de caixa com impulso, drenagem, aporte e ritmo fixo.
+          </p>
+        </div>
+
+        <div class="window-actions">
+          <button class="nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver 3 meses anteriores">
+            ←
+          </button>
+          <button class="nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximos 3 meses">
+            →
+          </button>
+        </div>
+      </div>
+
+      <div class="window-overview">
+        <article class="window-pill">
+          <span>arranque</span>
+          <strong>{{ formatCurrency(visibleWindow.openingBalance) }}</strong>
+        </article>
+        <article class="window-pill">
+          <span>impulso de entrada</span>
+          <strong>{{ formatCurrency(visibleWindow.totalIncome) }}</strong>
+        </article>
+        <article class="window-pill">
+          <span>drenagem</span>
+          <strong>{{ formatCurrency(visibleWindow.totalExpenses) }}</strong>
+        </article>
+        <article class="window-pill">
+          <span>capital semeado</span>
+          <strong>{{ formatCurrency(visibleWindow.totalInvestments) }}</strong>
+        </article>
+        <article class="window-pill">
+          <span>ritmo fixo</span>
+          <strong>{{ formatCurrency(visibleWindow.totalFixedCosts) }}</strong>
+        </article>
+        <article class="window-pill emphasis-soft">
+          <span>fechamento</span>
+          <strong>{{ formatCurrency(visibleWindow.closingBalance) }}</strong>
+        </article>
+      </div>
+
+      <div class="month-grid month-grid--window">
+        <article class="month-card" *ngFor="let month of visibleMonths">
+          <div class="month-top">
+            <div>
+              <p>{{ month.title }} {{ month.year }}</p>
+              <strong>{{ formatCurrency(month.closingBalance) }}</strong>
+            </div>
+
+            <span class="month-flag" [class.month-flag--alert]="month.negativeDays > 0">
+              {{ month.negativeDays > 0 ? month.negativeDays + ' dias apertados' : 'caixa folgado' }}
+            </span>
+          </div>
+
+          <div class="month-bars" aria-hidden="true">
+            <div class="month-bar" *ngFor="let height of month.chartHeights" [style.height.%]="height"></div>
+          </div>
+
+          <div class="month-stats">
+            <div>
+              <span>Arranque</span>
+              <strong>{{ formatCurrency(month.openingBalance) }}</strong>
+            </div>
+            <div>
+              <span>Entradas</span>
+              <strong>{{ formatCurrency(month.totalIncome) }}</strong>
+            </div>
+            <div>
+              <span>Drenagem</span>
+              <strong>{{ formatCurrency(month.totalExpenses) }}</strong>
+            </div>
+            <div>
+              <span>Capital semeado</span>
+              <strong>{{ formatCurrency(month.totalInvestments) }}</strong>
+            </div>
+            <div>
+              <span>Ritmo diario</span>
+              <strong>{{ formatCurrency(month.totalFixedCosts) }}</strong>
+            </div>
+            <div>
+              <span>Piso do mes</span>
+              <strong>{{ formatCurrency(month.minBalance) }}</strong>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel">
+        <div class="section-head compact">
+          <div>
+            <p class="eyebrow">leituras que valem mais</p>
+            <h2>Outras camadas sem cara de planilha</h2>
+          </div>
+        </div>
+
+        <div class="vision-grid">
+          <article class="vision-card" *ngFor="let item of visionCards">
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.description }}</p>
+          </article>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="section-head compact">
+          <div>
+            <p class="eyebrow">ritmo diario</p>
+            <h2>{{ focusMonth.title }} {{ focusMonth.year }} em detalhe</h2>
+          </div>
+
+          <p class="section-text">
+            O detalhe diario continua sendo o centro da previsibilidade, mas com termos de fluxo: impulso, drenagem, aporte e saldo corrido.
+          </p>
+        </div>
+
+        <div class="legend">
+          <span><i class="dot healthy"></i> conforto</span>
+          <span><i class="dot warning"></i> atencao</span>
+          <span><i class="dot negative"></i> pressao</span>
+        </div>
+
+        <div class="projection-list">
+          <article
+            class="projection-row"
+            *ngFor="let day of focusMonth.projection"
+            [class.projection-row--warning]="day.status === 'warning'"
+            [class.projection-row--negative]="day.status === 'negative'"
+          >
+            <div class="projection-day">{{ day.day }}</div>
+
+            <div class="projection-main">
+              <div class="projection-values">
+                <span class="income" *ngIf="day.income">Impulso {{ formatCurrency(day.income) }}</span>
+                <span class="expense" *ngIf="day.expense">Drenagem {{ formatCurrency(day.expense) }}</span>
+                <span class="investment" *ngIf="day.investment">Semeado {{ formatCurrency(day.investment) }}</span>
+                <span class="fixed">Ritmo {{ formatCurrency(day.fixedCost) }}</span>
+              </div>
+
+              <small>{{ day.notes.length ? day.notes.join(' • ') : 'Dia limpo, apenas o ritmo fixo atuando.' }}</small>
+            </div>
+
+            <div class="projection-balance">
+              <strong>{{ formatCurrency(day.closingBalance) }}</strong>
+              <span>saldo corrido</span>
+            </div>
+          </article>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <div class="fab-menu" [class.fab-menu--open]="isFabMenuOpen" (mouseenter)="openFabMenu()" (mouseleave)="closeFabMenu()">
+    <div class="fab-menu-actions" aria-label="Acoes de adicao">
+      <button class="fab-action-button" type="button" (click)="openLaunchForm()">
+        <svg class="fab-action-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M6 7h8M6 10h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Lancamento
+      </button>
+      <button class="fab-action-button" type="button" (click)="openDailyForm()">
+        <svg class="fab-action-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 8h14" stroke="currentColor" stroke-width="1.6"/><path d="M7 2v3M13 2v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Diario
+      </button>
+      <button class="fab-action-button" type="button" (click)="openCardLaunchForm()">
+        <svg class="fab-action-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2 8h16" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="12" width="4" height="2" rx="0.5" fill="currentColor"/></svg>
+        Despesa cartao
+      </button>
+    </div>
+
+    <button class="fab-launch" type="button" aria-label="Abrir opcoes de adicao" (click)="toggleFabMenu()">+</button>
+  </div>
+
+  <div class="series-action-modal" *ngIf="pendingEventAction" role="dialog" aria-modal="true" aria-label="Escolher escopo da acao">
+    <div class="launch-backdrop" (click)="closeEventActionPrompt()"></div>
+
+    <div class="series-action-card panel">
+      <h3>{{ seriesActionTitle }}</h3>
+      <p>{{ seriesActionDescription }}</p>
+
+      <div class="series-action-buttons">
+        <button type="button" class="btn-light" (click)="confirmEventActionScope('single')">So este</button>
+        <button
+          *ngIf="pendingEventAction"
+          type="button"
+          class="btn-light"
+          (click)="confirmEventActionScope('forward')"
+        >
+          Este e os proximos
+        </button>
+        <button type="button" class="btn-primary" (click)="confirmEventActionScope('series')">Toda a serie</button>
+      </div>
+
+      <button type="button" class="series-action-cancel" (click)="closeEventActionPrompt()">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="series-action-modal" *ngIf="pendingDeleteConfirmation" role="dialog" aria-modal="true" aria-label="Confirmar exclusao">
+    <div class="launch-backdrop" (click)="closeDeleteConfirmation()"></div>
+
+    <div class="series-action-card series-action-card--danger panel">
+      <span class="series-action-badge">Atencao</span>
+      <h3>{{ deleteConfirmationTitle }}</h3>
+      <p>{{ deleteConfirmationDescription }}</p>
+
+      <div class="series-action-buttons">
+        <button type="button" class="btn-light" (click)="closeDeleteConfirmation()">Cancelar</button>
+        <button type="button" class="btn-danger" (click)="confirmDeleteEvent()">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="launch-modal" *ngIf="isLaunchFormOpen" role="dialog" aria-modal="true" aria-label="Formulario de lancamento">
+    <div class="launch-backdrop" (click)="closeLaunchForm()"></div>
+
+    <form class="launch-card" (ngSubmit)="submitLaunchForm()">
+      <header class="launch-head">
+        <h3>{{ launchModalTitle }}</h3>
+        <button class="close-launch" type="button" (click)="closeLaunchForm()" aria-label="Fechar formulario">×</button>
+      </header>
+
+      <label>
+        Tipo
+        <select name="launchType" [(ngModel)]="launchForm.type" (ngModelChange)="onLaunchTypeChange($event)">
+          <option *ngFor="let option of manualLaunchTypeOptions" [value]="option.value">{{ option.label }}</option>
+        </select>
+      </label>
+
+      <label>
+        Valor
+        <input type="number" name="launchAmount" [(ngModel)]="launchForm.amount" min="0.01" step="0.01" placeholder="0,00" />
+      </label>
+
+      <label>
+        Data
+        <input type="date" name="launchDate" [(ngModel)]="launchForm.date" />
+      </label>
+
+      <label>
+        Etiqueta
+        <input type="text" name="launchLabel" [(ngModel)]="launchForm.label" maxlength="40" placeholder="Ex: mercado, aluguel, renda extra" />
+      </label>
+
+      <label *ngIf="supportsRecurrence && !isEditingSingleLaunch">
+        Tipo de recorrencia
+        <select name="launchRecurrenceKind" [(ngModel)]="launchForm.recurrenceKind" (ngModelChange)="onRecurrenceKindChange($event)">
+          <option *ngFor="let option of recurrenceKindOptions" [value]="option.value">{{ option.label }}</option>
+        </select>
+      </label>
+
+      <label *ngIf="showRecurrenceFrequencyField && !isEditingSingleLaunch">
+        Frequencia
+        <select name="launchRepeatMode" [(ngModel)]="launchForm.repeatMode" (ngModelChange)="onRepeatModeChange($event)">
+          <option *ngFor="let option of repeatModeOptions" [value]="option.value">{{ option.label }}</option>
+        </select>
+      </label>
+
+      <label *ngIf="showInstallmentsField && !isEditingSingleLaunch">
+        Quantidade de parcelas
+        <input type="number" name="launchInstallments" [(ngModel)]="launchForm.installments" min="1" step="1" />
+      </label>
+
+      <p class="launch-preview" *ngIf="recurrencePreviewText">{{ recurrencePreviewText }}</p>
+      <p class="launch-help">Para tipo Diario, o valor atualiza o custo diario do mes selecionado pela data.</p>
+      <p class="launch-error" *ngIf="launchError">{{ launchError }}</p>
+
+      <footer class="launch-actions">
+        <button class="btn-light" type="button" (click)="closeLaunchForm()" [disabled]="isSavingLaunch">Cancelar</button>
+        <button
+          *ngIf="!isEditingLaunch"
+          class="btn-primary btn-primary--icon"
+          type="button"
+          (click)="submitLaunchFormAndAddAnother()"
+          [disabled]="isSavingLaunch"
+          aria-label="Salvar e abrir novo lancamento"
+          title="Salvar e abrir novo"
+        >+</button>
+        <button class="btn-primary" type="submit" [disabled]="isSavingLaunch">{{ isSavingLaunch ? 'Salvando...' : (isEditingLaunch ? 'Salvar alteracoes' : 'Salvar lancamento') }}</button>
+      </footer>
+    </form>
+  </div>
+
+  <div class="launch-modal" *ngIf="isDailyFormOpen" role="dialog" aria-modal="true" aria-label="Formulario de diario">
+    <div class="launch-backdrop" (click)="closeDailyForm()"></div>
+
+    <form class="launch-card daily-card" (ngSubmit)="submitDailyForm()">
+      <header class="launch-head">
+        <h3>{{ dailyModalTitle }}</h3>
+        <button class="close-launch" type="button" (click)="closeDailyForm()" aria-label="Fechar formulario de diario">×</button>
+      </header>
+
+      <label>
+        Valor do diario
+        <input type="number" name="dailyAmount" [(ngModel)]="dailyForm.amount" min="0.01" step="0.01" placeholder="0,00" />
+      </label>
+
+      <label>
+        Data inicial
+        <input type="date" name="dailyEffectiveDate" [(ngModel)]="dailyForm.effectiveDate" />
+      </label>
+
+      <label *ngIf="!isEditingSingleLaunch">
+        Repeticao
+        <select name="dailyRepeatMode" [(ngModel)]="dailyForm.repeatMode" (ngModelChange)="onDailyRepeatModeChange($event)">
+          <option *ngFor="let option of dailyRepeatModeOptions" [value]="option.value">{{ option.label }}</option>
+        </select>
+      </label>
+
+      <label *ngIf="showDailyRecurrenceKindField">
+        Como repetir
+        <select name="dailyRecurrenceKind" [(ngModel)]="dailyForm.recurrenceKind" (ngModelChange)="onDailyRecurrenceKindChange($event)">
+          <option *ngFor="let option of dailyRecurrenceKindOptions" [value]="option.value">{{ option.label }}</option>
+        </select>
+      </label>
+
+      <label *ngIf="showDailyInstallmentsField">
+        Quantidade de vezes
+        <input type="number" name="dailyInstallments" [(ngModel)]="dailyForm.installments" min="1" step="1" />
+      </label>
+
+      <p class="launch-preview" *ngIf="recurrencePreviewText">{{ recurrencePreviewText }}</p>
+      <p class="launch-help">O valor do diario passa a valer a partir da data escolhida. Se houver repeticao, cada ocorrencia cria um novo ponto de inicio para esse valor.</p>
+      <p class="launch-error" *ngIf="dailyError">{{ dailyError }}</p>
+
+      <footer class="launch-actions">
+        <button class="btn-light" type="button" (click)="closeDailyForm()" [disabled]="isSavingLaunch">Cancelar</button>
+        <button class="btn-primary" type="submit" [disabled]="isSavingLaunch">{{ isSavingLaunch ? 'Salvando...' : (isEditingLaunch ? 'Salvar diario' : 'Criar diario') }}</button>
+      </footer>
+    </form>
+  </div>
+</main>

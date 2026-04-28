@@ -1,0 +1,32 @@
+:root {
+	--bg: #eceef2;
+	--bg-strong: #e1e4e9;
+	--surface: #ffffff;
+	--ink-strong: #273142;
+	--ink-soft: #6b7788;
+	--accent: #2d6cdf;
+	--accent-deep: #1f5cc2;
+	--danger: #e3516e;
+	--font-display: 'Segoe UI', 'Aptos', sans-serif;
+	--font-body: 'Segoe UI', 'Aptos', sans-serif;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	min-height: 100%;
+}
+
+body {
+	margin: 0;
+	font-family: var(--font-body);
+	color: var(--ink-strong);
+	background: linear-gradient(180deg, #f2f4f7 0%, #eceef2 100%);
+}
+
+body::before {
+	content: none;
+}

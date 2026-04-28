@@ -1,0 +1,409 @@
+﻿<!-- ── EMPTY STATE ──────────────────────────────────────────────────── -->
+<section *ngIf="!isLoading && cards.length === 0 && !cardError" class="cards-empty-wrap">
+  <div class="cards-empty-content">
+    <h3>Nenhum cartao cadastrado</h3>
+    <p>Comece cadastrando seu primeiro cartao para organizar limite, vencimento e fatura.</p>
+    <button type="button" class="cards-create-button" (click)="openCardModal()">Cadastrar cartao</button>
+  </div>
+</section>
+
+<div *ngIf="isLoading" class="cards-loading">
+  <p>Carregando cartoes...</p>
+</div>
+
+<div *ngIf="cardError && cards.length === 0" class="cards-error">
+  <p>{{ cardError }}</p>
+  <button type="button" class="btn-light" (click)="loadCards()">Tentar novamente</button>
+</div>
+
+<!-- ── CARD DETAIL VIEW ─────────────────────────────────────────────── -->
+<section *ngIf="!isLoading && cards.length > 0" class="cards-detail-layout">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="card-sidebar panel">
+
+    <!-- Card selector -->
+    <div class="card-selector-head">
+      <div class="card-avatar" [style.background]="selectedCard?.avatarColor">
+        {{ cardInitial }}
+      </div>
+      <div class="card-selector-info">
+          <select class="card-select" (change)="selectCard($any($event.target).value)" [value]="selectedCardId">
+          <option *ngFor="let c of cards" [value]="c.id">{{ c.name }}</option>
+        </select>
+        <span class="card-brand-label">{{ selectedCard?.brand }}</span>
+      </div>
+      <button type="button" class="card-icon-btn" (click)="openEditModal(selectedCard!)" title="Editar cartao" aria-label="Editar cartao">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+    </div>
+
+
+    <!-- Month navigation -->
+    <div class="invoice-nav">
+      <button type="button" class="nav-arrow-btn" (click)="prevMonth()" aria-label="Mes anterior">&#8249;</button>
+      <span class="invoice-month-label">{{ invoiceMonthLabel }}</span>
+      <button type="button" class="nav-arrow-btn" (click)="nextMonth()" aria-label="Proximo mes">&#8250;</button>
+      <button type="button" class="card-icon-btn nav-today-btn" [class.nav-today-btn--hidden]="isCurrentInvoiceMonth" (click)="goToCurrentMonth()" title="Voltar ao mes atual" aria-label="Voltar ao mes atual">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="12" x2="15" y2="15"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sidebar-section sidebar-section--invoice" [ngClass]="'sidebar-section--' + invoiceHealthTone">
+      <p class="sidebar-section-label sidebar-section-label--with-badge">
+        <span>Fatura atual (R$)</span>
+        <span class="invoice-health-badge" [ngClass]="'invoice-health-badge--' + invoiceHealthTone">
+          {{ invoiceHealthLabel }} • {{ limitUsagePercent }}%
+        </span>
+      </p>
+      <div class="summary-rows">
+        <div class="summary-row">
+          <span>Fechamento</span>
+          <span>{{ invoiceClosingDate }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Vencimento</span>
+          <span>{{ invoiceDueDate }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Total pago</span>
+          <span>{{ paidTotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row summary-row--total">
+          <span>Total</span>
+          <span>{{ launchTotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row summary-row--highlight" [ngClass]="'summary-row--highlight-' + invoiceHealthTone">
+          <span>Valor a pagar</span>
+          <span>{{ pendingTotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="invoice-actions">
+        <button
+          *ngIf="isInvoicePastClosingDate && launchTotal > 0"
+          type="button"
+          class="btn-primary invoice-btn-primary"
+          [disabled]="isClosingInvoice"
+          (click)="fecharFatura()"
+        >{{ isClosingInvoice ? 'Fechando...' : 'Fechar fatura' }}</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <p class="sidebar-section-label">Detalhamento</p>
+      <div class="summary-rows">
+        <div class="summary-row">
+          <span>Despesas</span>
+          <span>{{ launchTotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Total conciliado</span>
+          <span>{{ paidTotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Total nao conciliado</span>
+          <span>{{ pendingTotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Despesas fixas</span>
+          <span>{{ 0 | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Parcelas futuras</span>
+          <span>{{ 0 | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <p class="sidebar-section-label">Limite</p>
+      <div class="summary-rows">
+        <div class="summary-row">
+          <span>Limite da conta</span>
+          <span>{{ (selectedCard?.limit ?? 0) | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row summary-row--negative">
+          <span>Utilizado</span>
+          <span>{{ utilizedAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row summary-row--positive">
+          <span class="fw-bold">Disponivel</span>
+          <span>{{ availableLimit | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add card shortcut -->
+    <button type="button" class="add-card-link" (click)="openCardModal()">+ Adicionar cartao</button>
+  </aside>
+
+  <!-- RIGHT: LAUNCHES AREA -->
+  <div class="card-launches-area">
+    <section class="panel launches-filter-panel">
+      <p class="sidebar-section-label">Filtros de lancamentos</p>
+      <div class="launch-filters">
+        <label class="launch-filter-field launch-filter-field--search">
+          Buscar despesa
+          <input
+            type="text"
+            name="launchSearch"
+            [(ngModel)]="launchSearchTerm"
+            placeholder="Ex: mercado, uber, farmacia"
+          />
+        </label>
+
+        <label class="launch-filter-field launch-filter-field--repeat">
+          Tipo de repeticao
+          <select name="launchRepeatFilter" [(ngModel)]="launchRepeatFilter">
+            <option value="all">Todos</option>
+            <option value="single">Unica</option>
+            <option value="installment">Parcelada</option>
+            <option value="fixed">Fixa</option>
+          </select>
+        </label>
+
+        <button type="button" class="btn-light launch-filter-clear" (click)="clearLaunchFilters()" [disabled]="!hasActiveFilters">
+          Limpar filtros
+        </button>
+      </div>
+    </section>
+
+    <section class="launches-list panel" *ngIf="hasLaunches">
+      <article class="launch-item" *ngFor="let launch of filteredSelectedCardLaunches">
+        <div class="launch-item-day">
+          <span class="launch-item-day-number">{{ launch.date | date:'dd' }}</span>
+          <span class="launch-item-day-month">{{ launch.date | date:'MMM' }}</span>
+        </div>
+        <div class="launch-item-main">
+          <strong>{{ describeCardLaunch(launch) }}</strong>
+          <small>{{ launch.date | date:'dd/MM/yyyy' }}</small>
+        </div>
+        <div class="launch-item-meta">
+          <span class="launch-item-value">R$ {{ launch.amount | number:'1.2-2' }}</span>
+          <small>{{ describeRepeatMode(launch) }}</small>
+          <span class="launch-item-actions">
+            <button type="button" class="card-edit-event-button" (click)="openEditLaunchModal(launch)">Editar</button>
+            <button type="button" class="card-delete-event-button" (click)="deleteLaunch(launch)" [disabled]="isDeletingLaunch(launch.id)">
+              {{ isDeletingLaunch(launch.id) ? '...' : 'Excluir' }}
+            </button>
+          </span>
+        </div>
+      </article>
+    </section>
+
+    <div class="card-launches-empty" *ngIf="!hasLaunches">
+      <div class="card-launches-empty-icon">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#9aacbf" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <p>Sem lancamentos na fatura selecionada</p>
+      <button type="button" class="btn-light" (click)="openLaunchModal()">Adicionar primeiro lancamento</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ── NEW LAUNCH MODAL ───────────────────────────────────────────── -->
+<div class="launch-modal" *ngIf="isLaunchModalOpen" role="dialog" aria-modal="true" aria-label="Novo lancamento de cartao">
+  <div class="launch-modal-backdrop" (click)="closeLaunchModal()"></div>
+
+  <form class="launch-modal-panel" (ngSubmit)="submitLaunchForm()">
+    <header class="launch-modal-head">
+      <h3>{{ launchModalTitle }}</h3>
+      <button type="button" class="launch-modal-close" (click)="closeLaunchModal()" aria-label="Fechar">&#x2715;</button>
+    </header>
+
+    <div class="launch-grid two-cols">
+      <label>
+        Valor (R$) *
+        <input type="number" name="launchAmount" [(ngModel)]="launchForm.amount" min="0.01" step="0.01" placeholder="0,00" required />
+      </label>
+
+      <label>
+        Data *
+        <input type="date" name="launchDate" [(ngModel)]="launchForm.date" required />
+      </label>
+    </div>
+
+    <div class="launch-grid two-cols">
+      <label>
+        Conta *
+        <input type="text" name="launchAccount" [(ngModel)]="launchForm.account" placeholder="Ex: Inter" required />
+      </label>
+
+      <label>
+        Repeticao
+        <select name="launchRepeatMode" [(ngModel)]="launchForm.repeatMode">
+          <option value="single">Unica</option>
+          <option value="installment">Parcelada</option>
+          <option value="fixed">Fixa</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="launch-grid two-cols" *ngIf="showInstallmentCountField">
+      <label>
+        Quantidade de parcelas
+        <input
+          type="number"
+          name="launchInstallmentCount"
+          [(ngModel)]="launchForm.installmentCount"
+          min="2"
+          max="72"
+          step="1"
+          required
+        />
+      </label>
+    </div>
+
+    <div class="launch-grid two-cols">
+      <label>
+        Cartao *
+        <input type="text" [value]="selectedCard?.name || '-'" disabled />
+      </label>
+
+      <label>
+        Lancar na fatura de *
+        <input type="month" name="launchInvoiceMonth" [(ngModel)]="launchForm.invoiceMonthRef" required />
+      </label>
+    </div>
+
+    <div class="launch-grid one-col">
+      <label>
+        Descricao
+        <input type="text" name="launchDescription" [(ngModel)]="launchForm.description" maxlength="120" placeholder="Descricao da despesa" />
+      </label>
+    </div>
+
+    <div class="launch-grid one-col">
+      <label>
+        Tags
+        <input type="text" name="launchTags" [(ngModel)]="launchForm.tags" maxlength="100" placeholder="Ex: casa, semana" />
+      </label>
+    </div>
+
+    <p class="launch-preview" *ngIf="launchPreviewText">{{ launchPreviewText }}</p>
+
+    <p *ngIf="launchError" class="card-form-error">{{ launchError }}</p>
+
+    <footer class="launch-modal-actions">
+      <button type="button" class="btn-light" (click)="closeLaunchModal()" [disabled]="isSavingLaunch">Cancelar</button>
+      <button type="submit" class="btn-primary" [disabled]="isSavingLaunch">{{ launchSubmitLabel }}</button>
+    </footer>
+  </form>
+</div>
+
+<div class="series-action-modal" *ngIf="pendingEditLaunch" role="dialog" aria-modal="true" aria-label="Escolher escopo da edicao">
+  <div class="launch-modal-backdrop" (click)="closeEditScopePrompt()"></div>
+
+  <div class="series-action-card panel">
+    <h3>{{ editScopeTitle }}</h3>
+    <p>{{ editScopeDescription }}</p>
+
+    <div class="series-action-buttons">
+      <button type="button" class="btn-light" (click)="confirmEditScope('single')">So este</button>
+      <button type="button" class="btn-light" (click)="confirmEditScope('forward')">Este e os proximos</button>
+      <button type="button" class="btn-light" (click)="confirmEditScope('series')">Toda a serie</button>
+    </div>
+
+    <button type="button" class="series-action-cancel" (click)="closeEditScopePrompt()">Cancelar</button>
+  </div>
+</div>
+
+<div class="series-action-modal" *ngIf="pendingDeleteLaunch" role="dialog" aria-modal="true" aria-label="Escolher escopo da exclusao">
+  <div class="launch-modal-backdrop" (click)="closeDeleteScopePrompt()"></div>
+
+  <div class="series-action-card series-action-card--delete panel">
+    <h3>{{ deleteScopeTitle }}</h3>
+    <p>{{ deleteScopeDescription }}</p>
+
+    <div class="series-action-buttons" *ngIf="pendingDeleteHasRecurringOptions; else singleDeleteActions">
+      <button type="button" class="btn-light" (click)="confirmDeleteScope('single')">So este</button>
+      <button type="button" class="btn-light" (click)="confirmDeleteScope('forward')">Este e os proximos</button>
+      <button type="button" class="btn-primary series-action-delete-button" (click)="confirmDeleteScope('series')">Toda a serie</button>
+    </div>
+
+    <ng-template #singleDeleteActions>
+      <div class="series-action-buttons">
+        <button type="button" class="btn-primary series-action-delete-button" (click)="confirmDeleteScope('single')">Excluir</button>
+      </div>
+    </ng-template>
+
+    <button type="button" class="series-action-cancel" (click)="closeDeleteScopePrompt()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ── CARD REGISTRATION MODAL ─────────────────────────────────────── -->
+<div class="card-modal" *ngIf="isCardModalOpen" role="dialog" aria-modal="true" aria-label="Novo cartao de credito">
+  <div class="card-modal-backdrop" (click)="closeCardModal()"></div>
+
+  <form class="card-modal-panel" (ngSubmit)="submitCardForm()">
+    <header class="card-modal-head">
+      <h3>{{ modalTitle }}</h3>
+      <button type="button" class="card-modal-close" (click)="closeCardModal()" aria-label="Fechar">&#x2715;</button>
+    </header>
+
+    <div class="card-grid one-col">
+      <label>
+        Tipo
+        <select name="cardType" [(ngModel)]="cardForm.brand">
+          <option *ngFor="let type of cardTypeOptions" [value]="type">{{ type }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="card-grid one-col">
+      <label>
+        Nome
+        <input type="text" name="cardName" [(ngModel)]="cardForm.name" placeholder="Ex: Inter" maxlength="40" />
+      </label>
+    </div>
+
+    <div class="card-grid one-col">
+      <label>
+        Limite (R$)
+        <input type="number" name="cardLimit" [(ngModel)]="cardForm.limit" min="0" step="0.01" placeholder="0,00" />
+      </label>
+    </div>
+
+    <div class="card-grid two-cols">
+      <label>
+        Dia vencimento
+        <input type="number" name="dueDay" [(ngModel)]="cardForm.dueDay" min="1" max="31" step="1" />
+      </label>
+
+      <label>
+        Primeira fatura
+        <input type="date" name="firstDueDate" [(ngModel)]="cardForm.firstDueDate" />
+      </label>
+    </div>
+
+    <div class="card-grid one-col">
+      <label>
+        Fechamento da fatura (dias antes)
+        <input type="number" name="closeDaysBefore" [(ngModel)]="cardForm.closeDaysBefore" min="0" max="31" step="1" />
+      </label>
+    </div>
+
+    <div class="card-grid one-col">
+      <label>
+        Nome do cartao principal
+        <input type="text" name="parentCardName" [(ngModel)]="cardForm.parentCardName" placeholder="Ex: Cartao titular" />
+      </label>
+    </div>
+
+    <p *ngIf="cardError" class="card-form-error">{{ cardError }}</p>
+
+    <footer class="card-modal-actions">
+      <button type="button" class="btn-light" (click)="closeCardModal()" [disabled]="isSaving">Cancelar</button>
+      <button type="submit" class="btn-primary" [disabled]="isSaving">{{ isSaving ? 'Salvando...' : 'Salvar' }}</button>
+    </footer>
+  </form>
+</div>
