@@ -2057,7 +2057,7 @@
 
 @media (max-width: 720px) {
 	.shell {
-		width: min(1180px, calc(100% - 28px));
+		width: min(1180px, calc(100% - 36px));
 		padding-top: 20px;
 	}
 
@@ -2162,10 +2162,11 @@
 		max-width: 100%;
 		max-height: calc(100dvh - 150px);
 		overflow: hidden;
+		box-shadow: 0 4px 12px rgba(30, 42, 56, 0.1);
 	}
 
 	.ledger-grid {
-		padding-right: 4px;
+		padding-inline: 6px;
 	}
 
 	.ledger-header {
