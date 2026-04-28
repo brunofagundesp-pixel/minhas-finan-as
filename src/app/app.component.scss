@@ -2156,6 +2156,9 @@
 
 	.ledger-card {
 		padding: 12px;
+		min-width: 0;
+		max-width: 100%;
+		overflow: hidden;
 	}
 
 	.ledger-header {
@@ -2170,10 +2173,12 @@
 
 	.ledger-table {
 		display: block;
+		width: 100%;
+		min-width: 0;
 		overflow-x: auto;
 		overflow-y: visible;
 		-webkit-overflow-scrolling: touch;
-		padding-bottom: 2px;
+		padding: 0 8px 2px 0;
 		scrollbar-width: thin;
 		max-width: 100%;
 		overscroll-behavior-x: contain;
