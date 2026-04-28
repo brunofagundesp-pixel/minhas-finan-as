@@ -2144,7 +2144,39 @@
 		flex: 1;
 	}
 
+	.view-controls,
+	.entries-nav,
+	.custom-range {
+		display: grid;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.view-controls {
+		gap: 8px;
+	}
+
+	.view-mode-picker {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		width: 100%;
+		min-width: 0;
+	}
+
+	.view-mode-button {
+		min-width: 0;
+		padding-inline: 6px;
+		font-size: 0.76rem;
+	}
+
+	.current-month-button {
+		width: 100%;
+		min-width: 0;
+	}
+
 	.month-switch {
+		display: grid;
+		grid-template-columns: 28px minmax(0, 1fr) 28px;
 		width: 100%;
 		justify-content: space-between;
 	}
@@ -2152,6 +2184,15 @@
 	.month-switch strong {
 		min-width: auto;
 		flex: 1;
+		overflow-wrap: anywhere;
+	}
+
+	.entries-nav {
+		gap: 8px;
+	}
+
+	.month-progress {
+		white-space: normal;
 	}
 
 	.ledger-card {
