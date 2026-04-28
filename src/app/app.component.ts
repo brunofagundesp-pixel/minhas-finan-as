@@ -1116,11 +1116,11 @@ export class AppComponent implements OnInit {
 
     const ratio = outflow / income;
 
-    if (ratio > 1) {
+    if (ratio >= 0.9) {
       return 'ledger-outflow--danger';
     }
 
-    if (ratio >= 0.8) {
+    if (ratio >= 0.7) {
       return 'ledger-outflow--warn';
     }
 

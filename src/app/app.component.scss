@@ -465,6 +465,7 @@
 .ledger-table {
 	display: grid;
 	gap: 3px;
+	min-width: 0;
 }
 
 .ledger-footer {
@@ -2083,11 +2084,42 @@
 		padding: 12px;
 	}
 
+	.ledger-header {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.ledger-header-meta {
+		justify-items: start;
+		padding-top: 0;
+	}
+
+	.ledger-table {
+		display: block;
+		overflow-x: auto;
+		overflow-y: visible;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: 2px;
+		scrollbar-width: thin;
+		max-width: 100%;
+	}
+
 	.ledger-row {
-		grid-template-columns: 30px repeat(5, minmax(62px, 1fr));
-		gap: 6px;
-		padding: 6px;
-		font-size: 0.66rem;
+		grid-template-columns: 28px repeat(5, minmax(56px, 1fr));
+		gap: 5px;
+		padding: 6px 5px;
+		font-size: 0.63rem;
+		min-width: 398px;
+		width: max-content;
+	}
+
+	.ledger-header strong {
+		font-size: 1.35rem;
+	}
+
+	.ledger-day-wrap,
+	.ledger-row span {
+		min-width: 0;
 	}
 
 	.ledger-footer {
