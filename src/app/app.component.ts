@@ -146,7 +146,7 @@ type AppTab = 'entries' | 'dashboard' | 'cards';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
-  readonly title = 'minhas-financas';
+  readonly title = 'previsa';
   private readonly windowSize = 3;
   private readonly planningHorizonMonths = 24;
   private readonly planningEndYear = 2028;

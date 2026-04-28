@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "dist/minhas-financas",
+    "public": "dist/previsa",
     "ignore": [
       "firebase.json",
       "**/.*",
