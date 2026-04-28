@@ -87,6 +87,24 @@ interface VisionCard {
   description: string;
 }
 
+interface DashboardCardSummary {
+  cardId: string;
+  cardName: string;
+  invoiceTotal: number;
+  paidTotal: number;
+  pendingTotal: number;
+  availableLimit: number;
+  dueDateLabel: string;
+  closingDateLabel: string;
+}
+
+interface DashboardExpenseSlice {
+  label: string;
+  amount: number;
+  percent: number;
+  color: string;
+}
+
 interface LaunchFormState {
   type: LaunchType;
   amount: number | null;
@@ -279,6 +297,9 @@ export class AppComponent implements OnInit {
     maximumFractionDigits: 2
   });
 
+  private readonly shortDateFormatter = new Intl.DateTimeFormat('pt-BR');
+  private readonly dashboardExpensePalette = ['#16c6a0', '#3f8df6', '#e5cc3a', '#f97316', '#a78bfa', '#f43f5e'];
+
   private monthDefinitions: MonthDefinition[] = [];
   private cards: CreditCard[] = [];
   private cardLaunches: CardLaunch[] = [];
@@ -416,6 +437,110 @@ export class AppComponent implements OnInit {
 
   get focusMonth(): MonthSummary {
     return this.visibleMonths[0] ?? this.monthSummaries[0] ?? this.emptyMonthSummary;
+  }
+
+  get dashboardCardSummaries(): DashboardCardSummary[] {
+    const todayRef = this.getTodayInputDate();
+
+    return this.cards
+      .map((card) => {
+        const invoiceMonth = this.getCardInvoiceMonthForDate(todayRef, card);
+        const launches = this.cardLaunches.filter((launch) => {
+          if (String(launch.cardId) !== String(card.id)) {
+            return false;
+          }
+
+          const launchInvoiceMonth = this.getCardInvoiceMonthForDate(launch.date, card);
+          return launchInvoiceMonth.year === invoiceMonth.year && launchInvoiceMonth.month === invoiceMonth.month;
+        });
+
+        const invoiceTotal = launches.reduce((sum, launch) => sum + launch.amount, 0);
+        const paidTotal = launches.filter((launch) => !!launch.paid).reduce((sum, launch) => sum + launch.amount, 0);
+        const pendingTotal = Math.max(0, invoiceTotal - paidTotal);
+
+        return {
+          cardId: String(card.id ?? card.name),
+          cardName: card.name,
+          invoiceTotal,
+          paidTotal,
+          pendingTotal,
+          availableLimit: card.limit - invoiceTotal,
+          dueDateLabel: this.formatDateLabel(this.getDueDateForInvoiceMonth(invoiceMonth, card)),
+          closingDateLabel: this.formatDateLabel(this.getClosingDateForInvoiceMonth(invoiceMonth, card))
+        };
+      })
+      .sort((a, b) => b.invoiceTotal - a.invoiceTotal);
+  }
+
+  get dashboardExpenseSlices(): DashboardExpenseSlice[] {
+    const visibleKeys = new Set(this.visibleMonths.map((month) => month.key));
+    const expenseByLabel = new Map<string, number>();
+
+    for (const month of this.monthDefinitions) {
+      if (!visibleKeys.has(month.key)) {
+        continue;
+      }
+
+      for (const event of month.events) {
+        if (event.type !== 'expense' || event.suppressed) {
+          continue;
+        }
+
+        const baseLabel = this.normalizeText(event.label ?? '').trim();
+        const label = baseLabel || 'Sem categoria';
+        expenseByLabel.set(label, (expenseByLabel.get(label) ?? 0) + event.amount);
+      }
+    }
+
+    const sorted = Array.from(expenseByLabel.entries())
+      .map(([label, amount]) => ({ label, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const total = sorted.reduce((sum, item) => sum + item.amount, 0);
+    if (total <= 0) {
+      return [];
+    }
+
+    const topSlices = sorted.slice(0, 5);
+    const othersAmount = sorted.slice(5).reduce((sum, item) => sum + item.amount, 0);
+    const combined = othersAmount > 0
+      ? [...topSlices, { label: 'Outros', amount: othersAmount }]
+      : topSlices;
+
+    return combined.map((slice, index) => ({
+      label: slice.label,
+      amount: Number(slice.amount.toFixed(2)),
+      percent: Number(((slice.amount / total) * 100).toFixed(2)),
+      color: this.dashboardExpensePalette[index % this.dashboardExpensePalette.length]
+    }));
+  }
+
+  get dashboardExpenseTotal(): number {
+    return this.dashboardExpenseSlices.reduce((sum, slice) => sum + slice.amount, 0);
+  }
+
+  get dashboardTopExpensePercent(): number {
+    return this.dashboardExpenseSlices.length ? this.dashboardExpenseSlices[0].percent : 0;
+  }
+
+  get dashboardExpenseDonutStyle(): string {
+    const slices = this.dashboardExpenseSlices;
+    if (!slices.length) {
+      return 'conic-gradient(#dbe4f0 0% 100%)';
+    }
+
+    let cursor = 0;
+    const segments = slices.map((slice) => {
+      const start = cursor;
+      cursor = Number(Math.min(100, cursor + slice.percent).toFixed(2));
+      return `${slice.color} ${start}% ${cursor}%`;
+    });
+
+    if (cursor < 100) {
+      segments.push(`#dbe4f0 ${cursor}% 100%`);
+    }
+
+    return `conic-gradient(${segments.join(', ')})`;
   }
 
   get launchMonths(): MonthSummary[] {
@@ -2943,6 +3068,22 @@ export class AppComponent implements OnInit {
   private getSafeDayForMonth(year: number, monthNumber: number, day: number): number {
     const maxDay = new Date(year, monthNumber, 0).getDate();
     return Math.min(Math.max(1, day), maxDay);
+  }
+
+  private getDueDateForInvoiceMonth(invoiceMonth: { year: number; month: number }, card: CreditCard): Date {
+    const dueDay = this.getSafeDayForMonth(invoiceMonth.year, invoiceMonth.month, card.dueDay);
+    return new Date(invoiceMonth.year, invoiceMonth.month - 1, dueDay);
+  }
+
+  private getClosingDateForInvoiceMonth(invoiceMonth: { year: number; month: number }, card: CreditCard): Date {
+    const dueDate = this.getDueDateForInvoiceMonth(invoiceMonth, card);
+    const closingDate = new Date(dueDate);
+    closingDate.setDate(closingDate.getDate() - card.closeDaysBefore);
+    return closingDate;
+  }
+
+  private formatDateLabel(date: Date): string {
+    return this.shortDateFormatter.format(date);
   }
 
   private getYearMonthKey(year: number, monthNumber: number): string {

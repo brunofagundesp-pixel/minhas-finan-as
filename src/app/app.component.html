@@ -336,27 +336,51 @@
 
       <div class="window-overview">
         <article class="window-pill">
-          <span>saldo inicial</span>
+          <span
+            class="dashboard-field-label"
+            tabindex="0"
+            data-tooltip="Saldo no inicio do primeiro mes da janela (saldo de abertura)."
+          >saldo inicial</span>
           <strong>{{ formatCurrency(visibleWindow.openingBalance) }}</strong>
         </article>
         <article class="window-pill">
-          <span>entrada</span>
+          <span
+            class="dashboard-field-label"
+            tabindex="0"
+            data-tooltip="Soma de todas as entradas dos 3 meses exibidos nesta janela."
+          >entrada (periodo)</span>
           <strong>{{ formatCurrency(visibleWindow.totalIncome) }}</strong>
         </article>
         <article class="window-pill">
-          <span>saida</span>
+          <span
+            class="dashboard-field-label"
+            tabindex="0"
+            data-tooltip="Soma das despesas dos 3 meses exibidos nesta janela."
+          >saida (periodo)</span>
           <strong>{{ formatCurrency(visibleWindow.totalExpenses) }}</strong>
         </article>
         <article class="window-pill">
-          <span>investimentos</span>
+          <span
+            class="dashboard-field-label"
+            tabindex="0"
+            data-tooltip="Soma dos lancamentos marcados como investimento nos 3 meses da janela."
+          >investimentos (periodo)</span>
           <strong>{{ formatCurrency(visibleWindow.totalInvestments) }}</strong>
         </article>
         <article class="window-pill">
-          <span>custos fixos</span>
+          <span
+            class="dashboard-field-label"
+            tabindex="0"
+            data-tooltip="Total de custos diarios recorrentes (tipo diario) acumulados no periodo."
+          >custos fixos (periodo)</span>
           <strong>{{ formatCurrency(visibleWindow.totalFixedCosts) }}</strong>
         </article>
         <article class="window-pill emphasis-soft">
-          <span>saldo final</span>
+          <span
+            class="dashboard-field-label"
+            tabindex="0"
+            data-tooltip="Saldo projetado no fim do ultimo mes da janela."
+          >saldo final</span>
           <strong>{{ formatCurrency(visibleWindow.closingBalance) }}</strong>
         </article>
       </div>
@@ -380,27 +404,51 @@
 
           <div class="month-stats">
             <div>
-              <span>Saldo inicial</span>
+              <span
+                class="dashboard-field-label"
+                tabindex="0"
+                data-tooltip="Saldo no inicio deste mes."
+              >Saldo inicial</span>
               <strong>{{ formatCurrency(month.openingBalance) }}</strong>
             </div>
             <div>
-              <span>Entrada</span>
+              <span
+                class="dashboard-field-label"
+                tabindex="0"
+                data-tooltip="Total de entradas deste mes."
+              >Entrada</span>
               <strong>{{ formatCurrency(month.totalIncome) }}</strong>
             </div>
             <div>
-              <span>Saida</span>
+              <span
+                class="dashboard-field-label"
+                tabindex="0"
+                data-tooltip="Total de despesas deste mes."
+              >Saida</span>
               <strong>{{ formatCurrency(month.totalExpenses) }}</strong>
             </div>
             <div>
-              <span>Investimentos</span>
+              <span
+                class="dashboard-field-label"
+                tabindex="0"
+                data-tooltip="Total investido neste mes."
+              >Investimentos</span>
               <strong>{{ formatCurrency(month.totalInvestments) }}</strong>
             </div>
             <div>
-              <span>Custos fixos</span>
+              <span
+                class="dashboard-field-label"
+                tabindex="0"
+                data-tooltip="Custo diario recorrente acumulado no mes (lancamentos do tipo diario)."
+              >Custos fixos</span>
               <strong>{{ formatCurrency(month.totalFixedCosts) }}</strong>
             </div>
             <div>
-              <span>Piso do mes</span>
+              <span
+                class="dashboard-field-label"
+                tabindex="0"
+                data-tooltip="Menor saldo projetado atingido durante este mes."
+              >Piso do mes</span>
               <strong>{{ formatCurrency(month.minBalance) }}</strong>
             </div>
           </div>
@@ -409,20 +457,74 @@
     </section>
 
     <section class="content-grid">
-      <article class="panel">
+      <article class="panel dashboard-functional-panel">
         <div class="section-head compact">
           <div>
-            <p class="eyebrow">leituras que valem mais</p>
-            <h2>Outras camadas sem cara de planilha</h2>
+            <p class="eyebrow">dados funcionais</p>
+            <h2>Resumo rapido do periodo</h2>
           </div>
         </div>
 
-        <div class="vision-grid">
-          <article class="vision-card" *ngFor="let item of visionCards">
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.description }}</p>
-          </article>
-        </div>
+        <section class="dashboard-functional-card">
+          <div class="dashboard-functional-head">
+            <h3>Cartoes de credito</h3>
+            <small>Resumo da fatura atual por cartao</small>
+          </div>
+
+          <div class="dashboard-cards-list" *ngIf="dashboardCardSummaries.length; else noCardsSummary">
+            <article class="dashboard-card-row" *ngFor="let summary of dashboardCardSummaries">
+              <div class="dashboard-card-row-head">
+                <strong>{{ summary.cardName }}</strong>
+                <span>{{ formatCurrency(summary.invoiceTotal) }}</span>
+              </div>
+
+              <small>Fatura {{ summary.dueDateLabel }} (Fechamento {{ summary.closingDateLabel }})</small>
+
+              <div class="dashboard-card-row-metrics">
+                <span>Pago {{ formatCurrency(summary.paidTotal) }}</span>
+                <span>A pagar {{ formatCurrency(summary.pendingTotal) }}</span>
+                <span>Disponivel {{ formatCurrency(summary.availableLimit) }}</span>
+              </div>
+            </article>
+          </div>
+
+          <ng-template #noCardsSummary>
+            <p class="dashboard-empty">Sem cartoes cadastrados.</p>
+          </ng-template>
+        </section>
+
+        <section class="dashboard-functional-card">
+          <div class="dashboard-functional-head">
+            <h3>Despesas por categoria</h3>
+            <small>Com base nas saidas dos meses exibidos</small>
+          </div>
+
+          <div class="dashboard-expense-wrap" *ngIf="dashboardExpenseTotal > 0; else noExpensesSummary">
+            <div class="dashboard-expense-donut" [style.background]="dashboardExpenseDonutStyle">
+              <span>{{ dashboardTopExpensePercent | number:'1.0-1' }}%</span>
+            </div>
+
+            <div class="dashboard-expense-legend">
+              <div class="dashboard-expense-row" *ngFor="let slice of dashboardExpenseSlices">
+                <span class="dashboard-expense-label-wrap">
+                  <i class="dashboard-expense-dot" [style.background]="slice.color"></i>
+                  <span>{{ slice.label }}</span>
+                  <small>{{ slice.percent | number:'1.0-2' }}%</small>
+                </span>
+                <strong>-{{ formatCurrency(slice.amount) }}</strong>
+              </div>
+
+              <div class="dashboard-expense-total">
+                <span>Total</span>
+                <strong>-{{ formatCurrency(dashboardExpenseTotal) }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #noExpensesSummary>
+            <p class="dashboard-empty">Sem despesas registradas na janela atual.</p>
+          </ng-template>
+        </section>
       </article>
 
       <article class="panel">
