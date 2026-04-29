@@ -1709,6 +1709,94 @@
     background: var(--surface);
     border-top-color: var(--border);
   }
+
+  // Modal de cartão
+  .card-modal-panel {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 30px 55px rgba(0, 0, 0, 0.55);
+  }
+  .card-modal-close {
+    background: var(--surface-raised);
+    color: var(--ink-soft);
+  }
+  .card-grid {
+    label,
+    .balance-type-box { color: var(--ink-soft); }
+    input, select {
+      background: var(--bg-strong);
+      border-color: var(--border);
+      color: var(--ink-strong);
+    }
+  }
+  .radio-pill {
+    background: var(--surface-raised);
+    border-color: var(--border);
+    color: var(--ink-soft);
+  }
+  .btn-light {
+    background: var(--surface-raised);
+    border-color: var(--border);
+    color: var(--ink-soft);
+  }
+  .card-form-error {
+    background: #2e1f24;
+    border-color: #5a3040;
+    color: #f9a8ba;
+  }
+
+  // Filtro de tags nos lançamentos
+  .card-launch-tag-filter summary {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--ink-strong);
+  }
+  .card-launch-tag-filter-panel {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+  }
+  .card-launch-tag-filter-option:hover { background: var(--surface-raised); }
+  .card-launch-tag-filter-check {
+    background: var(--surface-raised);
+    border-color: var(--border);
+    color: var(--ink-soft);
+  }
+  .card-launch-tag-filter-option--active .card-launch-tag-filter-check {
+    background: #1f2440;
+    border-color: #35407a;
+    color: #a5b4f8;
+  }
+  .card-launch-tag-filter-empty { color: var(--ink-soft); }
+
+  // Popover de notas do dia
+  .card-day-notes-popover {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+    strong { color: var(--ink-soft); }
+    li { color: var(--ink-strong); }
+  }
+  .card-ledger-note-count {
+    background: #283258;
+    border-color: #3c4f85;
+    color: #a5b4f8;
+  }
+
+  // Botões de edição de eventos
+  .card-edit-event-button   { background: #1f2440; border-color: #35407a; color: #a5b4f8; }
+  .card-delete-event-button { background: #2e1f24; border-color: #5a3040; color: #f9a8ba; }
+
+  // Estados das linhas do ledger
+  .card-ledger-row--head {
+    background: var(--bg-strong);
+    border-color: var(--border);
+    color: var(--ink-soft);
+  }
+  .card-ledger-row--today   { background: #272f4a; border-color: #3d4f80; }
+  .card-ledger-row--warning { background: #2e2410; border-color: #5a4520; }
+  .card-ledger-row--negative,
+  .card-ledger-row--has-launch { background: #2e1f24; border-color: #5a3040; }
 }
 
 .card-modal-backdrop {
