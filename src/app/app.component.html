@@ -448,10 +448,7 @@
                   <ul>
                     <li *ngFor="let event of day.events; trackBy: trackEventBy" [class]="'event-item event-item--' + event.type" [class.event-item--paid]="isEventPaid(event)">
                       <span class="day-event-main">
-                        <span class="event-kind-badge" [class]="'event-kind-badge event-kind-badge--' + event.type">
-                          <span class="event-kind-icon">{{ getEventTypeIcon(event.type) }}</span>
-                          <span>{{ getEventTypeLabel(event.type) }}</span>
-                        </span>
+                        <span class="day-event-type-dot" [class]="'day-event-type-dot day-event-type-dot--' + event.type" [title]="getEventTypeLabel(event.type)"></span>
                         <span class="day-event-content">
                           <span class="day-event-description">{{ describeEvent(event, month.key) }}</span>
                           <span class="day-event-tags" *ngIf="event.tags && event.tags.length > 0">
@@ -502,10 +499,7 @@
                       [class.event-item--paid]="forecast.isPaid"
                     >
                       <span class="day-event-main">
-                        <span class="event-kind-badge event-kind-badge--expense">
-                          <span class="event-kind-icon">💳</span>
-                          <span>Cartao</span>
-                        </span>
+                        <span class="day-event-type-dot day-event-type-dot--card" title="Cartao"></span>
                         <span class="day-event-content">
                           <span class="day-event-description">{{ getCardInvoiceForecastLabel(forecast) }}</span>
                         </span>
@@ -611,10 +605,7 @@
         <ul>
           <li *ngFor="let event of activeDayDetails.day.events; trackBy: trackEventBy" [class]="'event-item event-item--' + event.type" [class.event-item--paid]="isEventPaid(event)">
             <span class="day-event-main">
-              <span class="event-kind-badge" [class]="'event-kind-badge event-kind-badge--' + event.type">
-                <span class="event-kind-icon">{{ getEventTypeIcon(event.type) }}</span>
-                <span>{{ getEventTypeLabel(event.type) }}</span>
-              </span>
+              <span class="day-event-type-dot" [class]="'day-event-type-dot day-event-type-dot--' + event.type" [title]="getEventTypeLabel(event.type)"></span>
               <span class="day-event-description">{{ describeEvent(event, activeDayDetails.month.key) }}</span>
             </span>
             <span class="day-event-actions">
@@ -653,10 +644,7 @@
             [class.event-item--paid]="forecast.isPaid"
           >
             <span class="day-event-main">
-              <span class="event-kind-badge event-kind-badge--expense">
-                <span class="event-kind-icon">&#128179;</span>
-                <span>Cartao</span>
-              </span>
+              <span class="day-event-type-dot day-event-type-dot--card" title="Cartao"></span>
               <span class="day-event-description">{{ getCardInvoiceForecastLabel(forecast) }}</span>
             </span>
             <span class="day-event-actions">
@@ -1098,6 +1086,22 @@
       <div class="launch-advice" *ngIf="launchDecisionAdvice as advice" [class.launch-advice--good]="advice.tone === 'good'" [class.launch-advice--warn]="advice.tone === 'warn'" [class.launch-advice--risk]="advice.tone === 'risk'">
         <strong>{{ advice.title }}</strong>
         <p>{{ advice.summary }}</p>
+        <div class="launch-advice-metrics" *ngIf="advice.beforeBalance !== undefined && advice.launchDelta !== undefined && advice.afterBalance !== undefined">
+          <span class="launch-advice-metric">
+            <small>Saldo antes</small>
+            <strong>{{ formatCurrency(advice.beforeBalance) }}</strong>
+          </span>
+          <span class="launch-advice-metric">
+            <small>{{ advice.launchLabel || 'Lancamento' }}</small>
+            <strong [ngClass]="advice.launchDelta >= 0 ? 'launch-advice-metric-value--positive' : 'launch-advice-metric-value--negative'">
+              {{ advice.launchDelta >= 0 ? '+' : '' }}{{ formatCurrency(advice.launchDelta) }}
+            </strong>
+          </span>
+          <span class="launch-advice-metric">
+            <small>Saldo depois</small>
+            <strong [ngClass]="getBalanceClass(advice.afterBalance)">{{ formatCurrency(advice.afterBalance) }}</strong>
+          </span>
+        </div>
         <small>{{ advice.detail }}</small>
       </div>
       <p class="launch-help">Para tipo Diario, o valor atualiza o custo diario do mes selecionado pela data.</p>

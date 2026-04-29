@@ -281,12 +281,15 @@
 }
 
 .entries-toolbar {
-	display: flex;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 	align-items: center;
-	justify-content: space-between;
 	gap: 14px;
-	flex-wrap: wrap;
 	padding: 8px 2px 2px;
+}
+
+.entries-toolbar > :first-child {
+	justify-self: start;
 }
 
 .view-mode-picker {
@@ -302,6 +305,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
+	justify-self: center;
 }
 
 .view-mode-button {
@@ -354,6 +358,7 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	justify-self: end;
 }
 
 .data-state {
@@ -589,7 +594,7 @@
 
 .simplified-entry {
 	display: grid;
-	grid-template-columns: 10px 84px minmax(0, 1fr) auto auto;
+	grid-template-columns: 10px 84px minmax(0, 1fr) auto 80px;
 	align-items: center;
 	column-gap: 10px;
 	row-gap: 4px;
@@ -678,6 +683,7 @@
 
 .simplified-entry-actions {
 	display: inline-flex;
+	width: 80px;
 	justify-content: flex-end;
 	gap: 4px;
 	flex-wrap: nowrap;
@@ -1375,6 +1381,8 @@
 
 .ledger-balance.ledger-balance--negative {
 	color: #ba3a55;
+	background: #fff1f3;
+	border-color: #f4c7d0;
 }
 
 .ledger-footer-item strong.ledger-balance--negative {
@@ -1383,6 +1391,8 @@
 
 .ledger-balance.ledger-balance--low {
 	color: #c47d00;
+	background: #fff7e8;
+	border-color: #f2ddb4;
 }
 
 .ledger-footer-item strong.ledger-balance--low {
@@ -1391,6 +1401,8 @@
 
 .ledger-balance.ledger-balance--mid {
 	color: #3a8c3a;
+	background: #f3fbef;
+	border-color: #cfe7c4;
 }
 
 .ledger-footer-item strong.ledger-balance--mid {
@@ -1399,6 +1411,8 @@
 
 .ledger-balance.ledger-balance--high {
 	color: #0d6b4f;
+	background: #ebfaf4;
+	border-color: #c6e9d9;
 }
 
 .ledger-footer-item strong.ledger-balance--high {
@@ -1611,37 +1625,12 @@
 }
 
 .event-item {
-	border-left: 3px solid transparent;
-	padding-left: 6px;
+	padding-left: 0;
 }
 
 .event-item--paid .day-event-description {
 	color: #65798f;
 	text-decoration: line-through;
-}
-
-.event-item--income {
-	border-left-color: #0f9a78;
-}
-
-.event-item--expense {
-	border-left-color: #d14661;
-}
-
-.event-item--investment {
-	border-left-color: #4b62d8;
-}
-
-.event-item--daily {
-	border-left-color: #b57a2a;
-}
-
-.event-item--card-forecast {
-	border-left-color: #8b5cf6;
-}
-
-.event-item--card-forecast.event-item--paid {
-	border-left-color: #0f9a78;
 }
 
 .event-item--card-forecast.event-item--paid .day-event-description {
@@ -1696,6 +1685,37 @@
 	white-space: nowrap;
 }
 
+.day-event-type-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-flex;
+	align-self: center;
+	justify-self: center;
+	background: #9aa8ba;
+	flex-shrink: 0;
+}
+
+.day-event-type-dot--income {
+	background: #0f7f63;
+}
+
+.day-event-type-dot--expense {
+	background: #ba3a55;
+}
+
+.day-event-type-dot--investment {
+	background: #3f67d4;
+}
+
+.day-event-type-dot--daily {
+	background: #b57a2a;
+}
+
+.day-event-type-dot--card {
+	background: #8b5cf6;
+}
+
 .event-paid-badge {
 	display: inline-flex;
 	align-items: center;
@@ -1718,52 +1738,6 @@
 	border-color: #bfe8d9;
 	background: #eaf8f2;
 	color: #0f7f63;
-}
-
-.event-kind-badge {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 4px;
-	min-width: 78px;
-	height: 18px;
-	padding: 0 8px;
-	border-radius: 999px;
-	font-size: 0.6rem;
-	font-weight: 800;
-	letter-spacing: 0.03em;
-	border: 1px solid transparent;
-	line-height: 1;
-	flex-shrink: 0;
-}
-
-.event-kind-icon {
-	font-size: 0.66rem;
-	line-height: 1;
-}
-
-.event-kind-badge--income {
-	color: #0c7f64;
-	background: #e7f7f2;
-	border-color: #bde9dc;
-}
-
-.event-kind-badge--expense {
-	color: #a5344d;
-	background: #ffeef1;
-	border-color: #f8c6d1;
-}
-
-.event-kind-badge--investment {
-	color: #3547a9;
-	background: #edf0ff;
-	border-color: #c7d1ff;
-}
-
-.event-kind-badge--daily {
-	color: #8f6121;
-	background: #fff3df;
-	border-color: #f3d6a8;
 }
 
 .day-event-actions {
@@ -1885,6 +1859,18 @@
 .ledger-balance {
 	font-weight: 700;
 	color: var(--ink-strong);
+}
+
+.ledger-balance {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	min-height: 24px;
+	padding: 0 8px;
+	border-radius: 999px;
+	border: 1px solid transparent;
+	background: #f2f5fa;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .ledger-day--today {
@@ -2832,6 +2818,47 @@
 	}
 }
 
+.launch-advice-metrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.launch-advice-metric {
+	display: grid;
+	gap: 3px;
+	padding: 8px;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.6);
+	border: 1px solid rgba(140, 160, 190, 0.18);
+
+	small,
+	strong {
+		margin: 0;
+	}
+
+	small {
+		font-size: 0.67rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+		opacity: 0.8;
+	}
+
+	strong {
+		font-size: 0.8rem;
+		font-variant-numeric: tabular-nums;
+	}
+}
+
+.launch-advice-metric-value--positive {
+	color: #0f7f63;
+}
+
+.launch-advice-metric-value--negative {
+	color: #ba3a55;
+}
+
 .launch-advice--good {
 	background: #f0fdf9;
 	border-color: #d4f0eb;
@@ -3363,7 +3390,7 @@
 		width: 100%;
 	}
 
-	.day-details-mobile-list .event-kind-badge,
+	.day-details-mobile-list .day-event-type-dot,
 	.day-details-mobile-list .event-paid-badge {
 		width: fit-content;
 	}
@@ -3673,17 +3700,6 @@
       color: #6ec99a;
     }
   }
-
-  // Badges de tipo de evento
-  .event-kind-badge--income  { background: #1a3028; border-color: #2d5040; color: #6ec99a; }
-  .event-kind-badge--expense { background: #2e1f24; border-color: #5a3040; color: #f9a8ba; }
-  .event-kind-badge--investment { background: #1f2440; border-color: #35407a; color: #a5b4f8; }
-  .event-kind-badge--daily   { background: #2e2410; border-color: #5a4520; color: #fbbf6a; }
-
-	.event-item--card-forecast.event-item--paid {
-		border-left-color: #2d5040;
-	}
-
 	.event-item--card-forecast.event-item--paid .day-event-main > span:last-child {
 		color: #6ec99a;
 		text-decoration: none;

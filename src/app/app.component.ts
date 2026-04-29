@@ -153,6 +153,10 @@ interface LaunchDecisionAdvice {
   title: string;
   summary: string;
   detail: string;
+  launchLabel?: string;
+  beforeBalance?: number;
+  launchDelta?: number;
+  afterBalance?: number;
 }
 
 interface DailyFormState {
@@ -952,14 +956,40 @@ export class AppComponent implements OnInit {
     };
 
     const currentDayBalance = findDayBalance(currentSummaries, parsedDate);
+    const scenarioDayBalance = findDayBalance(scenarioSummaries, parsedDate);
+    const launchImpact = this.launchForm.type === 'income'
+      ? Number(this.launchForm.amount.toFixed(2))
+      : -Number(this.launchForm.amount.toFixed(2));
+    const attachDayBalance = (advice: LaunchDecisionAdvice): LaunchDecisionAdvice => ({
+      ...advice,
+      launchLabel: this.getLaunchAdviceMetricLabel(this.launchForm.type),
+      beforeBalance: currentDayBalance ?? undefined,
+      launchDelta: currentDayBalance !== null && scenarioDayBalance !== null
+        ? Number((scenarioDayBalance - currentDayBalance).toFixed(2))
+        : undefined,
+      afterBalance: scenarioDayBalance ?? undefined
+    });
 
-    // Encontrar próximo dia com saldo bom (>500) após o lançamento
-    const findNextGoodDay = (summaries: MonthSummary[], afterDate: Date): { day: string; balance: number } | null => {
+    // Encontrar próximo dia em que esse mesmo lançamento ainda cabe no saldo.
+    const findNextViableDay = (
+      summaries: MonthSummary[],
+      afterDate: Date,
+      minimumResultBalance = 0
+    ): { day: string; balance: number; resultingBalance: number } | null => {
       for (const month of summaries) {
         for (const day of month.projection) {
           const dayDate = new Date(month.year, month.monthNumber - 1, day.day);
-          if (dayDate > afterDate && day.closingBalance > 500) {
-            return { day: `${day.day} de ${month.title}`, balance: day.closingBalance };
+          if (dayDate <= afterDate) {
+            continue;
+          }
+
+          const resultingBalance = Number((day.closingBalance + launchImpact).toFixed(2));
+          if (resultingBalance >= minimumResultBalance) {
+            return {
+              day: `${day.day} de ${month.title}`,
+              balance: day.closingBalance,
+              resultingBalance
+            };
           }
         }
       }
@@ -969,115 +999,127 @@ export class AppComponent implements OnInit {
     // Casos de entrada (income)
     if (this.launchForm.type === 'income') {
       if (scenarioWorst > currentWorst) {
-        return {
+        return attachDayBalance({
           tone: 'good',
           title: 'Essa entrada reforça o caixa',
           summary: `Melhora o menor saldo previsto em ${this.formatCurrency(worstDelta)}.`,
           detail: !scenarioRed
             ? 'Depois dela, a janela fica sem pontos de aperto.'
             : `Reduz o tempo em vermelho. O primeiro dia crítico fica em ${scenarioRed.day}.`
-        };
+        });
       }
       return null;
     }
 
     // Casos de despesa (expense) ou investimento (investment)
 
-    // SUPER IMPORTANTE: Verificar o saldo do DIA do lançamento
+    // SUPER IMPORTANTE: Verificar como o saldo do dia fica DEPOIS do lançamento.
+    if (currentDayBalance !== null && scenarioDayBalance !== null && scenarioDayBalance < 0) {
+      const nextGood = findNextViableDay(currentSummaries, parsedDate, 0);
+      return attachDayBalance({
+        tone: 'risk',
+        title: 'Essa compra te deixa no vermelho nesse dia',
+        summary: `No dia ${parsedDate.getDate()}, seu saldo sai de ${this.formatCurrency(currentDayBalance)} para ${this.formatCurrency(scenarioDayBalance)}.`,
+        detail: nextGood
+          ? `Melhor esperar até ${nextGood.day}, quando esse lancamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
+          : `Seu caixa fica no vermelho nesse período. Melhor esperar uma entrada ou reduzir esse valor.`
+      });
+    }
+
+    // Se já estava negativo antes mesmo do lançamento, continua sendo um risco claro.
     if (currentDayBalance !== null && currentDayBalance < 0) {
-      // Está no vermelho naquele dia - é péssimo fazer ali
-      const nextGood = findNextGoodDay(currentSummaries, parsedDate);
-      return {
+      const nextGood = findNextViableDay(currentSummaries, parsedDate, 0);
+      return attachDayBalance({
         tone: 'risk',
         title: 'Pessimo dia pra fazer essa despesa',
         summary: `No dia ${parsedDate.getDate()}, o saldo ja esta em ${this.formatCurrency(currentDayBalance)}.`,
         detail: nextGood
-          ? `Melhor esperar até ${nextGood.day}, quando o saldo fica em ${this.formatCurrency(nextGood.balance)}.`
+          ? `Melhor esperar até ${nextGood.day}, quando esse lancamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
           : `Seu caixa fica no vermelho nesse período. Espere uma entrada.`
-      };
+      });
     }
 
-    // Saldo do dia está muito apertado (0 a 250)
-    if (currentDayBalance !== null && currentDayBalance >= 0 && currentDayBalance < 250) {
-      const nextGood = findNextGoodDay(currentSummaries, parsedDate);
-      return {
+    // Saldo do dia fica muito apertado depois do lançamento.
+    if (scenarioDayBalance !== null && scenarioDayBalance >= 0 && scenarioDayBalance < 250) {
+      const nextGood = findNextViableDay(currentSummaries, parsedDate, 0);
+      return attachDayBalance({
         tone: 'warn',
         title: 'Dia muito apertado pra essa compra',
-        summary: `No dia ${parsedDate.getDate()}, o saldo fica em apenas ${this.formatCurrency(currentDayBalance)}.`,
+        summary: `Depois desse lancamento, o saldo do dia fica em apenas ${this.formatCurrency(scenarioDayBalance)}.`,
         detail: nextGood
-          ? `Prefere esperar? No dia ${nextGood.day} o saldo fica em ${this.formatCurrency(nextGood.balance)}.`
+          ? `Prefere esperar? No dia ${nextGood.day}, esse lancamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
           : `Tem pouca folga nesse dia. Vale acompanhar de perto.`
-      };
+      });
     }
 
-    // Saldo do dia é BOM (>1000) - não importa dias vermelhos no passado
-    if (currentDayBalance !== null && currentDayBalance > 1000) {
+    // Saldo do dia continua confortavel depois do lançamento.
+    if (scenarioDayBalance !== null && scenarioDayBalance > 1000) {
       // Mas se é parcelado de valor alto, precisa checar o impacto global
       if (this.launchForm.recurrenceKind === 'installment' && installments > 1) {
         const monthlyInstallment = Number((this.launchForm.amount / installments).toFixed(2));
         
         // Se as parcelas reduzem MAS tem impacto significativo, avisar
         if (worstDelta < -1000) {
-          return {
+          return attachDayBalance({
             tone: 'warn',
             title: 'Parcelado reduz bastante no futuro',
             summary: `${installments} parcelas de ${this.formatCurrency(monthlyInstallment)} cada mês.`,
             detail: `O menor saldo da janela cai ${this.formatCurrency(Math.abs(worstDelta))} nos próximos meses. Sustentavel, mas aperta.`
-          };
+          });
         }
 
         // Se fica negativo em algum ponto, é risco
         if (scenarioWorst < 0) {
-          return {
+          return attachDayBalance({
             tone: 'risk',
             title: 'Parcelado quebra o caixa nos próximos meses',
             summary: `${installments} parcelas de ${this.formatCurrency(monthlyInstallment)} cada.`,
             detail: `O caixa fica no vermelho em algum ponto. Reduz a quantidade ou o valor?`
-          };
+          });
         }
       }
 
-      return {
+      return attachDayBalance({
         tone: 'good',
         title: 'Essa compra e tranquila nesse dia',
-        summary: `No dia ${parsedDate.getDate()}, o saldo esta em ${this.formatCurrency(currentDayBalance)}.`,
+        summary: `Depois desse lancamento, o saldo do dia fica em ${this.formatCurrency(scenarioDayBalance)}.`,
         detail: `Tem folga confortavel. Segue firme com a compra.`
-      };
+      });
     }
 
-    // Saldo do dia é positivo e razoável (250 a 1000)
-    if (currentDayBalance !== null && currentDayBalance >= 250 && currentDayBalance <= 1000) {
+    // Saldo do dia segue positivo e razoavel depois do lançamento.
+    if (scenarioDayBalance !== null && scenarioDayBalance >= 250 && scenarioDayBalance <= 1000) {
       // Se é parcelado, avaliar impacto nos próximos meses
       if (this.launchForm.recurrenceKind === 'installment' && installments > 1) {
         const monthlyInstallment = Number((this.launchForm.amount / installments).toFixed(2));
         
         // Se fica negativo, é risco
         if (scenarioWorst < 0) {
-          return {
+          return attachDayBalance({
             tone: 'risk',
             title: 'Parcelado quebra o caixa nos próximos meses',
             summary: `${installments} parcelas de ${this.formatCurrency(monthlyInstallment)} cada.`,
             detail: `O caixa fica no vermelho. Reduz a quantidade ou o valor?`
-          };
+          });
         }
 
         // Se reduz muito, é atenção
         if (worstDelta < -500) {
-          return {
+          return attachDayBalance({
             tone: 'warn',
             title: 'Parcelado aperta nos próximos meses',
             summary: `${installments} parcelas de ${this.formatCurrency(monthlyInstallment)} cada.`,
             detail: `O caixa fica bem apertado depois. Tem entrada vindo?`
-          };
+          });
         }
       }
 
-      return {
+      return attachDayBalance({
         tone: 'good',
         title: 'Essa compra cabe bem nesse dia',
-        summary: `No dia ${parsedDate.getDate()}, o saldo esta em ${this.formatCurrency(currentDayBalance)}.`,
+        summary: `Depois desse lancamento, o saldo do dia fica em ${this.formatCurrency(scenarioDayBalance)}.`,
         detail: `Positivo e com margem. Voce pode fazer a compra tranquilo.`
-      };
+      });
     }
 
     // Cenário 1: Despesa cria novo dia no vermelho que antes não existia
@@ -1085,52 +1127,52 @@ export class AppComponent implements OnInit {
       const bestAfter = bestAfterLaunch;
       if (bestAfter > 2000) {
         // Volta bem depois
-        return {
+        return attachDayBalance({
           tone: 'warn',
           title: 'Essa despesa aperta, mas volta rápido',
           summary: `Você fica no vermelho em ${scenarioRed.day} com saldo de ${this.formatCurrency(scenarioRed.balance)}.`,
           detail: `Mas depois volta a ${this.formatCurrency(bestAfter)}. E uma situacao temporaria.`
-        };
+        });
       }
       // Fica vermelho e não volta bem
-      return {
+      return attachDayBalance({
         tone: 'risk',
         title: 'Essa despesa quebra o fluxo',
         summary: `Você fica no vermelho em ${scenarioRed.day}.`,
         detail: `Depois disso o saldo fica em torno de ${this.formatCurrency(bestAfter)}. Prefere remarcar ou buscar uma entrada?`
-      };
+      });
     }
 
     // Cenário 2: Já tinha dia vermelho, despesa piora a situação
     if (currentRed && scenarioRed) {
       // Piora significativamente
       if (worstDelta < -500) {
-        return {
+        return attachDayBalance({
           tone: 'risk',
           title: 'Essa despesa aperta muito',
           summary: `Já existem dias em vermelho. Essa ainda reduz mais o saldo em ${this.formatCurrency(Math.abs(worstDelta))}.`,
           detail: `O pior fica em ${this.formatCurrency(scenarioWorst)}. Tem entrada vindo que regularize?`
-        };
+        });
       }
 
       // Se lançamento é DEPOIS do dia vermelho e volta bem
       const launchAfterRed = launchDateObj > new Date(currentRed.day);
       if (launchAfterRed && bestAfterLaunch > 2000) {
-        return {
+        return attachDayBalance({
           tone: 'good',
           title: 'Você coloca isso depois dos dias criticos',
           summary: `Os dias em vermelho ja estao agendados (${currentRed.day}).`,
           detail: `Seu lancamento no dia 25 e depois disso, e o caixa volta pra ${this.formatCurrency(bestAfterLaunch)}. Tranquilo.`
-        };
+        });
       }
 
       // Já tinha vermelho, não piora muito
-      return {
+      return attachDayBalance({
         tone: 'warn',
         title: 'Ja tem dias comprometidos no horizonte',
         summary: `O primeiro fica em ${currentRed.day} com saldo de ${this.formatCurrency(currentRed.balance)}.`,
         detail: `Essa despesa piora um pouco mais. Mas se ja esta planejando, segue o plano.`
-      };
+      });
     }
 
     // Cenário 3: Não tem vermelho em nenhum cenário
@@ -3145,6 +3187,19 @@ export class AppComponent implements OnInit {
 
   private normalizeTagName(value: string): string {
     return this.normalizeText(value).trim().toLocaleLowerCase('pt-BR');
+  }
+
+  private getLaunchAdviceMetricLabel(type: LaunchType): string {
+    switch (type) {
+      case 'income':
+        return 'Entrada';
+      case 'investment':
+        return 'Investimento';
+      case 'daily':
+        return 'Diario';
+      default:
+        return 'Saida';
+    }
   }
 
   private normalizeTagLabel(value: string): string {
