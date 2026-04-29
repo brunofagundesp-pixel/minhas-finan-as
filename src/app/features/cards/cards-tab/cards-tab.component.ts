@@ -87,6 +87,14 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   availableTags: LaunchTagCatalogItem[] = [];
   selectedExistingTag = '';
   newTagInput = '';
+  private launchFilterTagsCache: {
+    availableTags: LaunchTagCatalogItem[];
+    availableTagsLength: number;
+    launches: CardLaunch[];
+    selectedCardId: string | number | null;
+    monthKey: string;
+    result: LaunchTagCatalogItem[];
+  } | null = null;
   private redirectToCurrentMonthAfterSave = false;
   private openLaunchAfterCardCreate = false;
 
@@ -227,26 +235,55 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   }
 
   get launchFilterTags(): LaunchTagCatalogItem[] {
-    const tagsByName = new Map<string, string>();
+    const launches = this.launches;
+    const availableTags = this.availableTags;
+    const selectedCardId = this.selectedCardId;
+    const monthKey = `${this.invoiceMonth.year}-${this.invoiceMonth.month}`;
+
+    const cache = this.launchFilterTagsCache;
+    if (
+      cache &&
+      cache.availableTags === availableTags &&
+      cache.availableTagsLength === availableTags.length &&
+      cache.launches === launches &&
+      cache.selectedCardId === selectedCardId &&
+      cache.monthKey === monthKey
+    ) {
+      return cache.result;
+    }
+
+    const tagsByName = new Map<string, LaunchTagCatalogItem>();
+
+    for (const tag of availableTags) {
+      const normalized = this.normalizeTagName(tag.name);
+      if (normalized && !tagsByName.has(normalized)) {
+        tagsByName.set(normalized, { name: tag.name, color: tag.color });
+      }
+    }
 
     for (const launch of this.selectedCardLaunches) {
       for (const tag of this.parseLaunchTagsInput(launch.tags)) {
         const normalized = this.normalizeTagName(tag);
-        if (!tagsByName.has(normalized)) {
-          tagsByName.set(normalized, tag);
+        if (normalized && !tagsByName.has(normalized)) {
+          tagsByName.set(normalized, { name: tag, color: this.getTagColor(tag) });
         }
       }
     }
 
-    const tags = Array.from(tagsByName.values())
-      .map((tagName) => this.findTagInCatalog(tagName) ?? { name: tagName, color: this.getTagColor(tagName) })
-      .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+    const result = Array.from(tagsByName.values()).sort((left, right) =>
+      left.name.localeCompare(right.name, 'pt-BR')
+    );
 
-    if (tags.length > 0) {
-      return tags;
-    }
+    this.launchFilterTagsCache = {
+      availableTags,
+      availableTagsLength: availableTags.length,
+      launches,
+      selectedCardId,
+      monthKey,
+      result
+    };
 
-    return [...this.availableTags].sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+    return result;
   }
 
   get firstLaunchDayInInvoiceMonth(): number | null {

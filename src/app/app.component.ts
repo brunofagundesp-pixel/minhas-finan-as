@@ -361,6 +361,11 @@ export class AppComponent implements OnInit {
   newTagInput = '';
   selectedExistingTag = '';
   isCreatingLaunchTag = false;
+  private visibleLaunchFilterTagsCache: {
+    source: LaunchTagCatalogItem[];
+    length: number;
+    result: LaunchTagCatalogItem[];
+  } | null = null;
   launchFilters: LaunchFiltersState = {
     query: '',
     tags: []
@@ -1510,35 +1515,21 @@ export class AppComponent implements OnInit {
     return point.day;
   }
   get visibleLaunchFilterTags(): LaunchTagCatalogItem[] {
-    const tagsInView = new Map<string, string>();
-
-    for (const month of this.launchMonths) {
-      for (const day of month.projection) {
-        for (const event of day.events) {
-          for (const tag of event.tags ?? []) {
-            const label = this.normalizeTagLabel(tag);
-            if (!label) {
-              continue;
-            }
-
-            const normalized = this.normalizeTagName(label);
-            if (!tagsInView.has(normalized)) {
-              tagsInView.set(normalized, label);
-            }
-          }
-        }
-      }
+    const availableTags = this.availableTags;
+    const cache = this.visibleLaunchFilterTagsCache;
+    if (cache && cache.source === availableTags && cache.length === availableTags.length) {
+      return cache.result;
     }
 
-    const tags = Array.from(tagsInView.values())
-      .map((tagName) => this.findTagInCatalog(tagName) ?? { name: tagName, color: this.getTagColor(tagName) })
-      .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
-
-    if (tags.length > 0) {
-      return tags;
-    }
-
-    return [...this.availableTags].sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+    const result = [...availableTags].sort((left, right) =>
+      left.name.localeCompare(right.name, 'pt-BR')
+    );
+    this.visibleLaunchFilterTagsCache = {
+      source: availableTags,
+      length: availableTags.length,
+      result
+    };
+    return result;
   }
 
   get launchFilterResultCount(): number {
