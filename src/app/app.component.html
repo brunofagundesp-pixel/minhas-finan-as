@@ -1085,6 +1085,8 @@
         <button class="close-launch" type="button" (click)="closeLaunchForm()" aria-label="Fechar formulario">×</button>
       </header>
 
+      <div class="launch-body">
+
       <label>
         Tipo
         <select name="launchType" [(ngModel)]="launchForm.type" (ngModelChange)="onLaunchTypeChange($event)">
@@ -1200,6 +1202,8 @@
       <p class="launch-help">Para tipo Diario, o valor atualiza o custo diario do mes selecionado pela data.</p>
       <p class="launch-error" *ngIf="launchError">{{ launchError }}</p>
 
+      </div><!-- /.launch-body -->
+
       <footer class="launch-actions">
         <button class="btn-light" type="button" (click)="closeLaunchForm()" [disabled]="isSavingLaunch">Cancelar</button>
         <button
@@ -1224,6 +1228,8 @@
         <h3>{{ dailyModalTitle }}</h3>
         <button class="close-launch" type="button" (click)="closeDailyForm()" aria-label="Fechar formulario de diario">×</button>
       </header>
+
+      <div class="launch-body">
 
       <label>
         Valor do diario
@@ -1257,6 +1263,8 @@
       <p class="launch-preview" *ngIf="recurrencePreviewText">{{ recurrencePreviewText }}</p>
       <p class="launch-help">O valor do diario passa a valer a partir da data escolhida. Se houver repeticao, cada ocorrencia cria um novo ponto de inicio para esse valor.</p>
       <p class="launch-error" *ngIf="dailyError">{{ dailyError }}</p>
+
+      </div><!-- /.launch-body -->
 
       <footer class="launch-actions">
         <button class="btn-light" type="button" (click)="closeDailyForm()" [disabled]="isSavingLaunch">Cancelar</button>

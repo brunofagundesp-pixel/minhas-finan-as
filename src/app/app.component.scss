@@ -3027,32 +3027,42 @@
 	position: relative;
 	width: min(460px, calc(100% - 24px));
 	max-height: calc(100dvh - 24px);
-	overflow: auto;
-	padding: 18px;
+	overflow: hidden;
+	padding: 0;
 	border-radius: 14px;
 	background: #ffffff;
 	border: 1px solid #dbe2ec;
 	box-shadow: 0 22px 44px rgba(22, 32, 46, 0.25);
-	display: grid;
-	gap: 12px;
+	display: flex;
+	flex-direction: column;
 }
 
 .daily-card {
 	width: min(380px, calc(100% - 24px));
 }
 
+.launch-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+	overscroll-behavior: contain;
+	padding: 18px;
+	display: grid;
+	gap: 12px;
+	align-content: start;
+}
+
 .launch-head {
+	flex-shrink: 0;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	gap: 12px;
-	position: sticky;
-	top: -18px;
-	z-index: 2;
-	margin: -18px -18px 0;
 	padding: 12px 18px 10px;
 	background: #ffffff;
 	border-bottom: 1px solid #e3e9f3;
+	z-index: 2;
 }
 
 .launch-head h3 {
@@ -3299,16 +3309,14 @@
 }
 
 .launch-actions {
+	flex-shrink: 0;
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
-	position: sticky;
-	bottom: -18px;
-	z-index: 2;
-	margin: 6px -18px -18px;
 	padding: 12px 18px;
 	background: #ffffff;
 	border-top: 1px solid #e3e9f3;
+	z-index: 2;
 }
 
 .btn-light,
@@ -3777,35 +3785,6 @@
 	.fab-action-button {
 		min-width: 136px;
 	}
-
-	// ── Launch modal: let the outer modal scroll on mobile ────────────────
-	// The nested overflow inside .launch-card causes touch-scroll issues.
-	// On mobile, remove the card's own scroll and let .launch-modal handle it.
-	.launch-modal {
-		align-items: start;
-		justify-items: center;
-		-webkit-overflow-scrolling: touch;
-	}
-
-	.launch-card {
-		max-height: none;
-		overflow: visible;
-		width: calc(100% - 24px);
-	}
-
-	// Header no longer needs negative sticky top, it just stays at top of card
-	.launch-head {
-		position: sticky;
-		top: 0;
-		z-index: 3;
-	}
-
-	// Footer sticks to bottom of the outer modal's viewport
-	.launch-actions {
-		position: sticky;
-		bottom: 0;
-		margin-bottom: -18px;
-	}
 }
 
 // ─── Onboarding Modal ─────────────────────────────────────────────────────────
@@ -3994,6 +3973,13 @@
     background: var(--surface);
     border-color: var(--border);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+  .launch-body {
+    background: var(--surface);
+  }
+  .launch-head,
+  .launch-actions {
+    background: var(--surface);
   }
 
 	.launch-actions {

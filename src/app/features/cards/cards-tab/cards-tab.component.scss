@@ -1198,28 +1198,38 @@
   position: relative;
   width: min(980px, calc(100% - 24px));
   max-height: calc(100dvh - 24px);
-  overflow: auto;
+  overflow: hidden;
   border-radius: 16px;
   border: 1px solid #dbe4f0;
   background: #ffffff;
   box-shadow: 0 30px 55px rgba(13, 22, 38, 0.26);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.launch-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 20px;
   display: grid;
   gap: 14px;
+  align-content: start;
 }
 
 .launch-modal-head {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  position: sticky;
-  top: -20px;
-  z-index: 2;
-  margin: -20px -20px 0;
   padding: 12px 20px 10px;
   background: #ffffff;
   border-bottom: 1px solid #e3e9f3;
+  z-index: 2;
 
   h3 {
     margin: 0;
@@ -1434,16 +1444,14 @@
 }
 
 .launch-modal-actions {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  position: sticky;
-  bottom: -20px;
-  z-index: 2;
-  margin: 8px -20px -20px;
   padding: 12px 20px;
   background: #ffffff;
   border-top: 1px solid #e3e9f3;
+  z-index: 2;
 }
 
 .series-action-modal {
@@ -1705,6 +1713,10 @@
     border-bottom-color: var(--border);
   }
   
+  .launch-modal-body {
+    background: var(--surface);
+  }
+
   .card-modal-actions {
     background: var(--surface);
     border-top-color: var(--border);
@@ -2003,30 +2015,5 @@
 
   .series-action-buttons {
     grid-template-columns: 1fr;
-  }
-
-  // ── Launch modal: let the outer modal scroll on mobile ────────────────
-  .launch-modal {
-    align-items: start;
-    justify-items: center;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .launch-modal-panel {
-    max-height: none;
-    overflow: visible;
-    width: calc(100% - 24px);
-  }
-
-  .launch-modal-head {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-  }
-
-  .launch-modal-actions {
-    position: sticky;
-    bottom: 0;
-    margin-bottom: -20px;
   }
 }

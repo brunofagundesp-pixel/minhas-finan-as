@@ -263,6 +263,8 @@
       <button type="button" class="launch-modal-close" (click)="closeLaunchModal()" aria-label="Fechar">&#x2715;</button>
     </header>
 
+    <div class="launch-modal-body">
+
     <div class="launch-grid two-cols">
       <label>
         Valor (R$) *
@@ -363,6 +365,8 @@
     <p class="launch-preview" *ngIf="launchPreviewText">{{ launchPreviewText }}</p>
 
     <p *ngIf="launchError" class="card-form-error">{{ launchError }}</p>
+
+    </div><!-- /.launch-modal-body -->
 
     <footer class="launch-modal-actions">
       <button type="button" class="btn-light" (click)="closeLaunchModal()" [disabled]="isSavingLaunch">Cancelar</button>
