@@ -26,6 +26,9 @@
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'cards'" (click)="setActiveTab('cards')">
           Cartoes
         </button>
+        <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
+          Metas
+        </button>
       </nav>
 
       <button class="topbar-help-btn" type="button" (click)="openOnboarding(); mobileTopbarMenuOpen = false" aria-label="Abrir guia de inicio" title="Ver guia de inicio">?</button>
@@ -329,6 +332,13 @@
                     <span class="simplified-entry-main">
                       <span class="simplified-entry-title-row">
                         <strong>{{ entry.title }}</strong>
+                        <span
+                          *ngIf="entry.event && hasRecurrence(entry.event)"
+                          class="simplified-entry-recurrence"
+                          [title]="getRecurrenceLabel(entry.event)"
+                          [attr.aria-label]="getRecurrenceLabel(entry.event)"
+                          role="img"
+                        >↻</span>
                         <span *ngIf="entry.kind === 'card-forecast'" class="simplified-entry-icon" aria-hidden="true">💳</span>
                       </span>
 
@@ -525,7 +535,16 @@
                       <span class="day-event-main">
                         <span class="day-event-type-dot" [class]="'day-event-type-dot day-event-type-dot--' + event.type" [title]="getEventTypeLabel(event.type)"></span>
                         <span class="day-event-content">
-                          <span class="day-event-description">{{ describeEvent(event, month.key) }}</span>
+                          <span class="day-event-description">
+                            <span
+                              *ngIf="hasRecurrence(event)"
+                              class="day-event-recurrence"
+                              [title]="getRecurrenceLabel(event)"
+                              [attr.aria-label]="getRecurrenceLabel(event)"
+                              role="img"
+                            >↻</span>
+                            {{ describeEvent(event, month.key) }}
+                          </span>
                           <span class="day-event-tags" *ngIf="event.tags && event.tags.length > 0">
                             <span class="day-event-tag" *ngFor="let tag of event.tags" [ngStyle]="getTagBadgeStyle(tag)">{{ tag }}</span>
                           </span>
@@ -668,6 +687,10 @@
     <app-cards-tab #cardsTab (faturaFechada)="onFaturaFechada($event)"></app-cards-tab>
   </section>
 
+  <section *ngIf="activeTab === 'settings'" class="settings-tab-view">
+    <app-settings-tab></app-settings-tab>
+  </section>
+
   <div
     *ngIf="activeDayDetails"
     class="day-details-mobile-backdrop"
@@ -689,7 +712,16 @@
           <li *ngFor="let event of activeDayDetails.day.events; trackBy: trackEventBy" [class]="'event-item event-item--' + event.type" [class.event-item--paid]="isEventPaid(event)">
             <span class="day-event-main">
               <span class="day-event-type-dot" [class]="'day-event-type-dot day-event-type-dot--' + event.type" [title]="getEventTypeLabel(event.type)"></span>
-              <span class="day-event-description">{{ describeEvent(event, activeDayDetails.month.key) }}</span>
+              <span class="day-event-description">
+                <span
+                  *ngIf="hasRecurrence(event)"
+                  class="day-event-recurrence"
+                  [title]="getRecurrenceLabel(event)"
+                  [attr.aria-label]="getRecurrenceLabel(event)"
+                  role="img"
+                >↻</span>
+                {{ describeEvent(event, activeDayDetails.month.key) }}
+              </span>
             </span>
             <span class="day-event-actions">
               <button
@@ -747,6 +779,13 @@
   </div>
 
   <section *ngIf="activeTab === 'dashboard'" class="dashboard-view">
+    <section class="panel budgets-panel">
+      <app-budgets-summary
+        title="Metas do periodo"
+        emptyStateMessage="Voce ainda nao cadastrou metas. Va em Configuracoes para definir tetos por tag, cartao ou geral."
+      ></app-budgets-summary>
+    </section>
+
     <section class="panel window-panel">
       <div class="window-head">
         <div>
@@ -819,7 +858,7 @@
       </div>
 
       <div class="month-grid month-grid--window">
-        <article class="month-card" *ngFor="let month of visibleMonths">
+        <article class="month-card" *ngFor="let month of visibleMonths; trackBy: trackByMonthKey">
           <div class="month-top">
             <div>
               <p>{{ month.title }} {{ month.year }}</p>
@@ -831,8 +870,8 @@
             </span>
           </div>
 
-          <div class="month-bars" [style.--month-zero-line.%]="getMonthChartZeroLine(month)">
-            <div class="month-bar-item" *ngFor="let point of getMonthChartPoints(month)">
+          <div class="month-bars" [style.--month-zero-line.%]="month.chartZeroLine">
+            <div class="month-bar-item" *ngFor="let point of month.chartPoints; trackBy: trackByChartDay">
               <div
                 class="month-bar"
                 [class.month-bar--warning]="point.tone === 'warning'"
@@ -1040,21 +1079,61 @@
   <div class="series-action-modal" *ngIf="pendingEventAction" role="dialog" aria-modal="true" aria-label="Escolher escopo da acao">
     <div class="launch-backdrop" (click)="closeEventActionPrompt()"></div>
 
-    <div class="series-action-card panel">
+    <div
+      class="series-action-card panel"
+      [class.series-action-card--danger]="pendingEventAction.type === 'delete'"
+    >
+      <span class="series-action-badge" *ngIf="pendingEventAction.type === 'delete'">Atencao</span>
       <h3>{{ seriesActionTitle }}</h3>
       <p>{{ seriesActionDescription }}</p>
 
-      <div class="series-action-buttons">
-        <button type="button" class="btn-light" (click)="confirmEventActionScope('single')">So este</button>
+      <div
+        class="series-action-preview"
+        [class.series-action-preview--income]="pendingEventAction.event.type === 'income'"
+        [class.series-action-preview--expense]="pendingEventAction.event.type === 'expense'"
+        [class.series-action-preview--investment]="pendingEventAction.event.type === 'investment'"
+        [class.series-action-preview--daily]="pendingEventAction.event.type === 'daily'"
+      >
+        <div class="series-action-preview-head">
+          <span class="series-action-preview-type">{{ pendingEventTypeLabel }}</span>
+          <span class="series-action-preview-amount">{{ pendingEventAmountLabel }}</span>
+        </div>
+        <div class="series-action-preview-label">{{ pendingEventLabel }}</div>
+        <div class="series-action-preview-meta">
+          <span>{{ pendingEventDateLabel }}</span>
+          <span *ngIf="pendingEventIsRecurring" class="series-action-preview-recurrence">
+            · {{ pendingEventRecurrenceLabel }}
+          </span>
+        </div>
+      </div>
+
+      <div class="series-action-options">
         <button
-          *ngIf="pendingEventAction"
           type="button"
-          class="btn-light"
+          class="series-action-option"
+          (click)="confirmEventActionScope('single')"
+        >
+          <strong>Apenas este {{ pendingEventAction.event.type === 'daily' ? 'diario' : 'lancamento' }}</strong>
+          <span>Nao afeta os demais itens da serie.</span>
+        </button>
+        <button
+          type="button"
+          class="series-action-option"
           (click)="confirmEventActionScope('forward')"
         >
-          Este e os proximos
+          <strong>Este e os proximos</strong>
+          <span>Aplica a partir deste em diante na serie.</span>
         </button>
-        <button type="button" class="btn-primary" (click)="confirmEventActionScope('series')">Toda a serie</button>
+        <button
+          type="button"
+          class="series-action-option"
+          [class.series-action-option--danger]="pendingEventAction.type === 'delete'"
+          [class.series-action-option--primary]="pendingEventAction.type !== 'delete'"
+          (click)="confirmEventActionScope('series')"
+        >
+          <strong>Toda a serie</strong>
+          <span>Aplica a todos os itens (passados e futuros).</span>
+        </button>
       </div>
 
       <button type="button" class="series-action-cancel" (click)="closeEventActionPrompt()">Cancelar</button>
@@ -1068,6 +1147,24 @@
       <span class="series-action-badge">Atencao</span>
       <h3>{{ deleteConfirmationTitle }}</h3>
       <p>{{ deleteConfirmationDescription }}</p>
+
+      <div
+        class="series-action-preview"
+        [class.series-action-preview--income]="pendingDeleteConfirmation.event.type === 'income'"
+        [class.series-action-preview--expense]="pendingDeleteConfirmation.event.type === 'expense'"
+        [class.series-action-preview--investment]="pendingDeleteConfirmation.event.type === 'investment'"
+        [class.series-action-preview--daily]="pendingDeleteConfirmation.event.type === 'daily'"
+      >
+        <div class="series-action-preview-head">
+          <span class="series-action-preview-type">{{ pendingDeleteTypeLabel }}</span>
+          <span class="series-action-preview-amount">{{ pendingDeleteAmountLabel }}</span>
+        </div>
+        <div class="series-action-preview-label">{{ pendingDeleteLabel }}</div>
+        <div class="series-action-preview-meta">
+          <span>{{ pendingDeleteDateLabel }}</span>
+          <span class="series-action-preview-recurrence">· Escopo: {{ pendingDeleteScopeLabel }}</span>
+        </div>
+      </div>
 
       <div class="series-action-buttons">
         <button type="button" class="btn-light" (click)="closeDeleteConfirmation()">Cancelar</button>
@@ -1112,35 +1209,55 @@
       <div class="launch-tags-section">
         <label>
           Tags (categorias)
-          <div class="launch-tags-input-row launch-tags-input-row--select">
-            <select
-              name="existingTagSelect"
-              [ngModel]="selectedExistingTag"
-              (ngModelChange)="onExistingTagSelected($event)"
+          <ng-container *ngIf="!isCreatingLaunchTag; else launchNewTagInline">
+            <div class="launch-tags-input-row launch-tags-input-row--select">
+              <select
+                name="existingTagSelect"
+                [ngModel]="selectedExistingTag"
+                (ngModelChange)="onExistingTagSelected($event)"
+              >
+                <option [ngValue]="''">Selecione uma tag…</option>
+                <option *ngFor="let tag of availableTagsForSelection" [ngValue]="tag.name">{{ tag.name }}</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              class="launch-ghost-button launch-ghost-button--inline"
+              (click)="startCreatingLaunchTag()"
             >
-              <option [ngValue]="''">Selecionar tag existente</option>
-              <option *ngFor="let tag of availableTagsForSelection" [ngValue]="tag.name">{{ tag.name }}</option>
-            </select>
-          </div>
-
-          <div class="launch-tags-input-row">
-            <input 
-              type="text" 
-              name="newTagInput" 
-              [(ngModel)]="newTagInput" 
-              (keydown.enter)="onTagInputEnter($event)"
-              maxlength="30" 
-              placeholder="Criar nova tag" 
-            />
-            <button 
-              type="button" 
-              (click)="createNewTagFromInput()" 
-              class="btn-tag-add"
-              [disabled]="!newTagInput.trim()"
-            >
-              +
+              + Nova tag
             </button>
-          </div>
+          </ng-container>
+
+          <ng-template #launchNewTagInline>
+            <div class="launch-new-tag-inline">
+              <input
+                #launchNewTagField
+                type="text"
+                name="newTagInput"
+                [(ngModel)]="newTagInput"
+                (keydown.enter)="$event.preventDefault(); confirmCreatingLaunchTag()"
+                (keydown.escape)="cancelCreatingLaunchTag()"
+                maxlength="30"
+                placeholder="Nome da nova tag"
+              />
+              <button
+                type="button"
+                class="launch-primary-button launch-primary-button--small"
+                (click)="confirmCreatingLaunchTag()"
+                [disabled]="!newTagInput.trim()"
+              >
+                Criar
+              </button>
+              <button
+                type="button"
+                class="launch-ghost-button launch-ghost-button--small"
+                (click)="cancelCreatingLaunchTag()"
+              >
+                Cancelar
+              </button>
+            </div>
+          </ng-template>
         </label>
 
         <div class="launch-tags-list" *ngIf="launchForm.tags.length > 0">
@@ -1312,6 +1429,7 @@
     </div>
   </div>
 </main>
+<app-announcements-modal></app-announcements-modal>
 </ng-container>
 
 <ng-template #loginTpl>

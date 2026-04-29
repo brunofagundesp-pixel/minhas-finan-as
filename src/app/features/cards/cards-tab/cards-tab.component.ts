@@ -1,6 +1,7 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { CardLaunch, CreditCard, FinanceApiService, LaunchRepeatMode } from '../../../core/services/finance-api.service';
-import { forkJoin, of } from 'rxjs';
+import { TagsService } from '../../../core/services/tags.service';
+import { forkJoin, of, Subscription } from 'rxjs';
 
 type CardDeleteScope = 'single' | 'forward' | 'series';
 
@@ -54,7 +55,7 @@ const AVATAR_COLORS = [
   templateUrl: './cards-tab.component.html',
   styleUrls: ['./cards-tab.component.scss']
 })
-export class CardsTabComponent implements OnInit {
+export class CardsTabComponent implements OnInit, OnDestroy {
   cards: CreditCard[] = [];
   launches: CardLaunch[] = [];
   selectedCardId: string | number | null = null;
@@ -99,12 +100,21 @@ export class CardsTabComponent implements OnInit {
 
   cardForm: CreditCardFormState = this.createEmptyCardForm();
 
-  constructor(private readonly api: FinanceApiService) {}
+  constructor(
+    private readonly api: FinanceApiService,
+    private readonly tagsService: TagsService
+  ) {}
+
+  private tagsSubscription?: Subscription;
 
   ngOnInit(): void {
     this.loadAvailableTags();
     this.loadCards();
     this.loadLaunches();
+  }
+
+  ngOnDestroy(): void {
+    this.tagsSubscription?.unsubscribe();
   }
 
   get availableTagsForSelection(): LaunchTagCatalogItem[] {
@@ -125,14 +135,31 @@ export class CardsTabComponent implements OnInit {
     return `${months[this.invoiceMonth.month - 1]} ${this.invoiceMonth.year}`;
   }
 
+  /** Date no primeiro dia do mes da fatura selecionada — usado para sincronizar widgets externos. */
+  get invoiceMonthDate(): Date {
+    return new Date(this.invoiceMonth.year, this.invoiceMonth.month - 1, 1);
+  }
+
+  /**
+   * Ciclo da fatura que cobra os lançamentos do mês calendario selecionado.
+   * Compras feitas em abril são cobradas no ciclo que vence em maio (mês calendario + 1).
+   */
+  private get billingCycleMonth(): InvoiceMonth {
+    const month = this.invoiceMonth.month + 1;
+    if (month > 12) {
+      return { year: this.invoiceMonth.year + 1, month: 1 };
+    }
+    return { year: this.invoiceMonth.year, month };
+  }
+
   get invoiceClosingDate(): string {
     if (!this.selectedCard) return '-';
-    return this.formatDate(this.getClosingDateForInvoiceMonth(this.invoiceMonth, this.selectedCard));
+    return this.formatDate(this.getClosingDateForInvoiceMonth(this.billingCycleMonth, this.selectedCard));
   }
 
   get invoiceDueDate(): string {
     if (!this.selectedCard) return '-';
-    return this.formatDate(this.getDueDateForInvoiceMonth(this.invoiceMonth, this.selectedCard));
+    return this.formatDate(this.getDueDateForInvoiceMonth(this.billingCycleMonth, this.selectedCard));
   }
 
   get minLaunchInvoiceMonthRef(): string {
@@ -146,15 +173,17 @@ export class CardsTabComponent implements OnInit {
   get selectedCardLaunches(): CardLaunch[] {
     const selectedCard = this.selectedCard;
     if (!this.selectedCardId || !selectedCard) return [];
+
+    // Agrupa por mês calendario da data da compra (não pelo ciclo de fechamento).
+    // Ex: compra em 29/04 aparece em "Abril" mesmo se o cartao já fechou no dia 10.
+    // O ciclo real (closingDate/dueDate) é exibido como "esta fatura vence em DD/MM".
+    const monthRef = `${this.invoiceMonth.year}-${String(this.invoiceMonth.month).padStart(2, '0')}`;
     return this.launches
-      .filter(l => {
+      .filter((l) => {
         if (String(l.cardId) !== String(this.selectedCardId)) {
           return false;
         }
-
-        const invoiceMonth = this.getInvoiceMonthForDate(l.date, selectedCard);
-        return invoiceMonth.year === this.invoiceMonth.year
-          && invoiceMonth.month === this.invoiceMonth.month;
+        return typeof l.date === 'string' && l.date.startsWith(monthRef);
       })
       .sort((a, b) => b.date.localeCompare(a.date));
   }
@@ -1280,22 +1309,19 @@ export class CardsTabComponent implements OnInit {
   }
 
   private loadAvailableTags(): void {
-    const stored = localStorage.getItem('financial-tags');
-    if (!stored) {
-      this.availableTags = [];
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      this.availableTags = this.normalizeStoredTagCatalog(parsed);
-    } catch {
-      this.availableTags = [];
-    }
+    this.tagsSubscription?.unsubscribe();
+    this.tagsSubscription = this.tagsService.tags$.subscribe((tags) => {
+      this.availableTags = tags.map((tag) => ({ name: tag.name, color: tag.color }));
+      // Re-sync any tag found on existing launches that the catalog might not
+      // know about yet (e.g. data created before tags moved to Firestore).
+      if (this.launches.length) {
+        this.syncTagCatalogWithLaunches();
+      }
+    });
   }
 
   private persistAvailableTags(): void {
-    localStorage.setItem('financial-tags', JSON.stringify(this.availableTags));
+    void this.tagsService.upsertMany(this.availableTags);
   }
 
   private syncTagCatalogWithLaunches(): void {

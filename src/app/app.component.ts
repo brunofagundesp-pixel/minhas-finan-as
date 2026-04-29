@@ -2,7 +2,8 @@ import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, MonthDefinition, RecurrenceKind, RepeatMode } from './core/services/finance-api.service';
 import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.component';
 import { AuthService } from './core/services/auth.service';
-import { forkJoin } from 'rxjs';
+import { TagsService } from './core/services/tags.service';
+import { forkJoin, Subscription } from 'rxjs';
 
 type LaunchType = EventType;
 type EventActionScope = 'single' | 'series' | 'forward';
@@ -70,6 +71,8 @@ interface MonthSummary {
   totalFixedCosts: number;
   negativeDays: number;
   chartHeights: number[];
+  chartPoints: Array<{ day: number; balance: number; height: number; tone: 'healthy' | 'warning' | 'negative' }>;
+  chartZeroLine: number;
   projection: DayProjection[];
 }
 
@@ -180,7 +183,7 @@ interface OnboardingStep {
   tip?: string;
 }
 
-type AppTab = 'entries' | 'dashboard' | 'cards';
+type AppTab = 'entries' | 'dashboard' | 'cards' | 'settings';
 
 @Component({
   selector: 'app-root',
@@ -357,6 +360,7 @@ export class AppComponent implements OnInit {
   availableTags: LaunchTagCatalogItem[] = [];
   newTagInput = '';
   selectedExistingTag = '';
+  isCreatingLaunchTag = false;
   launchFilters: LaunchFiltersState = {
     query: '',
     tags: []
@@ -377,6 +381,23 @@ export class AppComponent implements OnInit {
   private cards: CreditCard[] = [];
   private cardLaunches: CardLaunch[] = [];
 
+  // Cache de monthSummaries: o getter eh consultado dezenas de vezes por ciclo
+  // de change detection (direto e via outros getters dependentes). Sem cache, cada
+  // CD reconstroi todas as projecoes diarias, o que com varios meses + eventos
+  // congela a aba. A invalidacao usa uma assinatura barata baseada nos dados de
+  // entrada (definicoes, cards, lancamentos).
+  private summariesCache: MonthSummary[] | null = null;
+  private summariesCacheSignature = '';
+
+  // Caches do dashboard. Os getters abaixo sao consultados varias vezes por ciclo
+  // (1x para *ngIf, 1x para *ngFor, 1x para cada [style.X] etc.). Cada chamada
+  // fazia O(meses * eventos) ou O(cards * launches), o que com volume real de
+  // dados travava a aba ao montar. A invalidacao depende dos mesmos inputs.
+  private dashboardExpenseSlicesCache: DashboardExpenseSlice[] | null = null;
+  private dashboardExpenseSlicesSignature = '';
+  private dashboardCardSummariesCache: DashboardCardSummary[] | null = null;
+  private dashboardCardSummariesSignature = '';
+
   private readonly emptyMonthSummary: MonthSummary = {
     key: 'empty',
     title: 'Sem dados',
@@ -391,10 +412,17 @@ export class AppComponent implements OnInit {
     totalFixedCosts: 0,
     negativeDays: 0,
     chartHeights: [],
+    chartPoints: [],
+    chartZeroLine: 0,
     projection: []
   };
 
-  constructor(private readonly financeApi: FinanceApiService, public readonly auth: AuthService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private readonly financeApi: FinanceApiService,
+    public readonly auth: AuthService,
+    private cdr: ChangeDetectorRef,
+    private readonly tagsService: TagsService
+  ) {}
 
   ngOnInit(): void {
     // Fix iOS Safari: the virtual keyboard shrinks the visual viewport but
@@ -558,7 +586,48 @@ export class AppComponent implements OnInit {
   }
 
   get monthSummaries(): MonthSummary[] {
-    return this.buildMonthSummaries();
+    const signature = this.computeSummariesSignature();
+    if (this.summariesCache && signature === this.summariesCacheSignature) {
+      return this.summariesCache;
+    }
+    this.summariesCacheSignature = signature;
+    this.summariesCache = this.buildMonthSummaries();
+    return this.summariesCache;
+  }
+
+  private computeSummariesSignature(): string {
+    let eventsCount = 0;
+    let amountSum = 0;
+    let flagsHash = 0;
+    let dayHash = 0;
+    for (const month of this.monthDefinitions) {
+      eventsCount += month.events.length;
+      amountSum += month.openingBalance || 0;
+      amountSum += month.dailyFixedCost || 0;
+      for (const event of month.events) {
+        amountSum += event.amount || 0;
+        dayHash = (dayHash + event.day) | 0;
+        if (event.paid) flagsHash++;
+        if (event.suppressed) flagsHash += 7;
+      }
+    }
+    let launchSum = 0;
+    let launchPaid = 0;
+    for (const launch of this.cardLaunches) {
+      launchSum += launch.amount || 0;
+      if (launch.paid) launchPaid++;
+    }
+    return [
+      this.monthDefinitions.length,
+      eventsCount,
+      amountSum.toFixed(2),
+      flagsHash,
+      dayHash,
+      this.cards.length,
+      this.cardLaunches.length,
+      launchSum.toFixed(2),
+      launchPaid
+    ].join('|');
   }
 
   get projectedBalance(): number {
@@ -627,9 +696,14 @@ export class AppComponent implements OnInit {
   }
 
   get dashboardCardSummaries(): DashboardCardSummary[] {
+    const signature = `${this.cards.length}|${this.cardLaunches.length}|${this.windowStartIndex}|${this.cardLaunches.reduce((s, l) => s + (l.amount || 0) + (l.paid ? 1 : 0), 0).toFixed(2)}`;
+    if (this.dashboardCardSummariesCache && signature === this.dashboardCardSummariesSignature) {
+      return this.dashboardCardSummariesCache;
+    }
+
     const todayRef = this.getTodayInputDate();
 
-    return this.cards
+    const result = this.cards
       .map((card) => {
         const invoiceMonth = this.getCardInvoiceMonthForDate(todayRef, card);
         const launches = this.cardLaunches.filter((launch) => {
@@ -657,9 +731,20 @@ export class AppComponent implements OnInit {
         };
       })
       .sort((a, b) => b.invoiceTotal - a.invoiceTotal);
+
+    this.dashboardCardSummariesSignature = signature;
+    this.dashboardCardSummariesCache = result;
+    return result;
   }
 
   get dashboardExpenseSlices(): DashboardExpenseSlice[] {
+    // Reaproveita a assinatura de monthSummaries (que cobre meses+eventos+launches)
+    // mais o indice da janela visivel, ja que a fatia depende dos meses visiveis.
+    const signature = `${this.summariesCacheSignature || this.computeSummariesSignature()}|${this.windowStartIndex}|${this.windowSize}`;
+    if (this.dashboardExpenseSlicesCache && signature === this.dashboardExpenseSlicesSignature) {
+      return this.dashboardExpenseSlicesCache;
+    }
+
     const visibleKeys = new Set(this.visibleMonths.map((month) => month.key));
     const expenseByLabel = new Map<string, number>();
 
@@ -685,7 +770,9 @@ export class AppComponent implements OnInit {
 
     const total = sorted.reduce((sum, item) => sum + item.amount, 0);
     if (total <= 0) {
-      return [];
+      this.dashboardExpenseSlicesSignature = signature;
+      this.dashboardExpenseSlicesCache = [];
+      return this.dashboardExpenseSlicesCache;
     }
 
     const topSlices = sorted.slice(0, 5);
@@ -694,12 +781,16 @@ export class AppComponent implements OnInit {
       ? [...topSlices, { label: 'Outros', amount: othersAmount }]
       : topSlices;
 
-    return combined.map((slice, index) => ({
+    const result = combined.map((slice, index) => ({
       label: slice.label,
       amount: Number(slice.amount.toFixed(2)),
       percent: Number(((slice.amount / total) * 100).toFixed(2)),
       color: this.dashboardExpensePalette[index % this.dashboardExpensePalette.length]
     }));
+
+    this.dashboardExpenseSlicesSignature = signature;
+    this.dashboardExpenseSlicesCache = result;
+    return result;
   }
 
   get dashboardExpenseTotal(): number {
@@ -1411,6 +1502,13 @@ export class AppComponent implements OnInit {
     return this.launchFilters.query.trim().length > 0 || this.launchFilters.tags.length > 0;
   }
 
+  trackByMonthKey(_index: number, month: MonthSummary): string {
+    return month.key;
+  }
+
+  trackByChartDay(_index: number, point: { day: number }): number {
+    return point.day;
+  }
   get visibleLaunchFilterTags(): LaunchTagCatalogItem[] {
     const tagsInView = new Map<string, string>();
 
@@ -1764,6 +1862,108 @@ export class AppComponent implements OnInit {
     return 'Esse lancamento faz parte de uma serie. Voce quer aplicar a acao so neste lancamento ou em toda a serie?';
   }
 
+  // ---- Preview do lancamento sob acao (mostrado na modal de escopo) ----
+
+  get pendingEventTypeLabel(): string {
+    const ev = this.pendingEventAction?.event;
+    if (!ev) return '';
+    switch (ev.type) {
+      case 'income': return 'Entrada';
+      case 'investment': return 'Investimento';
+      case 'daily': return 'Diario';
+      default: return 'Saida';
+    }
+  }
+
+  get pendingEventLabel(): string {
+    return this.pendingEventAction?.event.label?.trim() || 'Sem descricao';
+  }
+
+  get pendingEventAmountLabel(): string {
+    const ev = this.pendingEventAction?.event;
+    if (!ev) return '';
+    return this.formatCurrency(ev.amount || 0);
+  }
+
+  get pendingEventDateLabel(): string {
+    const action = this.pendingEventAction;
+    if (!action) return '';
+    const day = action.event.day;
+    const monthKey = action.monthKey;
+    // monthKey costuma ser "yyyy-mm"; cobre tambem fallback simples.
+    const match = /^(\d{4})-(\d{2})/.exec(monthKey);
+    if (match) {
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+      return `Dia ${day} · ${monthLabel} ${year}`;
+    }
+    return `Dia ${day}`;
+  }
+
+  get pendingEventIsRecurring(): boolean {
+    const ev = this.pendingEventAction?.event;
+    return !!(ev && (ev.seriesId || ev.recurrenceKind === 'installment' || ev.recurrenceKind === 'fixed'));
+  }
+
+  get pendingEventRecurrenceLabel(): string {
+    const ev = this.pendingEventAction?.event;
+    if (!ev || !this.pendingEventIsRecurring) return '';
+    if (ev.recurrenceKind === 'installment') {
+      return ev.seriesOccurrences ? `Parcelado em ${ev.seriesOccurrences}x` : 'Parcelado';
+    }
+    if (ev.recurrenceKind === 'fixed') {
+      return 'Recorrencia fixa';
+    }
+    return 'Faz parte de uma serie';
+  }
+
+  // ---- Preview do lancamento na confirmacao final de exclusao ----
+
+  get pendingDeleteTypeLabel(): string {
+    const ev = this.pendingDeleteConfirmation?.event;
+    if (!ev) return '';
+    switch (ev.type) {
+      case 'income': return 'Entrada';
+      case 'investment': return 'Investimento';
+      case 'daily': return 'Diario';
+      default: return 'Saida';
+    }
+  }
+
+  get pendingDeleteLabel(): string {
+    return this.pendingDeleteConfirmation?.event.label?.trim() || 'Sem descricao';
+  }
+
+  get pendingDeleteAmountLabel(): string {
+    const ev = this.pendingDeleteConfirmation?.event;
+    if (!ev) return '';
+    return this.formatCurrency(ev.amount || 0);
+  }
+
+  get pendingDeleteDateLabel(): string {
+    const action = this.pendingDeleteConfirmation;
+    if (!action) return '';
+    const day = action.event.day;
+    const monthKey = action.monthKey;
+    const match = /^(\d{4})-(\d{2})/.exec(monthKey);
+    if (match) {
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+      return `Dia ${day} · ${monthLabel} ${year}`;
+    }
+    return `Dia ${day}`;
+  }
+
+  get pendingDeleteScopeLabel(): string {
+    const c = this.pendingDeleteConfirmation;
+    if (!c) return '';
+    if (c.scope === 'series') return 'Toda a serie';
+    if (c.scope === 'forward') return 'Este e os proximos';
+    return 'Apenas este';
+  }
+
   get deleteConfirmationTitle(): string {
     if (!this.pendingDeleteConfirmation) {
       return 'Confirmar exclusao';
@@ -1946,6 +2146,46 @@ export class AppComponent implements OnInit {
       default:
         return '•';
     }
+  }
+
+  /** Indica se o evento faz parte de uma recorrencia (parcelado ou fixo). */
+  hasRecurrence(event: FinancialEvent): boolean {
+    return !!(event && (event.seriesId || event.recurrenceKind === 'installment' || event.recurrenceKind === 'fixed'));
+  }
+
+  /**
+   * Texto descritivo do tipo de recorrencia, usado como tooltip e
+   * tambem como aria-label do icone na lista de lancamentos.
+   * Combina `recurrenceKind` (parcelado/fixo) com `repeatMode` (diario/semanal/mensal)
+   * para detalhar a frequencia.
+   */
+  getRecurrenceLabel(event: FinancialEvent): string {
+    if (!this.hasRecurrence(event)) {
+      return '';
+    }
+
+    const repeatLabel = (() => {
+      switch (event.repeatMode) {
+        case 'daily': return 'todo dia';
+        case 'weekly': return 'toda semana';
+        case 'monthly': return 'todo mes';
+        default: return '';
+      }
+    })();
+
+    if (event.recurrenceKind === 'installment') {
+      const totals = event.seriesOccurrences ? `em ${event.seriesOccurrences}x` : '';
+      const parts = ['Parcelado', totals, repeatLabel ? `(${repeatLabel})` : ''].filter(Boolean);
+      return parts.join(' ');
+    }
+
+    if (event.recurrenceKind === 'fixed') {
+      const parts = ['Recorrencia fixa', repeatLabel ? `(${repeatLabel})` : ''].filter(Boolean);
+      return parts.join(' ');
+    }
+
+    // Fallback (seriesId presente sem kind explicito)
+    return repeatLabel ? `Repete ${repeatLabel}` : 'Faz parte de uma serie';
   }
 
   trackMonthBy(_index: number, month: MonthSummary): string {
@@ -2355,6 +2595,7 @@ export class AppComponent implements OnInit {
     this.launchError = '';
     this.newTagInput = '';
     this.selectedExistingTag = '';
+    this.isCreatingLaunchTag = false;
     this.saveAndNewLaunchRequested = false;
     this.editingEventId = null;
     this.editingSeriesId = null;
@@ -3213,6 +3454,28 @@ export class AppComponent implements OnInit {
     this.createNewTagFromInput();
   }
 
+  /** Alterna o campo de tag do modal de lancamento para o input inline de criacao. */
+  startCreatingLaunchTag(): void {
+    this.isCreatingLaunchTag = true;
+    this.newTagInput = '';
+  }
+
+  /** Cancela a criacao inline e volta ao select. */
+  cancelCreatingLaunchTag(): void {
+    this.isCreatingLaunchTag = false;
+    this.newTagInput = '';
+  }
+
+  /** Confirma a criacao da nova tag e volta ao modo select. */
+  confirmCreatingLaunchTag(): void {
+    const trimmed = this.newTagInput.trim();
+    if (!trimmed) {
+      return;
+    }
+    this.createNewTagFromInput();
+    this.isCreatingLaunchTag = false;
+  }
+
   private defaultLabelForType(type: LaunchType): string {
     if (type === 'income') {
       return 'entrada manual';
@@ -3301,23 +3564,21 @@ export class AppComponent implements OnInit {
     return this.findTagInCatalog(tagName)?.color ?? '#1f5cc2';
   }
 
-  private loadAvailableTags(): void {
-    const stored = localStorage.getItem('financial-tags');
-    if (!stored) {
-      this.availableTags = [];
-      return;
-    }
+  private tagsSubscription?: Subscription;
 
-    try {
-      const parsed = JSON.parse(stored);
-      this.availableTags = this.normalizeStoredTagCatalog(parsed);
-    } catch {
-      this.availableTags = [];
-    }
+  private loadAvailableTags(): void {
+    this.tagsSubscription?.unsubscribe();
+    this.tagsSubscription = this.tagsService.tags$.subscribe((tags) => {
+      this.availableTags = tags.map((tag) => ({ name: tag.name, color: tag.color }));
+      // NOTE: NÃO chamar syncTagCatalogWithEvents() aqui — isso gera loop:
+      // tags$ emite → sync detecta diff de normalização → persiste → Firestore
+      // reemite → loop infinito que congela a aba. A propagação a partir dos
+      // eventos já é feita em loadMonths() depois que os meses chegam.
+    });
   }
 
   private persistAvailableTags(): void {
-    localStorage.setItem('financial-tags', JSON.stringify(this.availableTags));
+    void this.tagsService.upsertMany(this.availableTags);
   }
 
   private syncTagCatalogWithEvents(): void {
@@ -4703,13 +4964,31 @@ export class AppComponent implements OnInit {
       .map((day) => projection.find((entry) => entry.day === day)?.closingBalance ?? minBalance)
       .map((balance) => 26 + ((balance - minBalance) / amplitude) * 74);
 
+    // Precomputa pontos do mini-grafico do dashboard. Antes era calculado por
+    // getMonthChartPoints(month) dentro de *ngFor, alocando arrays a cada CD.
+    const closingFinal = balances[balances.length - 1];
+    const dashMin = Math.min(0, definition.openingBalance, ...balances);
+    const dashMax = Math.max(0, definition.openingBalance, ...balances);
+    const dashAmp = (dashMax - dashMin) || 1;
+    const chartPoints = [1, 5, 10, 15, 20, 25, 31].map((checkpointDay) => {
+      const day = Math.min(checkpointDay, daysInMonth);
+      const entry = projection.find((p) => p.day === day);
+      const balance = entry?.closingBalance ?? closingFinal;
+      const height = 24 + ((balance - dashMin) / dashAmp) * 76;
+      const tone: 'healthy' | 'warning' | 'negative' = entry?.status ?? (balance < 0 ? 'negative' : 'healthy');
+      return { day, balance, height, tone };
+    });
+    const chartZeroLine = dashMax <= 0
+      ? 100
+      : (dashMin >= 0 ? 0 : Math.min(100, Math.max(0, ((0 - dashMin) / dashAmp) * 100)));
+
     return {
       key: definition.key,
       title: definition.title,
       year: definition.year,
       monthNumber: definition.monthNumber,
       openingBalance: openingBalanceOverride !== undefined ? openingBalanceOverride : definition.openingBalance,
-      closingBalance: balances[balances.length - 1],
+      closingBalance: closingFinal,
       minBalance,
       totalIncome,
       totalExpenses,
@@ -4717,6 +4996,8 @@ export class AppComponent implements OnInit {
       totalFixedCosts: projection.reduce((total, day) => total + day.fixedCost, 0),
       negativeDays: projection.filter((day) => day.closingBalance < 0).length,
       chartHeights: checkpoints,
+      chartPoints,
+      chartZeroLine,
       projection
     };
   }

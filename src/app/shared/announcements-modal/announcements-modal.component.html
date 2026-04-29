@@ -1,0 +1,54 @@
+<div class="announcements-overlay" *ngIf="isOpen && current as item" (click)="dismiss()">
+  <div class="announcements-modal" role="dialog" aria-modal="true" aria-labelledby="announcement-title" (click)="$event.stopPropagation()">
+    <header class="announcements-head">
+      <div class="announcements-head-meta">
+        <span class="announcements-badge" *ngIf="item.badge">{{ item.badge }}</span>
+        <span class="announcements-date">{{ formatPublishedAt(item.publishedAt) }}</span>
+      </div>
+      <button
+        type="button"
+        class="announcements-close"
+        (click)="dismiss()"
+        aria-label="Fechar"
+        title="Fechar e nao mostrar novamente"
+      >×</button>
+    </header>
+
+    <h2 id="announcement-title" class="announcements-title">{{ item.title }}</h2>
+
+    <div class="announcements-body">
+      <p *ngFor="let paragraph of item.body">{{ paragraph }}</p>
+    </div>
+
+    <footer class="announcements-foot">
+      <div class="announcements-dots" *ngIf="pending.length > 1" aria-hidden="true">
+        <span
+          *ngFor="let _ of pending; let i = index; trackBy: trackByIndex"
+          class="announcements-dot"
+          [class.is-active]="i === index"
+        ></span>
+      </div>
+
+      <div class="announcements-actions">
+        <button
+          type="button"
+          class="announcements-btn announcements-btn--ghost"
+          *ngIf="hasPrevious"
+          (click)="goPrevious()"
+        >Anterior</button>
+        <button
+          type="button"
+          class="announcements-btn announcements-btn--primary"
+          *ngIf="hasNext"
+          (click)="goNext()"
+        >Proximo</button>
+        <button
+          type="button"
+          class="announcements-btn announcements-btn--primary"
+          *ngIf="!hasNext"
+          (click)="dismiss()"
+        >Entendi, nao mostrar novamente</button>
+      </div>
+    </footer>
+  </div>
+</div>

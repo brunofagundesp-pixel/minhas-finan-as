@@ -1910,6 +1910,39 @@
 	min-width: 0;
 }
 
+.day-event-recurrence {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	margin-right: 4px;
+	border-radius: 999px;
+	background: rgba(45, 108, 223, 0.12);
+	color: #2d6cdf;
+	font-size: 0.72rem;
+	font-weight: 700;
+	line-height: 1;
+	cursor: help;
+	vertical-align: -2px;
+}
+
+.simplified-entry-recurrence {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	margin-left: 6px;
+	border-radius: 999px;
+	background: rgba(45, 108, 223, 0.12);
+	color: #2d6cdf;
+	font-size: 0.72rem;
+	font-weight: 700;
+	line-height: 1;
+	cursor: help;
+}
+
 .day-event-tags {
 	display: inline-flex;
 	align-items: center;
@@ -2222,6 +2255,11 @@
 }
 
 .window-panel {
+	padding: 18px;
+	margin-bottom: 20px;
+}
+
+.budgets-panel {
 	padding: 18px;
 	margin-bottom: 20px;
 }
@@ -2961,10 +2999,36 @@
 	width: min(420px, calc(100% - 24px));
 	max-height: calc(var(--vvh, 100dvh) - 24px);
 	overflow: auto;
+	overscroll-behavior: contain;
 	padding: 18px;
 	display: grid;
 	gap: 12px;
 	z-index: 1;
+}
+
+// Header sticky (badge + h3) e botao cancelar sticky para nao sumirem ao rolar em telas pequenas.
+.series-action-card .series-action-badge {
+	position: sticky;
+	top: 0;
+	z-index: 3;
+	background: inherit;
+}
+
+.series-action-card h3 {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	background: inherit;
+	padding-block: 4px;
+}
+
+.series-action-card .series-action-cancel,
+.series-action-card .series-action-buttons {
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+	background: inherit;
+	padding-top: 8px;
 }
 
 .series-action-card--danger {
@@ -3016,6 +3080,135 @@
 	.btn-primary,
 	.btn-danger {
 		white-space: nowrap;
+	}
+}
+
+.series-action-options {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.series-action-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	border: 1px solid var(--border, #dbe2ec);
+	background: var(--surface-raised, #f7f9fc);
+	border-left: 4px solid var(--ink-soft, #5b6577);
+
+	&--income { border-left-color: #0f9f78; }
+	&--expense { border-left-color: #d3294a; }
+	&--investment { border-left-color: #2d6cdf; }
+	&--daily { border-left-color: #d97706; }
+}
+
+.series-action-preview-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.series-action-preview-type {
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-soft, #5b6577);
+}
+
+.series-action-preview-amount {
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--ink-strong, #131c29);
+	font-variant-numeric: tabular-nums;
+}
+
+.series-action-preview-label {
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--ink-strong, #131c29);
+	overflow-wrap: anywhere;
+}
+
+.series-action-preview-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	font-size: 0.78rem;
+	color: var(--ink-soft, #5b6577);
+}
+
+.series-action-preview-recurrence {
+	font-weight: 600;
+}
+
+.series-action-option {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+	text-align: left;
+	padding: 10px 12px;
+	border-radius: 10px;
+	border: 1px solid var(--border, #dbe2ec);
+	background: #ffffff;
+	color: var(--ink-strong, #131c29);
+	cursor: pointer;
+	font: inherit;
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+	strong {
+		font-size: 0.92rem;
+	}
+
+	span {
+		font-size: 0.78rem;
+		color: var(--ink-soft, #5b6577);
+		font-weight: 400;
+	}
+
+	&:hover {
+		background: var(--surface, #f5f7fb);
+		border-color: var(--ink-soft, #5b6577);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--accent, #2d6cdf);
+		outline-offset: 2px;
+	}
+}
+
+.series-action-option--primary {
+	background: var(--accent, #2d6cdf);
+	border-color: var(--accent, #2d6cdf);
+	color: #ffffff;
+
+	span {
+		color: rgba(255, 255, 255, 0.85);
+	}
+
+	&:hover {
+		background: #1f54b3;
+		border-color: #1f54b3;
+	}
+}
+
+.series-action-option--danger {
+	background: #d3294a;
+	border-color: #d3294a;
+	color: #ffffff;
+
+	span {
+		color: rgba(255, 255, 255, 0.85);
+	}
+
+	&:hover {
+		background: #b21f3c;
+		border-color: #b21f3c;
 	}
 }
 
@@ -3228,6 +3421,100 @@
 .launch-tags-section {
 	display: grid;
 	gap: 6px;
+}
+
+// Botao "+ Nova tag" e botoes inline (Criar/Cancelar) seguindo o visual do modal de meta.
+.launch-ghost-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border: 1px solid var(--border, #d4dae5);
+	border-radius: 8px;
+	background: var(--surface, #ffffff);
+	color: var(--ink-strong);
+	font: inherit;
+	font-size: 0.85rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+
+	&:hover:not(:disabled) {
+		border-color: var(--accent, #3f8df6);
+		color: var(--accent, #3f8df6);
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+}
+
+.launch-ghost-button--inline {
+	align-self: start;
+	margin-top: 2px;
+}
+
+.launch-ghost-button--small {
+	padding: 6px 10px;
+	font-size: 0.8rem;
+}
+
+.launch-primary-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 14px;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	background: var(--accent, #3f8df6);
+	color: #fff;
+	font: inherit;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: filter 150ms ease;
+
+	&:hover:not(:disabled) {
+		filter: brightness(1.05);
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+}
+
+.launch-primary-button--small {
+	padding: 6px 12px;
+	font-size: 0.8rem;
+}
+
+.launch-new-tag-inline {
+	display: grid;
+	grid-template-columns: 1fr auto auto;
+	gap: 6px;
+	align-items: center;
+
+	input {
+		border: 1px solid var(--border, #d4dae5);
+		border-radius: 8px;
+		padding: 8px 10px;
+		font: inherit;
+		color: var(--ink-strong);
+		background: var(--surface-raised, #f8fafd);
+
+		&::placeholder {
+			color: var(--ink-soft);
+		}
+
+		&:focus {
+			outline: none;
+			border-color: var(--accent, #3f8df6);
+			background: var(--surface, #fff);
+		}
+	}
 }
 
 .launch-tags-input-row {
@@ -4005,6 +4292,49 @@
     h3 { color: #f9a8ba; }
   }
 
+  .series-action-option {
+    background: var(--surface-raised);
+    border-color: var(--border);
+    color: var(--ink-strong);
+
+    span {
+      color: var(--ink-soft);
+    }
+
+    &:hover {
+      background: var(--bg-strong);
+    }
+  }
+
+  .series-action-preview {
+    background: var(--surface-raised);
+    border-color: var(--border);
+  }
+
+  .series-action-preview-amount,
+  .series-action-preview-label {
+    color: var(--ink-strong);
+  }
+
+  .series-action-preview-type,
+  .series-action-preview-meta {
+    color: var(--ink-soft);
+  }
+
+  .series-action-option--primary,
+  .series-action-option--primary:hover {
+    color: #ffffff;
+
+    span { color: rgba(255, 255, 255, 0.85); }
+  }
+
+  .series-action-option--danger,
+  .series-action-option--danger:hover {
+    color: #ffffff;
+
+    span { color: rgba(255, 255, 255, 0.85); }
+  }
+
   // Linhas da tabela de dias
   .ledger-row {
     background: var(--surface-raised);
@@ -4026,6 +4356,43 @@
 		border-color: #4e5877;
 		color: #f1f4ff;
 		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+	}
+
+	// Semaforo de saldo no dark mode (vermelho/amarelo/verde claro/verde forte)
+	.ledger-balance.ledger-balance--negative {
+		background: #3a1f27;
+		border-color: #6b2f3f;
+		color: #f9a8ba;
+	}
+	.ledger-footer-item strong.ledger-balance--negative {
+		color: #f9a8ba;
+	}
+
+	.ledger-balance.ledger-balance--low {
+		background: #3a2e15;
+		border-color: #6b5320;
+		color: #fbbf6a;
+	}
+	.ledger-footer-item strong.ledger-balance--low {
+		color: #fbbf6a;
+	}
+
+	.ledger-balance.ledger-balance--mid {
+		background: #1f3326;
+		border-color: #2f5a3f;
+		color: #8edca0;
+	}
+	.ledger-footer-item strong.ledger-balance--mid {
+		color: #8edca0;
+	}
+
+	.ledger-balance.ledger-balance--high {
+		background: #15332a;
+		border-color: #1f5a45;
+		color: #6ec99a;
+	}
+	.ledger-footer-item strong.ledger-balance--high {
+		color: #6ec99a;
 	}
 
   // Footer de saldos
@@ -4272,6 +4639,13 @@
   .simplified-entry-icon-action--pay     { background: #2e2410; border-color: #5a4520; color: #fbbf6a; }
   .simplified-entry-icon-action--pay-active { background: #1a3028; border-color: #2d5040; color: #6ec99a; }
   .simplified-entry-icon-action--danger  { background: #2e1f24; border-color: #5a3040; color: #f9a8ba; }
+
+  // Indicador de recorrencia (icone redondinho ao lado da descricao)
+  .day-event-recurrence,
+  .simplified-entry-recurrence {
+    background: rgba(165, 180, 248, 0.18);
+    color: #a5b4f8;
+  }
 
   // Menu mobile da entrada
   .simplified-entry-menu-button {

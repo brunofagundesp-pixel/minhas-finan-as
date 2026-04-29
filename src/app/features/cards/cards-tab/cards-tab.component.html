@@ -214,30 +214,73 @@
       </div>
     </section>
 
+    <section class="panel cards-budget-panel" *ngIf="selectedCardId">
+      <app-budgets-summary
+        title="Metas deste cartao"
+        scopeFilter="card"
+        [targetIdFilter]="selectedCardId === null ? '' : selectedCardId.toString()"
+        emptyStateMessage="Sem metas para este cartao. Defina em Configuracoes."
+        [compact]="true"
+        [referenceDate]="invoiceMonthDate"
+      ></app-budgets-summary>
+    </section>
+
     <section class="launches-list panel" *ngIf="hasLaunches">
-      <article class="launch-item" *ngFor="let launch of filteredSelectedCardLaunches">
-        <div class="launch-item-day">
-          <span class="launch-item-day-number">{{ launch.date | date:'dd' }}</span>
-          <span class="launch-item-day-month">{{ launch.date | date:'MMM' }}</span>
-        </div>
-        <div class="launch-item-main">
-          <strong>{{ describeCardLaunch(launch) }}</strong>
-          <span class="launch-item-tags" *ngIf="getCardLaunchTags(launch).length > 0">
-            <span class="launch-item-tag" *ngFor="let tag of getCardLaunchTags(launch)" [ngStyle]="getTagBadgeStyle(tag)">{{ tag }}</span>
+      <header class="launches-list-head">
+        <h3>Lancamentos</h3>
+        <span class="launches-list-count">{{ filteredSelectedCardLaunches.length }} {{ filteredSelectedCardLaunches.length === 1 ? 'item' : 'itens' }}</span>
+      </header>
+
+      <div class="cards-launch-list">
+        <article
+          class="cards-launch-row"
+          *ngFor="let launch of filteredSelectedCardLaunches"
+          [class.cards-launch-row--paid]="launch.paid"
+        >
+          <span class="cards-launch-dot" [class.cards-launch-dot--paid]="launch.paid" aria-hidden="true"></span>
+
+          <span class="cards-launch-date">{{ launch.date | date:'dd/MM/yyyy' }}</span>
+
+          <span class="cards-launch-main">
+            <span class="cards-launch-title-row">
+              <strong>{{ describeCardLaunch(launch) }}</strong>
+            </span>
+
+            <span
+              class="cards-launch-status"
+              [class.cards-launch-status--paid]="launch.paid"
+              [class.cards-launch-status--pending]="!launch.paid"
+            >{{ launch.paid ? 'Pago' : 'Em aberto' }}</span>
+
+            <span class="cards-launch-meta-row">
+              <small class="cards-launch-meta">{{ describeRepeatMode(launch) }}</small>
+              <span class="cards-launch-tags" *ngIf="getCardLaunchTags(launch).length > 0">
+                <span class="cards-launch-tag" *ngFor="let tag of getCardLaunchTags(launch)" [ngStyle]="getTagBadgeStyle(tag)">{{ tag }}</span>
+              </span>
+            </span>
           </span>
-          <small>{{ launch.date | date:'dd/MM/yyyy' }}</small>
-        </div>
-        <div class="launch-item-meta">
-          <span class="launch-item-value">R$ {{ launch.amount | number:'1.2-2' }}</span>
-          <small>{{ describeRepeatMode(launch) }}</small>
-          <span class="launch-item-actions">
-            <button type="button" class="card-edit-event-button" (click)="openEditLaunchModal(launch)">Editar</button>
-            <button type="button" class="card-delete-event-button" (click)="deleteLaunch(launch)" [disabled]="isDeletingLaunch(launch.id)">
-              {{ isDeletingLaunch(launch.id) ? '...' : 'Excluir' }}
-            </button>
-          </span>
-        </div>
-      </article>
+
+          <strong class="cards-launch-value">R$ {{ launch.amount | number:'1.2-2' }}</strong>
+
+          <div class="cards-launch-actions">
+            <button
+              type="button"
+              class="cards-launch-icon-action"
+              (click)="openEditLaunchModal(launch)"
+              title="Editar"
+              aria-label="Editar lancamento"
+            >✎</button>
+            <button
+              type="button"
+              class="cards-launch-icon-action cards-launch-icon-action--danger"
+              (click)="deleteLaunch(launch)"
+              [disabled]="isDeletingLaunch(launch.id)"
+              title="Excluir"
+              aria-label="Excluir lancamento"
+            >{{ isDeletingLaunch(launch.id) ? '...' : '×' }}</button>
+          </div>
+        </article>
+      </div>
     </section>
 
     <div class="card-launches-empty" *ngIf="!hasLaunches">

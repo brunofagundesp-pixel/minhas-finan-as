@@ -1,0 +1,403 @@
+import { Injectable } from '@angular/core';
+
+import { Budget } from '../models/budget.model';
+import { normalizeTagName } from '../models/tag.model';
+import {
+  CardLaunch,
+  CreditCard,
+  FinancialEvent,
+  MonthDefinition
+} from './finance-api.service';
+import {
+  InvoiceMonth,
+  getClosingDateForInvoiceMonth,
+  getCycleStartDateForInvoiceMonth,
+  getInvoiceMonthForDate
+} from '../utils/card-cycle.util';
+
+export type BudgetStatus = 'ok' | 'warning' | 'over';
+
+export interface BudgetPeriodRef {
+  /** Calendar period (used for `monthly` budgets). */
+  monthly?: { year: number; month: number };
+  /** Invoice cycle (used for `invoice-cycle` budgets, requires the card). */
+  invoiceCycle?: { invoiceMonth: InvoiceMonth };
+}
+
+export interface BudgetProgress {
+  budget: Budget;
+  /** Soma já gasta dentro do período. */
+  spent: number;
+  /** Teto - gasto (pode ser negativo). */
+  remaining: number;
+  /** spent / amount em fração (>1 = estourou). 0 se amount<=0. */
+  percent: number;
+  status: BudgetStatus;
+
+  /** Dias decorridos do período (mínimo 1, para evitar divisão por zero). */
+  daysElapsed: number;
+  /** Dias totais do período. */
+  daysTotal: number;
+  /** Projeção linear de gasto ao final do período (≈ spent / daysElapsed * daysTotal). */
+  projectedSpent: number;
+  /** Status com base na projeção (extra alerta antecipado). */
+  projectedStatus: BudgetStatus;
+
+  /** Período resolvido (para a UI exibir). */
+  periodLabel: string;
+}
+
+const WARNING_THRESHOLD = 0.7;
+
+/**
+ * Cálculo (puro) do progresso das metas. Não toca em Firestore.
+ * Os dados de transações vêm pré-carregados pelos serviços que orquestram a UI.
+ */
+@Injectable({ providedIn: 'root' })
+export class BudgetCalculatorService {
+  computeProgress(
+    budget: Budget,
+    context: {
+      months: ReadonlyArray<MonthDefinition>;
+      cardLaunches: ReadonlyArray<CardLaunch>;
+      cards: ReadonlyArray<CreditCard>;
+      /** Default: hoje. Sobrescrito em testes. */
+      now?: Date;
+    }
+  ): BudgetProgress {
+    const now = context.now ?? new Date();
+    const period = this.resolvePeriod(budget, now, context.cards);
+
+    // Verifica se o periodo corrente esta dentro da janela de vigencia da meta.
+    // Metas legadas (sem startYear/Month) sao tratadas como "vale desde sempre".
+    const inWindow = this.isPeriodInBudgetWindow(budget, period);
+
+    const effectiveAmount = inWindow ? this.resolveAmountForPeriod(budget, period) : 0;
+    const safeAmount = effectiveAmount > 0 ? effectiveAmount : 0;
+    const spent = inWindow ? this.computeSpent(budget, period, context) : 0;
+    const remaining = safeAmount - spent;
+    const percent = safeAmount > 0 ? spent / safeAmount : 0;
+
+    const status = this.deriveStatus(percent);
+
+    const daysTotal = Math.max(1, this.daysBetween(period.startDate, period.endDate) + 1);
+    const daysElapsedRaw = this.daysBetween(period.startDate, now) + 1;
+    const daysElapsed = Math.min(daysTotal, Math.max(1, daysElapsedRaw));
+
+    const projectedSpent = (spent / daysElapsed) * daysTotal;
+    const projectedPercent = safeAmount > 0 ? projectedSpent / safeAmount : 0;
+    const projectedStatus = this.deriveStatus(projectedPercent);
+
+    return {
+      budget: { ...budget, amount: safeAmount },
+      spent,
+      remaining,
+      percent,
+      status,
+      daysElapsed,
+      daysTotal,
+      projectedSpent,
+      projectedStatus,
+      periodLabel: period.label
+    };
+  }
+
+  /** Versão batch: utilitário comum para listar progresso de várias metas. */
+  computeAll(
+    budgets: ReadonlyArray<Budget>,
+    context: Parameters<BudgetCalculatorService['computeProgress']>[1]
+  ): BudgetProgress[] {
+    return budgets
+      .filter((b) => b.active !== false)
+      .filter((b) => this.isPeriodInBudgetWindow(b, this.resolvePeriod(b, context.now ?? new Date(), context.cards)))
+      .map((budget) => this.computeProgress(budget, context));
+  }
+
+  private isPeriodInBudgetWindow(
+    budget: Budget,
+    period: { year?: number; month?: number; invoiceMonth?: InvoiceMonth }
+  ): boolean {
+    const refYear = period.year ?? period.invoiceMonth?.year;
+    const refMonth = period.month ?? period.invoiceMonth?.month;
+    if (refYear === undefined || refMonth === undefined) {
+      return true;
+    }
+    const refIndex = refYear * 12 + (refMonth - 1);
+
+    if (budget.startYear !== undefined && budget.startMonth !== undefined) {
+      const startIndex = budget.startYear * 12 + (budget.startMonth - 1);
+      if (refIndex < startIndex) {
+        return false;
+      }
+    }
+
+    if (budget.endYear !== undefined && budget.endMonth !== undefined) {
+      const endIndex = budget.endYear * 12 + (budget.endMonth - 1);
+      if (refIndex > endIndex) {
+        return false;
+      }
+    }
+
+    if (budget.excludedMonths && budget.excludedMonths.length > 0) {
+      const key = `${refYear}-${String(refMonth).padStart(2, '0')}`;
+      if (budget.excludedMonths.includes(key)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private resolveAmountForPeriod(
+    budget: Budget,
+    period: { year?: number; month?: number; invoiceMonth?: InvoiceMonth }
+  ): number {
+    const refYear = period.year ?? period.invoiceMonth?.year;
+    const refMonth = period.month ?? period.invoiceMonth?.month;
+    if (refYear !== undefined && refMonth !== undefined && budget.monthlyAmounts) {
+      const key = `${refYear}-${String(refMonth).padStart(2, '0')}`;
+      const override = budget.monthlyAmounts[key];
+      if (Number.isFinite(override) && (override as number) > 0) {
+        return override as number;
+      }
+    }
+    return budget.amount;
+  }
+
+  // -------------------------------------------------------------------------
+  // Resolução do período
+  // -------------------------------------------------------------------------
+
+  private resolvePeriod(
+    budget: Budget,
+    now: Date,
+    cards: ReadonlyArray<CreditCard>
+  ): { startDate: Date; endDate: Date; label: string; year?: number; month?: number; invoiceMonth?: InvoiceMonth } {
+    if (budget.period === 'invoice-cycle' && budget.scope === 'card') {
+      const card = cards.find((c) => String(c.id) === String(budget.targetId));
+      if (card) {
+        const invoiceMonth = getInvoiceMonthForDate(this.toIsoDate(now), card);
+        if (invoiceMonth) {
+          const startDate = getCycleStartDateForInvoiceMonth(invoiceMonth, card);
+          const endDate = getClosingDateForInvoiceMonth(invoiceMonth, card);
+          return {
+            startDate,
+            endDate,
+            invoiceMonth,
+            label: `Fatura de ${this.monthLabel(invoiceMonth.month)}/${invoiceMonth.year}`
+          };
+        }
+      }
+    }
+
+    // Fallback: monthly (calendário).
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0); // último dia do mês
+    return {
+      startDate,
+      endDate,
+      year,
+      month,
+      label: `${this.monthLabel(month)}/${year}`
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // Cálculo do gasto
+  // -------------------------------------------------------------------------
+
+  private computeSpent(
+    budget: Budget,
+    period: { startDate: Date; endDate: Date; year?: number; month?: number; invoiceMonth?: InvoiceMonth },
+    context: {
+      months: ReadonlyArray<MonthDefinition>;
+      cardLaunches: ReadonlyArray<CardLaunch>;
+      cards: ReadonlyArray<CreditCard>;
+    }
+  ): number {
+    if (budget.scope === 'tag') {
+      return this.computeTagSpent(budget, period, context);
+    }
+    if (budget.scope === 'card') {
+      return this.computeCardSpent(budget, period, context);
+    }
+    return this.computeGlobalSpent(period, context);
+  }
+
+  private computeTagSpent(
+    budget: Budget,
+    period: { startDate: Date; endDate: Date; year?: number; month?: number },
+    context: {
+      months: ReadonlyArray<MonthDefinition>;
+      cardLaunches: ReadonlyArray<CardLaunch>;
+      cards: ReadonlyArray<CreditCard>;
+    }
+  ): number {
+    const tagKey = normalizeTagName(budget.targetId || budget.targetName);
+    if (!tagKey) {
+      return 0;
+    }
+
+    let total = 0;
+
+    // Eventos do mês civil correspondente.
+    if (period.year !== undefined && period.month !== undefined) {
+      const monthDef = context.months.find(
+        (m) => m.year === period.year && m.monthNumber === period.month
+      );
+      if (monthDef) {
+        for (const ev of monthDef.events ?? []) {
+          if (!this.isExpenseEvent(ev)) {
+            continue;
+          }
+          if (!this.eventMatchesTag(ev, tagKey)) {
+            continue;
+          }
+          total += this.absAmount(ev.amount);
+        }
+      }
+    }
+
+    // Lançamentos de cartão agrupados pelo mês calendário da data da compra/parcela.
+    // (No período "Mensal" usamos a data civil; período "Ciclo de fatura" é tratado em computeCardSpent.)
+    if (period.year !== undefined && period.month !== undefined) {
+      const monthRef = `${period.year}-${String(period.month).padStart(2, '0')}`;
+      for (const launch of context.cardLaunches) {
+        if (!this.launchMatchesTag(launch, tagKey)) {
+          continue;
+        }
+        if (typeof launch.date !== 'string' || !launch.date.startsWith(monthRef)) {
+          continue;
+        }
+        total += this.absAmount(launch.amount);
+      }
+    }
+
+    return total;
+  }
+
+  private computeCardSpent(
+    budget: Budget,
+    period: { startDate: Date; endDate: Date; year?: number; month?: number; invoiceMonth?: InvoiceMonth },
+    context: { cardLaunches: ReadonlyArray<CardLaunch>; cards: ReadonlyArray<CreditCard> }
+  ): number {
+    const cardId = String(budget.targetId);
+    const card = context.cards.find((c) => String(c.id) === cardId);
+    if (!card) {
+      return 0;
+    }
+
+    let total = 0;
+    for (const launch of context.cardLaunches) {
+      if (String(launch.cardId) !== cardId) {
+        continue;
+      }
+      if (period.invoiceMonth) {
+        // Período = Ciclo de fatura: agrupa pelo ciclo de fechamento do cartão.
+        const inv = getInvoiceMonthForDate(launch.date, card);
+        if (inv && inv.year === period.invoiceMonth.year && inv.month === period.invoiceMonth.month) {
+          total += this.absAmount(launch.amount);
+        }
+      } else if (period.year !== undefined && period.month !== undefined) {
+        // Período = Mensal: agrupa pelo mês calendário da data da compra/parcela.
+        if (typeof launch.date === 'string') {
+          const monthRef = `${period.year}-${String(period.month).padStart(2, '0')}`;
+          if (launch.date.startsWith(monthRef)) {
+            total += this.absAmount(launch.amount);
+          }
+        }
+      }
+    }
+    return total;
+  }
+
+  private computeGlobalSpent(
+    period: { startDate: Date; endDate: Date; year?: number; month?: number },
+    context: { months: ReadonlyArray<MonthDefinition>; cardLaunches: ReadonlyArray<CardLaunch>; cards: ReadonlyArray<CreditCard> }
+  ): number {
+    if (period.year === undefined || period.month === undefined) {
+      return 0;
+    }
+    let total = 0;
+    const monthDef = context.months.find((m) => m.year === period.year && m.monthNumber === period.month);
+    if (monthDef) {
+      for (const ev of monthDef.events ?? []) {
+        if (this.isExpenseEvent(ev)) {
+          total += this.absAmount(ev.amount);
+        }
+      }
+    }
+    for (const launch of context.cardLaunches) {
+      const card = context.cards.find((c) => String(c.id) === String(launch.cardId));
+      if (!card) {
+        continue;
+      }
+      const inv = getInvoiceMonthForDate(launch.date, card);
+      if (inv && inv.year === period.year && inv.month === period.month) {
+        total += this.absAmount(launch.amount);
+      }
+    }
+    return total;
+  }
+
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+
+  private isExpenseEvent(ev: FinancialEvent): boolean {
+    return ev.type === 'expense' && ev.suppressed !== true;
+  }
+
+  private eventMatchesTag(ev: FinancialEvent, tagKey: string): boolean {
+    const tags = ev.tags ?? [];
+    return tags.some((t) => normalizeTagName(t) === tagKey);
+  }
+
+  private launchMatchesTag(launch: CardLaunch, tagKey: string): boolean {
+    if (!launch.tags) {
+      return false;
+    }
+    return launch.tags
+      .split(',')
+      .map((t) => normalizeTagName(t))
+      .some((t) => t === tagKey);
+  }
+
+  private absAmount(value: number): number {
+    return Math.abs(Number.isFinite(value) ? value : 0);
+  }
+
+  private daysBetween(start: Date, end: Date): number {
+    const dayMs = 86_400_000;
+    const a = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+    const b = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
+    return Math.floor((b - a) / dayMs);
+  }
+
+  private deriveStatus(percent: number): BudgetStatus {
+    if (percent > 1) {
+      return 'over';
+    }
+    if (percent >= WARNING_THRESHOLD) {
+      return 'warning';
+    }
+    return 'ok';
+  }
+
+  private toIsoDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private monthLabel(month: number): string {
+    const names = [
+      'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+      'jul', 'ago', 'set', 'out', 'nov', 'dez'
+    ];
+    return names[Math.max(0, Math.min(11, month - 1))];
+  }
+}

@@ -1,0 +1,331 @@
+.budgets-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.budgets-summary-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--ink-strong);
+    letter-spacing: -0.01em;
+  }
+}
+
+.budgets-summary-head-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.budgets-summary-month-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 5px;
+}
+
+.budgets-summary-month-btn {
+  background: transparent;
+  border: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  font-size: 1rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease, color 150ms ease;
+
+  &:hover {
+    background: var(--surface);
+    color: var(--ink-strong);
+  }
+}
+
+.budgets-summary-month-label {
+  min-width: 110px;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+  text-transform: capitalize;
+}
+
+.budgets-summary-month-today {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  margin-left: 4px;
+  transition: all 150ms ease;
+
+  &:hover:not(:disabled) {
+    color: var(--ink-strong);
+    border-color: var(--ink-soft);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.budgets-summary-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent, #2d6cdf);
+  background: color-mix(in srgb, var(--accent, #2d6cdf) 12%, transparent);
+  border-radius: 999px;
+  padding: 3px 10px;
+  letter-spacing: 0.02em;
+}
+
+.budgets-summary-empty {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  background: var(--surface-raised);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 18px 16px;
+  text-align: center;
+}
+
+.budgets-summary-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.budgets-summary--compact .budgets-summary-list {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.budget-mini {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--accent, #2d6cdf);
+    opacity: 0.85;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.18);
+  }
+
+  &--warning {
+    border-color: color-mix(in srgb, #d97706 35%, var(--border));
+
+    &::before {
+      background: #d97706;
+    }
+  }
+
+  &--over {
+    border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+
+    &::before {
+      background: var(--danger);
+    }
+  }
+}
+
+.budget-mini-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.budget-mini-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  strong {
+    color: var(--ink-strong);
+    font-size: 0.95rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+}
+
+.budget-mini-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.budget-mini-percent {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+  font-variant-numeric: tabular-nums;
+  background: var(--surface-raised);
+  border-radius: 999px;
+  padding: 2px 10px;
+
+  .budget-mini--warning & {
+    color: #d97706;
+    background: color-mix(in srgb, #d97706 12%, transparent);
+  }
+
+  .budget-mini--over & {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+  }
+}
+
+.budget-mini-track {
+  position: relative;
+  background: var(--surface-raised);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.budget-mini-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, currentColor 80%, white) 0%,
+    currentColor 100%
+  );
+}
+
+/**
+ * Variante "comprometido por ciclo de fatura": listras diagonais sobre o gradiente
+ * deixam claro que aquele valor não corresponde a compras feitas no mês exibido,
+ * e sim ao que será cobrado naquela fatura.
+ */
+.budget-mini-fill--committed {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.28) 0,
+      rgba(255, 255, 255, 0.28) 4px,
+      transparent 4px,
+      transparent 9px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, currentColor 80%, white) 0%,
+      currentColor 100%
+    );
+}
+
+.budget-mini-cycle-tag {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.budget-mini--invoice-cycle {
+  .budget-mini-cycle-tag {
+    color: var(--accent, #2d6cdf);
+    background: color-mix(in srgb, var(--accent, #2d6cdf) 10%, transparent);
+    border-color: color-mix(in srgb, var(--accent, #2d6cdf) 35%, var(--border));
+  }
+}
+
+.budget-mini-projection {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--ink-soft) 0,
+    var(--ink-soft) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+  transform: translateX(-1px);
+  opacity: 0.7;
+}
+
+.budget-mini-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  gap: 8px;
+
+  > span:first-child {
+    color: var(--ink-strong);
+    font-weight: 500;
+  }
+}
+
+.budget-mini-period {
+  text-transform: lowercase;
+  font-size: 0.72rem;
+  background: var(--surface-raised);
+  border-radius: 6px;
+  padding: 2px 8px;
+  letter-spacing: 0.02em;
+}
+
+.budget-mini-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  padding-top: 8px;
+  border-top: 1px dashed color-mix(in srgb, var(--border) 70%, transparent);
+
+  strong {
+    color: var(--ink-strong);
+    font-weight: 600;
+  }
+}

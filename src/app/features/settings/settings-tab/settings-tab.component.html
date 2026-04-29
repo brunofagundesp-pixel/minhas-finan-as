@@ -1,0 +1,440 @@
+<section class="settings-tab">
+  <header class="settings-header">
+    <div>
+      <p class="eyebrow">configurações</p>
+      <h2>Metas de gastos</h2>
+      <p class="settings-subtitle">
+        Defina tetos por tag, cartão ou geral. As metas ativas alimentam os indicadores
+        do dashboard e dos cartões para você acompanhar quanto já gastou.
+      </p>
+      <div class="settings-month-nav" role="group" aria-label="Navegar mês das metas">
+        <button
+          type="button"
+          class="settings-month-btn"
+          (click)="goToPreviousMonth()"
+          aria-label="Mês anterior"
+          title="Mês anterior"
+        >‹</button>
+        <span class="settings-month-label">{{ referenceMonthLabel }}</span>
+        <button
+          type="button"
+          class="settings-month-btn"
+          (click)="goToNextMonth()"
+          aria-label="Próximo mês"
+          title="Próximo mês"
+        >›</button>
+        <button
+          type="button"
+          class="settings-month-today"
+          (click)="goToCurrentMonth()"
+          [disabled]="isCurrentMonth()"
+          title="Voltar ao mês atual"
+        >hoje</button>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="primary-button"
+      (click)="openCreateForm()"
+      [disabled]="saving"
+    >
+      + Nova meta
+    </button>
+  </header>
+
+  <p class="settings-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+  <div class="settings-loading" *ngIf="isLoading">Carregando metas…</div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="settings-empty" *ngIf="progresses.length === 0">
+      <h3>Você ainda não cadastrou nenhuma meta.</h3>
+      <p>
+        Que tal começar definindo um teto para sua tag mais usada
+        (ex.: <em>mercado</em>, <em>energia</em>, <em>lazer</em>)?
+      </p>
+      <button type="button" class="primary-button" (click)="openCreateForm()">
+        Criar primeira meta
+      </button>
+    </div>
+
+    <div class="budget-grid" *ngIf="progresses.length > 0">
+      <article
+        class="budget-card"
+        *ngFor="let progress of progresses; trackBy: trackByBudgetId"
+        [class.budget-card--inactive]="progress.budget.active === false"
+        [class.budget-card--over]="progress.status === 'over'"
+        [class.budget-card--warning]="progress.status === 'warning'"
+      >
+        <header class="budget-card-header">
+          <div class="budget-card-title">
+            <span
+              class="budget-card-dot"
+              *ngIf="progress.budget.scope === 'tag'"
+              [style.background]="getTagColor(progress.budget.targetName)"
+              aria-hidden="true"
+            ></span>
+            <h3>{{ progress.budget.targetName || scopeLabel(progress.budget.scope) }}</h3>
+          </div>
+          <div class="budget-card-meta">
+            <span class="chip">{{ scopeLabel(progress.budget.scope) }}</span>
+            <span class="chip chip--muted">{{ periodLabel(progress.budget.period) }}</span>
+            <span class="chip chip--muted" *ngIf="progress.budget.rollover">Acumula sobra</span>
+            <span class="chip chip--danger" *ngIf="progress.budget.active === false">Inativa</span>
+          </div>
+        </header>
+
+        <div class="budget-card-body">
+          <div class="budget-figures">
+            <strong class="budget-spent">{{ formatCurrency(progress.spent) }}</strong>
+            <span class="budget-of">de {{ formatCurrency(progress.budget.amount) }}</span>
+          </div>
+
+          <div class="budget-progress">
+            <div class="budget-progress-track">
+              <div
+                class="budget-progress-fill"
+                [style.width]="getProgressBarWidth(progress)"
+                [style.background]="getProgressColor(progress)"
+              ></div>
+              <div
+                class="budget-progress-projection"
+                *ngIf="getProjectionMarker(progress) as projectionLeft"
+                [style.left]="projectionLeft"
+                [title]="'Projeção fim do período: ' + formatCurrency(progress.projectedSpent)"
+              ></div>
+            </div>
+            <div class="budget-progress-meta">
+              <span>{{ formatPercent(progress.percent) }} usado</span>
+              <span class="budget-progress-period">{{ progress.periodLabel }}</span>
+            </div>
+          </div>
+
+          <p class="budget-projection" *ngIf="progress.budget.amount > 0">
+            <ng-container *ngIf="progress.status === 'over'">
+              Estourou em
+              <strong>{{ formatCurrency(progress.spent - progress.budget.amount) }}</strong>
+              neste período.
+            </ng-container>
+            <ng-container *ngIf="progress.status !== 'over'">
+              No ritmo atual, deve fechar em
+              <strong>{{ formatCurrency(progress.projectedSpent) }}</strong>
+              ({{ progress.daysElapsed }} de {{ progress.daysTotal }} dias).
+            </ng-container>
+          </p>
+
+          <p class="budget-notes" *ngIf="progress.budget.notes">{{ progress.budget.notes }}</p>
+        </div>
+
+        <footer class="budget-card-actions">
+          <button type="button" class="ghost-button" (click)="openEditForm(progress.budget)">Editar</button>
+          <button type="button" class="ghost-button" (click)="toggleActive(progress.budget)">
+            {{ progress.budget.active === false ? 'Ativar' : 'Desativar' }}
+          </button>
+          <button
+            type="button"
+            class="ghost-button ghost-button--danger"
+            (click)="requestDelete(progress.budget.id)"
+          >
+            Excluir
+          </button>
+        </footer>
+      </article>
+    </div>
+  </ng-container>
+</section>
+
+<!-- Modal de criação/edição -->
+<div class="settings-modal-backdrop" *ngIf="isFormOpen" (click)="closeForm()">
+  <div class="settings-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="settings-modal-header">
+      <h3>{{ editingBudgetId ? 'Editar meta' : 'Nova meta' }}</h3>
+      <button type="button" class="settings-modal-close" (click)="closeForm()" aria-label="Fechar">&times;</button>
+    </header>
+
+    <form class="settings-form" (ngSubmit)="saveBudget()" #budgetForm="ngForm">
+      <div class="form-row">
+        <label>Escopo</label>
+        <div class="scope-picker" role="group" aria-label="Escopo da meta">
+          <button type="button" class="scope-button" [class.scope-button--active]="form.scope === 'tag'" (click)="onScopeChange('tag')">Tag</button>
+          <button type="button" class="scope-button" [class.scope-button--active]="form.scope === 'card'" (click)="onScopeChange('card')">Cartão</button>
+          <button type="button" class="scope-button" [class.scope-button--active]="form.scope === 'global'" (click)="onScopeChange('global')">Geral</button>
+        </div>
+      </div>
+
+      <div class="form-row" *ngIf="form.scope === 'tag'">
+        <label for="budget-tag">Tag</label>
+        <ng-container *ngIf="!isCreatingTag; else newTagInline">
+          <select id="budget-tag" name="targetId" [(ngModel)]="form.targetId" required>
+            <option value="" disabled>Selecione uma tag…</option>
+            <option *ngFor="let tag of tags" [value]="tag.name">{{ tag.name }}</option>
+          </select>
+          <button
+            type="button"
+            class="ghost-button ghost-button--inline"
+            (click)="startCreatingTag()"
+          >
+            + Nova tag
+          </button>
+          <small *ngIf="tags.length === 0" class="form-hint">
+            Você ainda não tem tags cadastradas. Use "+ Nova tag" acima para criar a primeira.
+          </small>
+        </ng-container>
+
+        <ng-template #newTagInline>
+          <div class="new-tag-inline">
+            <input
+              #newTagInput
+              type="text"
+              name="newTagName"
+              placeholder="Nome da nova tag"
+              maxlength="40"
+              [(ngModel)]="newTagName"
+              (keydown.enter)="$event.preventDefault(); confirmNewTag()"
+              (keydown.escape)="cancelNewTag()"
+            />
+            <button
+              type="button"
+              class="primary-button primary-button--small"
+              (click)="confirmNewTag()"
+              [disabled]="creatingTag || !newTagName.trim()"
+            >
+              {{ creatingTag ? '...' : 'Criar' }}
+            </button>
+            <button
+              type="button"
+              class="ghost-button ghost-button--small"
+              (click)="cancelNewTag()"
+              [disabled]="creatingTag"
+            >
+              Cancelar
+            </button>
+          </div>
+          <small *ngIf="newTagError" class="settings-error">{{ newTagError }}</small>
+        </ng-template>
+      </div>
+
+      <div class="form-row" *ngIf="form.scope === 'card'">
+        <label for="budget-card">Cartão</label>
+        <select id="budget-card" name="targetId" [(ngModel)]="form.targetId" required>
+          <option value="" disabled>Selecione um cartão…</option>
+          <option *ngFor="let card of cards" [value]="card.id">{{ card.name }}</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="budget-amount">Teto (R$)</label>
+        <input
+          id="budget-amount"
+          name="amount"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="0,00"
+          [ngModel]="amountInput"
+          (ngModelChange)="onAmountInputChange($event)"
+          required
+        />
+      </div>
+
+      <div class="form-row">
+        <label>Período</label>
+        <div class="period-picker" role="group" aria-label="Período da meta">
+          <button
+            type="button"
+            class="scope-button"
+            [class.scope-button--active]="form.period === 'monthly'"
+            (click)="form.period = 'monthly'"
+          >Mensal</button>
+          <button
+            type="button"
+            class="scope-button"
+            [class.scope-button--active]="form.period === 'invoice-cycle'"
+            [disabled]="form.scope !== 'card'"
+            (click)="form.period = 'invoice-cycle'"
+          >Ciclo de fatura</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Vigência</label>
+        <div class="vigencia-options" role="radiogroup" aria-label="Vigência da meta">
+          <label class="vigencia-option" [class.vigencia-option--active]="form.vigencia === 'single'">
+            <input
+              type="radio"
+              name="vigencia"
+              value="single"
+              [checked]="form.vigencia === 'single'"
+              (change)="setVigencia('single')"
+            />
+            <span>Apenas {{ getStartMonthLabel() }}</span>
+          </label>
+          <label class="vigencia-option" [class.vigencia-option--active]="form.vigencia === 'range'">
+            <input
+              type="radio"
+              name="vigencia"
+              value="range"
+              [checked]="form.vigencia === 'range'"
+              (change)="setVigencia('range')"
+            />
+            <span>Repetir o valor até um mês específico</span>
+          </label>
+          <label class="vigencia-option" [class.vigencia-option--active]="form.vigencia === 'forever'">
+            <input
+              type="radio"
+              name="vigencia"
+              value="forever"
+              [checked]="form.vigencia === 'forever'"
+              (change)="setVigencia('forever')"
+            />
+            <span>A partir de {{ getStartMonthLabel() }}, sem prazo</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-row form-row--inline">
+        <label class="form-row-label">Mês inicial</label>
+        <div class="month-year-picker">
+          <select name="startMonth" [(ngModel)]="form.startMonth" aria-label="Mês inicial">
+            <option *ngFor="let opt of monthOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+          <select name="startYear" [(ngModel)]="form.startYear" aria-label="Ano inicial">
+            <option *ngFor="let year of yearOptions" [ngValue]="year">{{ year }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row form-row--inline" *ngIf="form.vigencia === 'range'">
+        <label class="form-row-label">Mês final</label>
+        <div class="month-year-picker">
+          <select name="endMonth" [(ngModel)]="form.endMonth" aria-label="Mês final">
+            <option *ngFor="let opt of monthOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+          <select name="endYear" [(ngModel)]="form.endYear" aria-label="Ano final">
+            <option *ngFor="let year of yearOptions" [ngValue]="year">{{ year }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row form-row--inline" *ngIf="hasOverridesInWindow()">
+        <label class="checkbox-label">
+          <input type="checkbox" name="overwriteExisting" [(ngModel)]="form.overwriteExisting" />
+          Sobrescrever metas já definidas com os novos valores
+        </label>
+      </div>
+
+      <div class="form-row form-row--inline">
+        <label class="checkbox-label">
+          <input type="checkbox" name="rollover" [(ngModel)]="form.rollover" />
+          Acumular sobra para o próximo período
+        </label>
+        <span
+          class="info-badge"
+          tabindex="0"
+          role="img"
+          aria-label="Ajuda sobre acumular sobra"
+          title="Se você gastou menos que o teto neste mês, a diferença vira saldo extra no mês seguinte. Ex.: teto R$ 500, gastou R$ 300, sobra R$ 200 → próximo mês fica com teto efetivo de R$ 700."
+        >?</span>
+      </div>
+
+      <div class="form-row form-row--inline">
+        <label class="checkbox-label">
+          <input type="checkbox" name="active" [(ngModel)]="form.active" />
+          Meta ativa
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label for="budget-notes">Observação (opcional)</label>
+        <textarea
+          id="budget-notes"
+          name="notes"
+          rows="2"
+          [(ngModel)]="form.notes"
+          maxlength="280"
+        ></textarea>
+      </div>
+
+      <p class="settings-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+      <footer class="settings-modal-actions">
+        <button type="button" class="ghost-button" (click)="closeForm()" [disabled]="saving">Cancelar</button>
+        <button type="submit" class="primary-button" [disabled]="saving">
+          {{ saving ? 'Salvando…' : (editingBudgetId ? 'Salvar alterações' : 'Criar meta') }}
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<!-- Confirmação de exclusão -->
+<div class="settings-modal-backdrop" *ngIf="pendingDeleteId" (click)="cancelDelete()">
+  <div class="settings-modal settings-modal--small" (click)="$event.stopPropagation()" role="alertdialog">
+    <header class="settings-modal-header">
+      <h3>Excluir meta?</h3>
+    </header>
+
+    <ng-container *ngIf="pendingDeleteHasRange; else deleteAllOnly">
+      <p class="settings-modal-text">
+        Esta meta vale para mais de um mês. Como deseja excluir?
+        Os lançamentos relacionados não serão afetados.
+      </p>
+      <div class="settings-delete-options">
+        <button type="button" class="ghost-button settings-delete-option" (click)="confirmDeleteScope('single')">
+          <strong>Apenas {{ pendingDeleteMonthLabel }}</strong>
+          <span>Mantém a meta nos demais meses.</span>
+        </button>
+        <button type="button" class="ghost-button settings-delete-option" (click)="confirmDeleteScope('forward')">
+          <strong>De {{ pendingDeleteMonthLabel }} em diante</strong>
+          <span>Encerra a vigência da meta a partir deste mês.</span>
+        </button>
+        <button type="button" class="primary-button primary-button--danger settings-delete-option" (click)="confirmDeleteScope('all')">
+          <strong>Excluir todos</strong>
+          <span>Remove a meta de todos os meses (passados e futuros).</span>
+        </button>
+      </div>
+      <footer class="settings-modal-actions">
+        <button type="button" class="ghost-button" (click)="cancelDelete()">Cancelar</button>
+      </footer>
+    </ng-container>
+
+    <ng-template #deleteAllOnly>
+      <p class="settings-modal-text">
+        Esta ação não pode ser desfeita. Os lançamentos relacionados não serão afetados.
+      </p>
+      <footer class="settings-modal-actions">
+        <button type="button" class="ghost-button" (click)="cancelDelete()">Cancelar</button>
+        <button type="button" class="primary-button primary-button--danger" (click)="confirmDeleteScope('all')">Excluir</button>
+      </footer>
+    </ng-template>
+  </div>
+</div>
+
+<!-- Escopo da edição (quando a meta tem janela maior que 1 mês) -->
+<div class="settings-modal-backdrop" *ngIf="pendingEditPayload" (click)="cancelEditScope()">
+  <div class="settings-modal settings-modal--small" (click)="$event.stopPropagation()" role="alertdialog">
+    <header class="settings-modal-header">
+      <h3>Salvar alterações?</h3>
+    </header>
+    <p class="settings-modal-text">
+      Esta meta vale para mais de um mês. Como deseja aplicar as alterações?
+    </p>
+    <div class="settings-delete-options">
+      <button type="button" class="ghost-button settings-delete-option" (click)="confirmEditScope('single')">
+        <strong>Apenas {{ pendingEditMonthLabel }}</strong>
+        <span>Aplica o novo valor só neste mês (como override). Demais campos não mudam.</span>
+      </button>
+      <button type="button" class="ghost-button settings-delete-option" (click)="confirmEditScope('forward')">
+        <strong>De {{ pendingEditMonthLabel }} em diante</strong>
+        <span>Encerra a meta atual no mês anterior e cria uma nova com os novos valores a partir deste mês.</span>
+      </button>
+      <button type="button" class="primary-button settings-delete-option" (click)="confirmEditScope('all')">
+        <strong>Todos os meses</strong>
+        <span>Aplica os novos valores em toda a janela da meta (passados e futuros).</span>
+      </button>
+    </div>
+    <footer class="settings-modal-actions">
+      <button type="button" class="ghost-button" (click)="cancelEditScope()">Cancelar</button>
+    </footer>
+  </div>
+</div>

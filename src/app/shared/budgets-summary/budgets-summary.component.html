@@ -1,0 +1,102 @@
+<section class="budgets-summary" [class.budgets-summary--compact]="compact">
+  <header class="budgets-summary-head" *ngIf="title">
+    <div class="budgets-summary-head-title">
+      <h3>{{ title }}</h3>
+      <span class="budgets-summary-count" *ngIf="!isLoading && progresses.length">
+        {{ progresses.length }} ativa{{ progresses.length === 1 ? '' : 's' }}
+      </span>
+    </div>
+
+    <div class="budgets-summary-month-nav" role="group" aria-label="Navegar mês das metas" *ngIf="!isControlled">
+      <button
+        type="button"
+        class="budgets-summary-month-btn"
+        (click)="goToPreviousMonth()"
+        aria-label="Mês anterior"
+        title="Mês anterior"
+      >‹</button>
+      <span class="budgets-summary-month-label">{{ referenceMonthLabel }}</span>
+      <button
+        type="button"
+        class="budgets-summary-month-btn"
+        (click)="goToNextMonth()"
+        aria-label="Próximo mês"
+        title="Próximo mês"
+      >›</button>
+      <button
+        type="button"
+        class="budgets-summary-month-today"
+        (click)="goToCurrentMonth()"
+        [disabled]="isCurrentMonth()"
+        title="Voltar ao mês atual"
+      >hoje</button>
+    </div>
+  </header>
+
+  <p class="budgets-summary-empty" *ngIf="!isLoading && progresses.length === 0">
+    {{ emptyStateMessage }}
+  </p>
+
+  <div class="budgets-summary-list" *ngIf="progresses.length > 0">
+    <article
+      class="budget-mini"
+      *ngFor="let progress of progresses; trackBy: trackByBudgetId"
+      [class.budget-mini--warning]="progress.status === 'warning'"
+      [class.budget-mini--over]="progress.status === 'over'"
+      [class.budget-mini--invoice-cycle]="isInvoiceCycle(progress)"
+      [title]="getProgressTooltip(progress)"
+    >
+      <header class="budget-mini-head">
+        <div class="budget-mini-title">
+          <span
+            class="budget-mini-dot"
+            *ngIf="progress.budget.scope === 'tag'"
+            [style.background]="getTagColor(progress.budget.targetName)"
+            [style.color]="getTagColor(progress.budget.targetName)"
+            aria-hidden="true"
+          ></span>
+          <strong>{{ progress.budget.targetName || scopeLabel(progress.budget.scope) }}</strong>
+          <span
+            class="budget-mini-cycle-tag"
+            *ngIf="isInvoiceCycle(progress)"
+            title="Meta por ciclo de fatura: o valor agrupa o que será cobrado nesta fatura, não o mês das compras."
+            aria-label="Meta por ciclo de fatura"
+          >fatura</span>
+        </div>
+        <span class="budget-mini-percent">{{ formatPercent(progress.percent) }}</span>
+      </header>
+
+      <div
+        class="budget-mini-track"
+        [title]="getProgressTooltip(progress)"
+      >
+        <div
+          class="budget-mini-fill"
+          [class.budget-mini-fill--committed]="isInvoiceCycle(progress)"
+          [style.width]="getProgressBarWidth(progress)"
+          [style.color]="getProgressColor(progress)"
+        ></div>
+        <div
+          class="budget-mini-projection"
+          *ngIf="getProjectionMarker(progress) as projectionLeft"
+          [style.left]="projectionLeft"
+          [title]="'Projeção fim do período: ' + formatCurrency(progress.projectedSpent)"
+        ></div>
+      </div>
+
+      <footer class="budget-mini-foot">
+        <span>{{ formatCurrency(progress.spent) }} / {{ formatCurrency(progress.budget.amount) }}</span>
+        <span class="budget-mini-period" *ngIf="!compact">{{ progress.periodLabel }}</span>
+      </footer>
+
+      <p class="budget-mini-note" *ngIf="!compact">
+        <ng-container *ngIf="progress.status === 'over'">
+          Estourou em <strong>{{ formatCurrency(progress.spent - progress.budget.amount) }}</strong>.
+        </ng-container>
+        <ng-container *ngIf="progress.status !== 'over' && progress.budget.amount > 0">
+          No ritmo, fechará em <strong>{{ formatCurrency(progress.projectedSpent) }}</strong>.
+        </ng-container>
+      </p>
+    </article>
+  </div>
+</section>
