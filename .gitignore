@@ -40,3 +40,12 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Secrets / credentials
+service-account.json
+service-account.*.json
+*.key.json
+*.pem
+*.p12
+*.secret
+secrets/

@@ -2,24 +2,23 @@
  * Script de migração: move dados da coleção raiz para users/{uid}/...
  *
  * Uso:
- *   1. Baixe a chave de serviço no Firebase Console:
- *      Configurações do projeto → Contas de serviço → Gerar nova chave privada
- *      Salve o arquivo como service-account.json na raiz do projeto
+ *   1. Baixe uma chave de serviço no Firebase Console:
+ *      Configurações do projeto -> Contas de serviço -> Gerar nova chave privada
+ *      Salve fora do repositório (ex.: C:\secrets\firebase-admin.json)
  *
- *   2. Descubra seu UID no Firebase Console:
+ *   2. Defina a variável de ambiente GOOGLE_APPLICATION_CREDENTIALS apontando
+ *      para esse arquivo.
+ *
+ *   3. Descubra seu UID no Firebase Console:
  *      Authentication → Users → copie o User UID
  *
- *   3. Execute:
+ *   4. Execute:
  *      node migrate-firestore.mjs <SEU_UID>
  */
 
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const uid = process.argv[2];
 if (!uid) {
@@ -27,12 +26,17 @@ if (!uid) {
   process.exit(1);
 }
 
-const serviceAccountPath = resolve(__dirname, 'service-account.json');
+const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+if (!serviceAccountPath) {
+  console.error('❌  Defina GOOGLE_APPLICATION_CREDENTIALS com o caminho da chave de serviço.');
+  process.exit(1);
+}
+
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 } catch {
-  console.error('❌  Arquivo service-account.json não encontrado na raiz do projeto.');
+  console.error('❌  Não foi possível ler a chave de serviço no caminho informado em GOOGLE_APPLICATION_CREDENTIALS.');
   process.exit(1);
 }
 

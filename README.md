@@ -25,3 +25,18 @@ Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To u
 ## Further help
 
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+
+## Security notes
+
+- Never commit Firebase service account keys to the repository.
+- Use `GOOGLE_APPLICATION_CREDENTIALS` pointing to a local file outside this project when running admin scripts.
+- Files like `service-account.json`, `*.key.json`, `*.pem` and `secrets/` are ignored by `.gitignore`.
+
+### Migration script credential setup (Windows PowerShell)
+
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS="C:\secrets\firebase-admin.json"
+node migrate-firestore.mjs <SEU_UID>
+```
+
+If a service account key was exposed previously, rotate/revoke it immediately in Google Cloud Console and audit project access logs.
