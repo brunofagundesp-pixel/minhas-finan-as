@@ -397,6 +397,17 @@ export class AppComponent implements OnInit {
   constructor(private readonly financeApi: FinanceApiService, public readonly auth: AuthService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    // Fix iOS Safari: the virtual keyboard shrinks the visual viewport but
+    // position:fixed elements stay anchored to the layout viewport.
+    // We expose the real visible height as --vvh so modals can use it.
+    const setVvh = () => {
+      const h = window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty('--vvh', `${h}px`);
+    };
+    setVvh();
+    window.visualViewport?.addEventListener('resize', setVvh);
+    window.visualViewport?.addEventListener('scroll', setVvh);
+
     const saved = localStorage.getItem('previsa-dark');
     this.darkMode = saved === 'true' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
 

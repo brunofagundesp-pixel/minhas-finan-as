@@ -2927,7 +2927,12 @@
 
 .launch-modal {
 	position: fixed;
-	inset: 0;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	/* iOS Safari: shrink to the visual viewport height when keyboard is open */
+	height: var(--vvh, 100dvh);
 	display: grid;
 	place-items: center;
 	z-index: 40;
@@ -2937,7 +2942,11 @@
 
 .series-action-modal {
 	position: fixed;
-	inset: 0;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: var(--vvh, 100dvh);
 	display: grid;
 	place-items: center;
 	z-index: 45;
@@ -2954,7 +2963,7 @@
 .series-action-card {
 	position: relative;
 	width: min(420px, calc(100% - 24px));
-	max-height: calc(100dvh - 24px);
+	max-height: calc(var(--vvh, 100dvh) - 24px);
 	overflow: auto;
 	padding: 18px;
 	display: grid;
@@ -3026,7 +3035,7 @@
 .launch-card {
 	position: relative;
 	width: min(460px, calc(100% - 24px));
-	max-height: calc(100dvh - 24px);
+	max-height: calc(var(--vvh, 100dvh) - 24px);
 	overflow: hidden;
 	padding: 0;
 	border-radius: 14px;
@@ -3624,7 +3633,7 @@
 		padding: 12px;
 		min-width: 0;
 		max-width: 100%;
-		max-height: calc(100dvh - 150px);
+		max-height: calc(var(--vvh, 100dvh) - 150px);
 		overflow: hidden;
 		box-shadow: 0 4px 12px rgba(30, 42, 56, 0.1);
 	}
@@ -3802,7 +3811,7 @@
 .onboarding-card {
   position: relative;
   width: min(540px, 100%);
-	max-height: calc(100dvh - 32px);
+	max-height: calc(var(--vvh, 100dvh) - 32px);
 	overflow: auto;
   background: #ffffff;
   border: 1px solid #dbe2ec;
