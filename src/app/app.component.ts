@@ -2150,7 +2150,11 @@ export class AppComponent implements OnInit {
 
   /** Indica se o evento faz parte de uma recorrencia (parcelado ou fixo). */
   hasRecurrence(event: FinancialEvent): boolean {
-    return !!(event && (event.seriesId || event.recurrenceKind === 'installment' || event.recurrenceKind === 'fixed'));
+    // Importante: nao usar `seriesId` como fallback — eventos legados podem ter
+    // `seriesId` mesmo apos a recorrencia ter sido removida, levando ao icone aparecer
+    // em lancamentos que efetivamente nao repetem mais. Exigimos `recurrenceKind`
+    // explicito como fonte de verdade.
+    return !!event && (event.recurrenceKind === 'installment' || event.recurrenceKind === 'fixed');
   }
 
   /**
