@@ -1,6 +1,6 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { CardLaunch, CreditCard, FinanceApiService, LaunchRepeatMode } from '../../../core/services/finance-api.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 
 type CardDeleteScope = 'single' | 'forward' | 'series';
 
@@ -69,8 +69,10 @@ export class CardsTabComponent implements OnInit {
   launchError: string | null = null;
   deletingLaunchIds = new Set<string>();
   isClosingInvoice = false;
+  isDeletingCard = false;
   pendingDeleteLaunch: CardLaunch | null = null;
   pendingDeleteHasRecurringOptions = false;
+  pendingDeleteCard: CreditCard | null = null;
   pendingEditLaunch: CardLaunch | null = null;
   editScope: CardDeleteScope = 'single';
 
@@ -84,6 +86,8 @@ export class CardsTabComponent implements OnInit {
   availableTags: LaunchTagCatalogItem[] = [];
   selectedExistingTag = '';
   newTagInput = '';
+  private redirectToCurrentMonthAfterSave = false;
+  private openLaunchAfterCardCreate = false;
 
   readonly cardTypeOptions = ['Cartao de Credito'];
   private readonly tagPalette = ['#1168d9', '#0f9f78', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#4d7c0f', '#be185d'];
@@ -129,6 +133,14 @@ export class CardsTabComponent implements OnInit {
   get invoiceDueDate(): string {
     if (!this.selectedCard) return '-';
     return this.formatDate(this.getDueDateForInvoiceMonth(this.invoiceMonth, this.selectedCard));
+  }
+
+  get minLaunchInvoiceMonthRef(): string {
+    if (!this.selectedCard) {
+      return '';
+    }
+
+    return this.formatInvoiceMonthRef(this.getFirstControlledInvoiceMonth(this.selectedCard));
   }
 
   get selectedCardLaunches(): CardLaunch[] {
@@ -401,9 +413,39 @@ export class CardsTabComponent implements OnInit {
     return this.isEditMode ? 'Editar cartao' : 'Novo cartao de credito';
   }
 
+  get deleteCardTitle(): string {
+    if (!this.pendingDeleteCard) {
+      return 'Excluir cartao';
+    }
+
+    return `Excluir "${this.pendingDeleteCard.name}"`;
+  }
+
+  get deleteCardDescription(): string {
+    if (!this.pendingDeleteCard) {
+      return '';
+    }
+
+    const relatedLaunches = this.launches.filter((launch) => String(launch.cardId) === String(this.pendingDeleteCard?.id)).length;
+    if (!relatedLaunches) {
+      return 'Esse cartao sera removido permanentemente. Essa acao nao pode ser desfeita.';
+    }
+
+    return `Esse cartao sera removido junto com ${relatedLaunches} ${relatedLaunches === 1 ? 'lancamento relacionado' : 'lancamentos relacionados'}. Essa acao nao pode ser desfeita.`;
+  }
+
   get isCurrentInvoiceMonth(): boolean {
     const now = new Date();
     return this.invoiceMonth.year === now.getFullYear() && this.invoiceMonth.month === (now.getMonth() + 1);
+  }
+
+  get isAtFirstControlledInvoiceMonth(): boolean {
+    if (!this.selectedCard) {
+      return false;
+    }
+
+    const firstInvoiceMonth = this.getFirstControlledInvoiceMonth(this.selectedCard);
+    return this.invoiceMonth.year === firstInvoiceMonth.year && this.invoiceMonth.month === firstInvoiceMonth.month;
   }
 
   get isInvoicePastClosingDate(): boolean {
@@ -635,17 +677,57 @@ export class CardsTabComponent implements OnInit {
     this.cardError = null;
   }
 
-  openLaunchModal(): void {
+  requestDeleteCard(card: CreditCard): void {
+    if (!card.id || this.isDeletingCard) {
+      return;
+    }
+
+    this.pendingDeleteCard = card;
+    this.cardError = null;
+  }
+
+  closeDeleteCardPrompt(): void {
+    this.pendingDeleteCard = null;
+  }
+
+  openLaunchModal(options?: { redirectToCurrentMonthOnSave?: boolean }): void {
+    this.redirectToCurrentMonthAfterSave = !!options?.redirectToCurrentMonthOnSave;
+    const baseInvoiceMonth = this.selectedCard
+      ? this.clampInvoiceMonthToCard(this.invoiceMonth, this.selectedCard)
+      : this.invoiceMonth;
+    this.invoiceMonth = baseInvoiceMonth;
     this.editingLaunchId = null;
     this.launchForm = this.createEmptyLaunchForm(
       this.getSuggestedLaunchDate(),
-      this.formatInvoiceMonthRef(this.invoiceMonth)
+      this.formatInvoiceMonthRef(baseInvoiceMonth)
     );
     this.selectedExistingTag = '';
     this.newTagInput = '';
     this.syncLaunchAmountInput();
     this.launchError = null;
     this.isLaunchModalOpen = true;
+  }
+
+  openLaunchModalFromShortcut(retryCount = 0): void {
+    this.invoiceMonth = this.currentYearMonth();
+
+    if (this.isLoading && this.cards.length === 0 && retryCount < 10) {
+      setTimeout(() => this.openLaunchModalFromShortcut(retryCount + 1), 120);
+      return;
+    }
+
+    if (this.cards.length === 0) {
+      this.openLaunchAfterCardCreate = true;
+      this.cardError = 'Cadastre um cartao antes de lancar uma despesa.';
+      this.openCardModal();
+      return;
+    }
+
+    if (this.selectedCardId === null) {
+      this.selectedCardId = this.cards[0].id ?? null;
+    }
+
+    this.openLaunchModal({ redirectToCurrentMonthOnSave: true });
   }
 
   openEditLaunchModal(launch: CardLaunch): void {
@@ -674,7 +756,7 @@ export class CardsTabComponent implements OnInit {
 
   private doOpenEditLaunchModal(launch: CardLaunch): void {
     const launchInvoiceMonth = this.selectedCard
-      ? this.getInvoiceMonthForDate(launch.date, this.selectedCard)
+      ? this.clampInvoiceMonthToCard(this.getInvoiceMonthForDate(launch.date, this.selectedCard), this.selectedCard)
       : this.parseInvoiceMonthFromInputDate(launch.date);
 
     this.editingLaunchId = launch.id ?? null;
@@ -708,6 +790,7 @@ export class CardsTabComponent implements OnInit {
     this.editingLaunchId = null;
     this.selectedExistingTag = '';
     this.newTagInput = '';
+    this.redirectToCurrentMonthAfterSave = false;
   }
 
   submitLaunchForm(): void {
@@ -735,7 +818,10 @@ export class CardsTabComponent implements OnInit {
     }
 
     this.isSavingLaunch = true;
-    const selectedInvoiceMonth = this.parseInvoiceMonthRef(this.launchForm.invoiceMonthRef) ?? this.invoiceMonth;
+    const parsedInvoiceMonth = this.parseInvoiceMonthRef(this.launchForm.invoiceMonthRef) ?? this.invoiceMonth;
+    const selectedInvoiceMonth = this.selectedCard
+      ? this.clampInvoiceMonthToCard(parsedInvoiceMonth, this.selectedCard)
+      : parsedInvoiceMonth;
     const normalizedDate = this.selectedCard
       ? this.ensureDateInsideInvoiceMonth(this.launchForm.date, selectedInvoiceMonth, this.selectedCard)
       : this.launchForm.date;
@@ -765,10 +851,14 @@ export class CardsTabComponent implements OnInit {
       const launches = this.buildInstallmentLaunches(baseLaunch, installmentCount);
       forkJoin(launches.map((item) => this.api.createCardLaunch(item))).subscribe({
         next: (savedLaunches) => {
+          const shouldRedirectToCurrentMonth = this.redirectToCurrentMonthAfterSave;
           this.invoiceMonth = targetInvoiceMonth;
           this.launches = [...savedLaunches, ...this.launches];
           this.isSavingLaunch = false;
           this.closeLaunchModal();
+          if (shouldRedirectToCurrentMonth) {
+            this.invoiceMonth = this.currentYearMonth();
+          }
           this.scrollToFirstLaunchDay();
         },
         error: () => {
@@ -807,6 +897,7 @@ export class CardsTabComponent implements OnInit {
 
       forkJoin(updates.map((u) => this.api.updateCardLaunch(u))).subscribe({
         next: (saved) => {
+          const shouldRedirectToCurrentMonth = this.redirectToCurrentMonthAfterSave;
           this.invoiceMonth = targetInvoiceMonth;
           saved.forEach((s) => {
             const idx = this.launches.findIndex((item) => String(item.id) === String(s.id));
@@ -815,6 +906,9 @@ export class CardsTabComponent implements OnInit {
           this.launches = [...this.launches];
           this.isSavingLaunch = false;
           this.closeLaunchModal();
+          if (shouldRedirectToCurrentMonth) {
+            this.invoiceMonth = this.currentYearMonth();
+          }
           this.scrollToFirstLaunchDay();
         },
         error: () => {
@@ -831,6 +925,7 @@ export class CardsTabComponent implements OnInit {
 
     request$.subscribe({
       next: (saved) => {
+        const shouldRedirectToCurrentMonth = this.redirectToCurrentMonthAfterSave;
         this.invoiceMonth = targetInvoiceMonth;
 
         if (this.isEditingLaunch) {
@@ -844,6 +939,9 @@ export class CardsTabComponent implements OnInit {
 
         this.isSavingLaunch = false;
         this.closeLaunchModal();
+        if (shouldRedirectToCurrentMonth) {
+          this.invoiceMonth = this.currentYearMonth();
+        }
         this.scrollToFirstLaunchDay();
       },
       error: () => {
@@ -892,6 +990,7 @@ export class CardsTabComponent implements OnInit {
         next: (saved) => {
           const idx = this.cards.findIndex(c => c.id === saved.id);
           if (idx !== -1) this.cards[idx] = saved;
+          this.invoiceMonth = this.clampInvoiceMonthToCard(this.invoiceMonth, saved);
           this.isSaving = false;
           this.isCardModalOpen = false;
         },
@@ -918,8 +1017,16 @@ export class CardsTabComponent implements OnInit {
           if (this.selectedCardId === null) {
             this.selectedCardId = saved.id!;
           }
+          const shouldOpenLaunch = this.openLaunchAfterCardCreate;
+          this.openLaunchAfterCardCreate = false;
           this.isSaving = false;
           this.isCardModalOpen = false;
+          if (shouldOpenLaunch) {
+            this.selectedCardId = saved.id!;
+            this.cardError = null;
+            this.invoiceMonth = this.currentYearMonth();
+            this.openLaunchModal({ redirectToCurrentMonthOnSave: true });
+          }
         },
         error: () => {
           this.cardError = 'Erro ao salvar. Tente novamente.';
@@ -927,6 +1034,57 @@ export class CardsTabComponent implements OnInit {
         }
       });
     }
+  }
+
+  confirmDeleteCard(): void {
+    const card = this.pendingDeleteCard;
+    if (!card?.id || this.isDeletingCard) {
+      return;
+    }
+
+    const cardId = String(card.id);
+    const relatedLaunchIds = this.launches
+      .filter((launch) => String(launch.cardId) === cardId && !!launch.id)
+      .map((launch) => String(launch.id));
+
+    this.isDeletingCard = true;
+    this.cardError = null;
+
+    const deleteLaunches$ = relatedLaunchIds.length
+      ? forkJoin(relatedLaunchIds.map((id) => this.api.deleteCardLaunch(id)))
+      : of([]);
+
+    deleteLaunches$.subscribe({
+      next: () => {
+        this.api.deleteCard(card.id!).subscribe({
+          next: () => {
+            this.launches = this.launches.filter((launch) => String(launch.cardId) !== cardId);
+            this.cards = this.cards.filter((item) => String(item.id) !== cardId);
+
+            if (String(this.selectedCardId) === cardId) {
+              this.selectedCardId = this.cards.length ? this.cards[0].id ?? null : null;
+            }
+
+            if (this.selectedCard) {
+              this.invoiceMonth = this.getPreferredInvoiceMonth(this.selectedCard);
+            }
+
+            this.isDeletingCard = false;
+            this.pendingDeleteCard = null;
+            this.closeCardModal();
+            this.scrollToFirstLaunchDay();
+          },
+          error: () => {
+            this.isDeletingCard = false;
+            this.cardError = 'Erro ao excluir cartao. Tente novamente.';
+          }
+        });
+      },
+      error: () => {
+        this.isDeletingCard = false;
+        this.cardError = 'Erro ao excluir lancamentos do cartao. Tente novamente.';
+      }
+    });
   }
 
   selectCard(id: string | number): void {
@@ -947,7 +1105,10 @@ export class CardsTabComponent implements OnInit {
     let { year, month } = this.invoiceMonth;
     month--;
     if (month < 1) { month = 12; year--; }
-    this.invoiceMonth = { year, month };
+    const previousMonth = { year, month };
+    this.invoiceMonth = this.selectedCard
+      ? this.clampInvoiceMonthToCard(previousMonth, this.selectedCard)
+      : previousMonth;
     this.scrollToFirstLaunchDay();
   }
 
@@ -955,12 +1116,17 @@ export class CardsTabComponent implements OnInit {
     let { year, month } = this.invoiceMonth;
     month++;
     if (month > 12) { month = 1; year++; }
-    this.invoiceMonth = { year, month };
+    const nextMonth = { year, month };
+    this.invoiceMonth = this.selectedCard
+      ? this.clampInvoiceMonthToCard(nextMonth, this.selectedCard)
+      : nextMonth;
     this.scrollToFirstLaunchDay();
   }
 
   goToCurrentMonth(): void {
-    this.invoiceMonth = this.currentYearMonth();
+    this.invoiceMonth = this.selectedCard
+      ? this.clampInvoiceMonthToCard(this.currentYearMonth(), this.selectedCard)
+      : this.currentYearMonth();
     this.scrollToFirstLaunchDay();
   }
 
@@ -1437,7 +1603,7 @@ export class CardsTabComponent implements OnInit {
   private getInvoiceMonthForDate(dateInput: string, card: CreditCard): InvoiceMonth {
     const transactionDate = new Date(`${dateInput}T00:00:00`);
     if (Number.isNaN(transactionDate.getTime())) {
-      return this.invoiceMonth;
+      return this.clampInvoiceMonthToCard(this.invoiceMonth, card);
     }
 
     const dueDateSameMonth = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), card.dueDay);
@@ -1448,20 +1614,20 @@ export class CardsTabComponent implements OnInit {
       ? dueDateSameMonth
       : new Date(transactionDate.getFullYear(), transactionDate.getMonth() + 1, card.dueDay);
 
-    return {
+    return this.clampInvoiceMonthToCard({
       year: invoiceDueDate.getFullYear(),
       month: invoiceDueDate.getMonth() + 1,
-    };
+    }, card);
   }
 
-  private getPreferredInvoiceMonth(_card: CreditCard): InvoiceMonth {
-    return this.currentYearMonth();
+  private getPreferredInvoiceMonth(card: CreditCard): InvoiceMonth {
+    return this.clampInvoiceMonthToCard(this.currentYearMonth(), card);
   }
 
   private getDueDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
-    const dueRef = new Date(invoiceMonth.year, invoiceMonth.month, 1);
-    const dueDay = new Date(dueRef.getFullYear(), dueRef.getMonth() + 1, 0).getDate();
-    return new Date(dueRef.getFullYear(), dueRef.getMonth(), Math.min(card.dueDay, dueDay));
+    const dueRef = new Date(invoiceMonth.year, invoiceMonth.month - 1, 1);
+    const lastDayOfMonth = new Date(dueRef.getFullYear(), dueRef.getMonth() + 1, 0).getDate();
+    return new Date(dueRef.getFullYear(), dueRef.getMonth(), Math.min(card.dueDay, lastDayOfMonth));
   }
 
   private getClosingDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
@@ -1476,6 +1642,31 @@ export class CardsTabComponent implements OnInit {
     const previousClosingDate = this.getClosingDateForInvoiceMonth(previousInvoiceMonth, card);
     previousClosingDate.setDate(previousClosingDate.getDate() + 1);
     return previousClosingDate;
+  }
+
+  private getFirstControlledInvoiceMonth(card: CreditCard): InvoiceMonth {
+    const parsed = new Date(`${card.firstDueDate}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return this.currentYearMonth();
+    }
+
+    return {
+      year: parsed.getFullYear(),
+      month: parsed.getMonth() + 1,
+    };
+  }
+
+  private clampInvoiceMonthToCard(invoiceMonth: InvoiceMonth, card: CreditCard): InvoiceMonth {
+    const firstInvoiceMonth = this.getFirstControlledInvoiceMonth(card);
+    if (invoiceMonth.year < firstInvoiceMonth.year) {
+      return firstInvoiceMonth;
+    }
+
+    if (invoiceMonth.year === firstInvoiceMonth.year && invoiceMonth.month < firstInvoiceMonth.month) {
+      return firstInvoiceMonth;
+    }
+
+    return invoiceMonth;
   }
 
   private toInputDate(date: Date): string {

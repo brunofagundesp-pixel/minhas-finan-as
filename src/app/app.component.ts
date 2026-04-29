@@ -2187,7 +2187,11 @@ export class AppComponent implements OnInit {
 
   openCardLaunchForm(): void {
     this.closeFabMenu();
-    this.cardsTab?.openLaunchModal();
+    this.setActiveTab('cards');
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.cardsTab?.openLaunchModalFromShortcut();
+    }, 0);
   }
 
   onFaturaFechada(data: { amount: number; dueDate: string; description: string }): void {

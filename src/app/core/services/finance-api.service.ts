@@ -144,6 +144,17 @@ export class FinanceApiService {
     });
   }
 
+  deleteCard(id: string | number): Observable<void> {
+    return new Observable<void>((observer) => {
+      this.uid().then(uid =>
+        this.firestore.collection(`users/${uid}/${this.cardsCollection}`).doc(String(id)).delete()
+      ).then(() => {
+        observer.next();
+        observer.complete();
+      }).catch((error) => observer.error(error));
+    });
+  }
+
   getCardLaunches(): Observable<CardLaunch[]> {
     return this.afAuth.authState.pipe(
       switchMap(user => {
