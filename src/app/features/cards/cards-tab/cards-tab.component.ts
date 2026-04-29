@@ -227,26 +227,25 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   }
 
   get launchFilterTags(): LaunchTagCatalogItem[] {
-    const tagsByName = new Map<string, string>();
+    const tagsByName = new Map<string, LaunchTagCatalogItem>();
+
+    for (const tag of this.availableTags) {
+      const normalized = this.normalizeTagName(tag.name);
+      if (!tagsByName.has(normalized)) {
+        tagsByName.set(normalized, { name: tag.name, color: tag.color });
+      }
+    }
 
     for (const launch of this.selectedCardLaunches) {
       for (const tag of this.parseLaunchTagsInput(launch.tags)) {
         const normalized = this.normalizeTagName(tag);
         if (!tagsByName.has(normalized)) {
-          tagsByName.set(normalized, tag);
+          tagsByName.set(normalized, this.findTagInCatalog(tag) ?? { name: tag, color: this.getTagColor(tag) });
         }
       }
     }
 
-    const tags = Array.from(tagsByName.values())
-      .map((tagName) => this.findTagInCatalog(tagName) ?? { name: tagName, color: this.getTagColor(tagName) })
-      .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
-
-    if (tags.length > 0) {
-      return tags;
-    }
-
-    return [...this.availableTags].sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+    return Array.from(tagsByName.values()).sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
   }
 
   get firstLaunchDayInInvoiceMonth(): number | null {
