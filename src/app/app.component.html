@@ -145,6 +145,74 @@
       </div>
     </header>
 
+    <section class="panel launch-filters" aria-label="Filtros de lancamentos">
+      <div class="launch-filters-search">
+        <label class="launch-filters-label" for="launch-filter-query">Buscar</label>
+        <input
+          id="launch-filter-query"
+          type="search"
+          [(ngModel)]="launchFilters.query"
+          (ngModelChange)="onLaunchFilterQueryChange()"
+          placeholder="Nome, descricao, cartao ou tag"
+          aria-label="Buscar lancamentos por nome, descricao ou tag"
+        />
+      </div>
+
+      <div class="launch-filters-tags" *ngIf="visibleLaunchFilterTags.length > 0">
+        <span class="launch-filters-label">Tags</span>
+
+        <details class="launch-tag-select" [class.launch-tag-select--active]="launchFilters.tags.length > 0">
+          <summary>
+            <span class="launch-tag-select-summary-text">
+              {{ launchFilters.tags.length > 0 ? (launchFilters.tags.length + ' ' + (launchFilters.tags.length === 1 ? 'tag selecionada' : 'tags selecionadas')) : 'Selecionar tags' }}
+            </span>
+            <span class="launch-tag-select-summary-icon" aria-hidden="true">▾</span>
+          </summary>
+
+          <div class="launch-tag-select-panel">
+            <button
+              *ngFor="let tag of visibleLaunchFilterTags"
+              type="button"
+              class="launch-tag-select-option"
+              [class.launch-tag-select-option--active]="isLaunchFilterTagActive(tag.name)"
+              (click)="toggleLaunchFilterTag(tag.name); $event.stopPropagation()"
+            >
+              <span class="launch-tag-select-check" aria-hidden="true">{{ isLaunchFilterTagActive(tag.name) ? '✓' : '+' }}</span>
+              <span class="launch-tag-select-option-name" [ngStyle]="getTagBadgeStyle(tag.name)">{{ tag.name }}</span>
+            </button>
+          </div>
+        </details>
+
+        <div class="launch-tag-select-selected" *ngIf="launchFilters.tags.length > 0">
+          <button
+            *ngFor="let selectedTag of launchFilters.tags"
+            type="button"
+            class="launch-tag-selected-chip"
+            [ngStyle]="getTagBadgeStyle(selectedTag)"
+            (click)="toggleLaunchFilterTag(selectedTag)"
+            [attr.aria-label]="'Remover filtro da tag ' + selectedTag"
+          >
+            {{ selectedTag }} ×
+          </button>
+        </div>
+      </div>
+
+      <div class="launch-filters-summary">
+        <ng-container *ngIf="hasLaunchFilters; else launchFilterIdleState">
+          <strong>{{ launchFilterResultCount }}</strong>
+          <span>
+            {{ launchFilterResultCount === 1 ? 'resultado' : 'resultados' }}
+            em {{ launchFilterMatchedMonthCount }} {{ launchFilterMatchedMonthCount === 1 ? 'mes' : 'meses' }}
+          </span>
+          <button type="button" class="launch-filters-clear" (click)="clearLaunchFilters()">limpar</button>
+        </ng-container>
+
+        <ng-template #launchFilterIdleState>
+          <span>Filtre por nome ou tag nos lancamentos exibidos.</span>
+        </ng-template>
+      </div>
+    </section>
+
     <div class="data-state" *ngIf="isLoading || dataError">
       <p *ngIf="isLoading">Carregando dados do backend...</p>
       <div *ngIf="dataError" class="data-state-error">
@@ -166,6 +234,9 @@
               <span *ngIf="isCurrentMonth(month)" class="current-chip">mes atual</span>
             </p>
             <strong *ngIf="viewMode !== '1month'">{{ formatCurrency(month.closingBalance) }}</strong>
+            <small *ngIf="viewMode !== '1month' && hasLaunchFilters" class="ledger-filter-summary">
+              {{ getFilteredMonthResultCount(month) }} {{ getFilteredMonthResultCount(month) === 1 ? 'resultado' : 'resultados' }}
+            </small>
           </div>
 
           <div class="ledger-header-meta" *ngIf="viewMode !== '1month'">
@@ -381,8 +452,8 @@
 
               <ng-template #simplifiedMonthEmpty>
                 <div class="simplified-empty">
-                  <strong>Sem lancamentos visiveis neste mes</strong>
-                  <p>Entradas, saidas, investimentos e faturas previstas aparecerao aqui em ordem de data.</p>
+                  <strong>{{ hasLaunchFilters ? 'Nenhum lancamento bateu com o filtro' : 'Sem lancamentos visiveis neste mes' }}</strong>
+                  <p>{{ hasLaunchFilters ? 'Tente outro nome ou remova algumas tags para ampliar a busca.' : 'Entradas, saidas, investimentos e faturas previstas aparecerao aqui em ordem de data.' }}</p>
                 </div>
               </ng-template>
             </section>
@@ -390,7 +461,8 @@
         </ng-container>
 
         <ng-template #detailedMonthView>
-        <div class="ledger-table">
+        <ng-container *ngIf="getFilteredMonthProjection(month) as filteredProjection">
+        <div class="ledger-table" *ngIf="filteredProjection.length; else detailedMonthEmpty">
           <div class="ledger-row ledger-row--head">
             <span>dia</span>
             <span>entrada</span>
@@ -402,11 +474,11 @@
 
           <div
             class="ledger-row"
-            *ngFor="let day of month.projection; trackBy: trackDayBy"
+            *ngFor="let day of filteredProjection; trackBy: trackDayBy"
             [class.ledger-row--warning]="day.status === 'warning'"
             [class.ledger-row--negative]="day.status === 'negative'"
             [class.ledger-row--today]="isCurrentDay(month, day.day)"
-            [class.ledger-row--with-notes]="day.notes.length > 0"
+            [class.ledger-row--with-notes]="getDayDetailCount(day) > 0"
           >
             <span class="ledger-day-wrap">
               <span class="ledger-day" [class.ledger-day--today]="isCurrentDay(month, day.day)">{{ day.day }}</span>
@@ -526,6 +598,14 @@
             <span class="ledger-balance" [ngClass]="getBalanceClass(day.closingBalance)">{{ formatCurrency(day.closingBalance) }}</span>
           </div>
         </div>
+        </ng-container>
+
+        <ng-template #detailedMonthEmpty>
+          <div class="ledger-filter-empty" *ngIf="hasLaunchFilters">
+            <strong>Nenhum lancamento encontrado</strong>
+            <p>Esse mes nao teve itens que combinam com o filtro atual.</p>
+          </div>
+        </ng-template>
         </ng-template>
 
         <div class="ledger-footer" aria-label="Resumo do mes" *ngIf="viewMode !== '1month'">

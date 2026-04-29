@@ -23,7 +23,12 @@ interface CardLaunchFormState {
   account: string;
   description: string;
   notes: string;
-  tags: string;
+  tags: string[];
+}
+
+interface LaunchTagCatalogItem {
+  name: string;
+  color: string;
 }
 
 interface InvoiceMonth {
@@ -72,11 +77,16 @@ export class CardsTabComponent implements OnInit {
   @Output() faturaFechada = new EventEmitter<{ amount: number; dueDate: string; description: string }>();
   launchSearchTerm = '';
   launchRepeatFilter: 'all' | 'single' | 'installment' | 'fixed' = 'all';
+  selectedLaunchFilterTags: string[] = [];
   invoiceMonth: InvoiceMonth = this.currentYearMonth();
   launchForm: CardLaunchFormState = this.createEmptyLaunchForm();
   launchAmountInput = '';
+  availableTags: LaunchTagCatalogItem[] = [];
+  selectedExistingTag = '';
+  newTagInput = '';
 
   readonly cardTypeOptions = ['Cartao de Credito'];
+  private readonly tagPalette = ['#1168d9', '#0f9f78', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#4d7c0f', '#be185d'];
   private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
@@ -88,8 +98,15 @@ export class CardsTabComponent implements OnInit {
   constructor(private readonly api: FinanceApiService) {}
 
   ngOnInit(): void {
+    this.loadAvailableTags();
     this.loadCards();
     this.loadLaunches();
+  }
+
+  get availableTagsForSelection(): LaunchTagCatalogItem[] {
+    return this.availableTags.filter(
+      (tag) => !this.launchForm.tags.some((selected) => this.normalizeTagName(selected) === this.normalizeTagName(tag.name))
+    );
   }
 
   get selectedCard(): CreditCard | null {
@@ -136,10 +153,18 @@ export class CardsTabComponent implements OnInit {
 
   get filteredSelectedCardLaunches(): CardLaunch[] {
     const term = this.launchSearchTerm.trim().toLowerCase();
+    const normalizedSelectedTags = this.selectedLaunchFilterTags.map((tag) => this.normalizeTagName(tag));
 
     return this.selectedCardLaunches.filter((launch) => {
       const repeatMatch = this.launchRepeatFilter === 'all' || launch.repeatMode === this.launchRepeatFilter;
       if (!repeatMatch) {
+        return false;
+      }
+
+      const launchTags = this.parseLaunchTagsInput(launch.tags);
+      const tagMatch = normalizedSelectedTags.length === 0
+        || launchTags.some((tag) => normalizedSelectedTags.includes(this.normalizeTagName(tag)));
+      if (!tagMatch) {
         return false;
       }
 
@@ -157,7 +182,24 @@ export class CardsTabComponent implements OnInit {
   }
 
   get hasActiveFilters(): boolean {
-    return this.launchRepeatFilter !== 'all' || !!this.launchSearchTerm.trim();
+    return this.launchRepeatFilter !== 'all' || !!this.launchSearchTerm.trim() || this.selectedLaunchFilterTags.length > 0;
+  }
+
+  get launchFilterTags(): LaunchTagCatalogItem[] {
+    const tagsByName = new Map<string, string>();
+
+    for (const launch of this.selectedCardLaunches) {
+      for (const tag of this.parseLaunchTagsInput(launch.tags)) {
+        const normalized = this.normalizeTagName(tag);
+        if (!tagsByName.has(normalized)) {
+          tagsByName.set(normalized, tag);
+        }
+      }
+    }
+
+    return Array.from(tagsByName.values())
+      .map((tagName) => this.findTagInCatalog(tagName) ?? { name: tagName, color: this.getTagColor(tagName) })
+      .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
   }
 
   get firstLaunchDayInInvoiceMonth(): number | null {
@@ -460,6 +502,10 @@ export class CardsTabComponent implements OnInit {
     return launch.description?.trim() || 'Despesa sem descricao';
   }
 
+  getCardLaunchTags(launch: CardLaunch): string[] {
+    return this.parseLaunchTagsInput(launch.tags);
+  }
+
   describeRepeatMode(launch: CardLaunch): string {
     if (launch.repeatMode === 'fixed') {
       return 'Fixa';
@@ -497,6 +543,21 @@ export class CardsTabComponent implements OnInit {
   clearLaunchFilters(): void {
     this.launchSearchTerm = '';
     this.launchRepeatFilter = 'all';
+    this.selectedLaunchFilterTags = [];
+  }
+
+  toggleLaunchFilterTag(tagName: string): void {
+    const normalizedTagName = this.normalizeTagName(tagName);
+    const isActive = this.selectedLaunchFilterTags.some((tag) => this.normalizeTagName(tag) === normalizedTagName);
+
+    this.selectedLaunchFilterTags = isActive
+      ? this.selectedLaunchFilterTags.filter((tag) => this.normalizeTagName(tag) !== normalizedTagName)
+      : [...this.selectedLaunchFilterTags, tagName];
+  }
+
+  isLaunchFilterTagActive(tagName: string): boolean {
+    const normalizedTagName = this.normalizeTagName(tagName);
+    return this.selectedLaunchFilterTags.some((tag) => this.normalizeTagName(tag) === normalizedTagName);
   }
 
   closeDeleteScopePrompt(): void {
@@ -529,6 +590,7 @@ export class CardsTabComponent implements OnInit {
     this.api.getCardLaunches().subscribe({
       next: (launches) => {
         this.launches = launches;
+        this.syncTagCatalogWithLaunches();
         if (this.selectedCard) {
           this.invoiceMonth = this.getPreferredInvoiceMonth(this.selectedCard);
         }
@@ -573,6 +635,8 @@ export class CardsTabComponent implements OnInit {
       this.getSuggestedLaunchDate(),
       this.formatInvoiceMonthRef(this.invoiceMonth)
     );
+    this.selectedExistingTag = '';
+    this.newTagInput = '';
     this.syncLaunchAmountInput();
     this.launchError = null;
     this.isLaunchModalOpen = true;
@@ -617,8 +681,10 @@ export class CardsTabComponent implements OnInit {
       account: launch.account,
       description: launch.description,
       notes: launch.notes,
-      tags: launch.tags,
+      tags: this.parseLaunchTagsInput(launch.tags),
     };
+    this.selectedExistingTag = '';
+    this.newTagInput = '';
     this.syncLaunchAmountInput();
     this.launchError = null;
     this.isLaunchModalOpen = true;
@@ -634,6 +700,8 @@ export class CardsTabComponent implements OnInit {
     this.isLaunchModalOpen = false;
     this.launchError = null;
     this.editingLaunchId = null;
+    this.selectedExistingTag = '';
+    this.newTagInput = '';
   }
 
   submitLaunchForm(): void {
@@ -682,8 +750,10 @@ export class CardsTabComponent implements OnInit {
       account: this.launchForm.account,
       description: this.launchForm.description,
       notes: this.launchForm.notes,
-      tags: this.launchForm.tags,
+      tags: this.serializeLaunchTags(this.launchForm.tags),
     };
+
+    this.syncTagCatalogWithTags(this.launchForm.tags);
 
     if (isInstallmentCreation) {
       const launches = this.buildInstallmentLaunches(baseLaunch, installmentCount);
@@ -924,8 +994,69 @@ export class CardsTabComponent implements OnInit {
       account: 'Inter',
       description: '',
       notes: '',
-      tags: '',
+      tags: [],
     };
+  }
+
+  getTagBadgeStyle(tagName: string): Record<string, string> {
+    const base = this.getTagColor(tagName);
+    return {
+      '--tag-bg': this.hexToRgba(base, 0.16),
+      '--tag-border': this.hexToRgba(base, 0.36),
+      '--tag-fg': base
+    };
+  }
+
+  onExistingTagSelected(tagName: string): void {
+    this.selectedExistingTag = tagName;
+    if (!tagName) {
+      return;
+    }
+
+    this.addTagToLaunch(tagName);
+    this.selectedExistingTag = '';
+  }
+
+  onTagInputEnter(event: Event): void {
+    event.preventDefault();
+    this.createNewTagFromInput();
+  }
+
+  addTagToLaunch(tag: string): void {
+    const trimmedTag = this.normalizeTagLabel(tag);
+    if (!trimmedTag) {
+      return;
+    }
+
+    const catalogTag = this.findTagInCatalog(trimmedTag) ?? this.createCatalogTag(trimmedTag);
+    const tagExists = this.launchForm.tags.some((existingTag) => this.normalizeTagName(existingTag) === this.normalizeTagName(catalogTag.name));
+    if (!tagExists) {
+      this.launchForm.tags = [...this.launchForm.tags, catalogTag.name];
+      this.newTagInput = '';
+    }
+  }
+
+  removeTagFromLaunch(tag: string): void {
+    this.launchForm.tags = this.launchForm.tags.filter((existingTag) => this.normalizeTagName(existingTag) !== this.normalizeTagName(tag));
+  }
+
+  createNewTagFromInput(): void {
+    const newTag = this.normalizeTagLabel(this.newTagInput);
+    if (!newTag) {
+      this.newTagInput = '';
+      return;
+    }
+
+    const existingTag = this.findTagInCatalog(newTag);
+    if (existingTag) {
+      this.addTagToLaunch(existingTag.name);
+      this.newTagInput = '';
+      return;
+    }
+
+    const createdTag = this.createCatalogTag(newTag);
+    this.addTagToLaunch(createdTag.name);
+    this.persistAvailableTags();
   }
 
   private syncLaunchAmountInput(): void {
@@ -950,6 +1081,177 @@ export class CardsTabComponent implements OnInit {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+  }
+
+  private parseLaunchTagsInput(rawTags: string): string[] {
+    if (!rawTags) {
+      return [];
+    }
+
+    const parsed = rawTags
+      .split(',')
+      .map((tag) => this.normalizeTagLabel(tag))
+      .filter((tag) => !!tag);
+
+    const unique: string[] = [];
+    for (const tag of parsed) {
+      if (!unique.some((item) => this.normalizeTagName(item) === this.normalizeTagName(tag))) {
+        unique.push(tag);
+      }
+    }
+
+    return unique;
+  }
+
+  private serializeLaunchTags(tags: string[]): string {
+    return tags.map((tag) => this.normalizeTagLabel(tag)).filter((tag) => !!tag).join(', ');
+  }
+
+  private loadAvailableTags(): void {
+    const stored = localStorage.getItem('financial-tags');
+    if (!stored) {
+      this.availableTags = [];
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      this.availableTags = this.normalizeStoredTagCatalog(parsed);
+    } catch {
+      this.availableTags = [];
+    }
+  }
+
+  private persistAvailableTags(): void {
+    localStorage.setItem('financial-tags', JSON.stringify(this.availableTags));
+  }
+
+  private syncTagCatalogWithLaunches(): void {
+    const tagNames = this.launches.flatMap((launch) => this.parseLaunchTagsInput(launch.tags));
+    this.syncTagCatalogWithTags(tagNames);
+  }
+
+  private syncTagCatalogWithTags(tags: string[]): void {
+    const normalizedNames = new Set(this.availableTags.map((tag) => this.normalizeTagName(tag.name)));
+    let changed = false;
+
+    for (const rawTag of tags) {
+      const tagName = this.normalizeTagLabel(rawTag);
+      if (!tagName) {
+        continue;
+      }
+
+      const normalizedName = this.normalizeTagName(tagName);
+      if (normalizedNames.has(normalizedName)) {
+        continue;
+      }
+
+      this.availableTags.push({
+        name: tagName,
+        color: this.pickTagColor(this.availableTags)
+      });
+      normalizedNames.add(normalizedName);
+      changed = true;
+    }
+
+    if (changed) {
+      this.persistAvailableTags();
+    }
+  }
+
+  private normalizeStoredTagCatalog(payload: unknown): LaunchTagCatalogItem[] {
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+
+    const normalized: LaunchTagCatalogItem[] = [];
+
+    for (const item of payload) {
+      if (typeof item === 'string') {
+        const label = this.normalizeTagLabel(item);
+        if (!label || normalized.some((tag) => this.normalizeTagName(tag.name) === this.normalizeTagName(label))) {
+          continue;
+        }
+
+        normalized.push({
+          name: label,
+          color: this.pickTagColor(normalized)
+        });
+        continue;
+      }
+
+      if (item && typeof item === 'object') {
+        const candidate = item as { name?: unknown; color?: unknown };
+        const label = this.normalizeTagLabel(String(candidate.name ?? ''));
+        if (!label || normalized.some((tag) => this.normalizeTagName(tag.name) === this.normalizeTagName(label))) {
+          continue;
+        }
+
+        const color = typeof candidate.color === 'string' && candidate.color.trim().length
+          ? candidate.color.trim()
+          : this.pickTagColor(normalized);
+
+        normalized.push({ name: label, color });
+      }
+    }
+
+    return normalized;
+  }
+
+  private createCatalogTag(tagName: string): LaunchTagCatalogItem {
+    const normalizedName = this.normalizeTagLabel(tagName);
+    const existing = this.findTagInCatalog(normalizedName);
+    if (existing) {
+      return existing;
+    }
+
+    const created: LaunchTagCatalogItem = {
+      name: normalizedName,
+      color: this.pickTagColor(this.availableTags)
+    };
+
+    this.availableTags = [...this.availableTags, created];
+    this.persistAvailableTags();
+    return created;
+  }
+
+  private findTagInCatalog(tagName: string): LaunchTagCatalogItem | undefined {
+    const normalized = this.normalizeTagName(tagName);
+    return this.availableTags.find((tag) => this.normalizeTagName(tag.name) === normalized);
+  }
+
+  private normalizeTagName(value: string): string {
+    return (value ?? '').trim().toLocaleLowerCase('pt-BR');
+  }
+
+  private normalizeTagLabel(value: string): string {
+    return (value ?? '').trim().replace(/\s+/g, ' ');
+  }
+
+  private pickTagColor(catalog: LaunchTagCatalogItem[]): string {
+    const usedColors = new Set(catalog.map((tag) => tag.color));
+    const availableColor = this.tagPalette.find((color) => !usedColors.has(color));
+    return availableColor ?? this.tagPalette[catalog.length % this.tagPalette.length];
+  }
+
+  private getTagColor(tagName: string): string {
+    return this.findTagInCatalog(tagName)?.color ?? '#1f5cc2';
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const sanitized = hex.replace('#', '');
+    const normalized = sanitized.length === 3
+      ? sanitized.split('').map((char) => `${char}${char}`).join('')
+      : sanitized;
+
+    if (normalized.length !== 6) {
+      return `rgba(31, 92, 194, ${alpha})`;
+    }
+
+    const red = parseInt(normalized.slice(0, 2), 16);
+    const green = parseInt(normalized.slice(2, 4), 16);
+    const blue = parseInt(normalized.slice(4, 6), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
   }
 
   private hasRecurringDeleteOptions(launch: CardLaunch): boolean {

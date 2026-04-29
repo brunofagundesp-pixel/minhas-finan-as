@@ -33,7 +33,6 @@
         }
       },
       "root": "",
-      "sourceRoot": "src",
       "prefix": "app",
       "architect": {
         "build": {
@@ -67,7 +66,7 @@
                 {
                   "type": "anyComponentStyle",
                   "maximumWarning": "36kb",
-                  "maximumError": "55kb"
+                  "maximumError": "59kb"
                 }
               ],
               "outputHashing": "all"

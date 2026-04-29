@@ -148,6 +148,11 @@ interface LaunchFormState {
   tags: string[];
 }
 
+interface LaunchFiltersState {
+  query: string;
+  tags: string[];
+}
+
 interface LaunchDecisionAdvice {
   tone: 'good' | 'warn' | 'risk';
   title: string;
@@ -352,6 +357,10 @@ export class AppComponent implements OnInit {
   availableTags: LaunchTagCatalogItem[] = [];
   newTagInput = '';
   selectedExistingTag = '';
+  launchFilters: LaunchFiltersState = {
+    query: '',
+    tags: []
+  };
 
   private readonly tagPalette = ['#1168d9', '#0f9f78', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#4d7c0f', '#be185d'];
 
@@ -1283,6 +1292,52 @@ export class AppComponent implements OnInit {
     return 'ledger-outflow--ok';
   }
 
+  get hasLaunchFilters(): boolean {
+    return this.launchFilters.query.trim().length > 0 || this.launchFilters.tags.length > 0;
+  }
+
+  get visibleLaunchFilterTags(): LaunchTagCatalogItem[] {
+    const tagsInView = new Map<string, string>();
+
+    for (const month of this.launchMonths) {
+      for (const day of month.projection) {
+        for (const event of day.events) {
+          for (const tag of event.tags ?? []) {
+            const label = this.normalizeTagLabel(tag);
+            if (!label) {
+              continue;
+            }
+
+            const normalized = this.normalizeTagName(label);
+            if (!tagsInView.has(normalized)) {
+              tagsInView.set(normalized, label);
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(tagsInView.values())
+      .map((tagName) => this.findTagInCatalog(tagName) ?? { name: tagName, color: this.getTagColor(tagName) })
+      .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+  }
+
+  get launchFilterResultCount(): number {
+    if (this.viewMode === '1month') {
+      return this.launchMonths.reduce((count, month) => count + this.getSimplifiedMonthEntries(month).length, 0);
+    }
+
+    return this.launchMonths.reduce((count, month) => count + this.getFilteredMonthResultCount(month), 0);
+  }
+
+  get launchFilterMatchedMonthCount(): number {
+    if (this.viewMode === '1month') {
+      return this.launchMonths.filter((month) => this.getSimplifiedMonthEntries(month).length > 0).length;
+    }
+
+    return this.launchMonths.filter((month) => this.getFilteredMonthProjection(month).length > 0).length;
+  }
+
   getDayDetailCount(day: DayProjection): number {
     return day.notes.length + day.cardInvoiceForecasts.length;
   }
@@ -1290,6 +1345,51 @@ export class AppComponent implements OnInit {
   getCardInvoiceForecastLabel(forecast: CardInvoiceForecast): string {
     const launchLabel = forecast.launchesCount === 1 ? '1 compra' : `${forecast.launchesCount} compras`;
     return `Fatura prevista ${forecast.cardName}: ${this.formatCurrency(forecast.amount)} (${launchLabel})`;
+  }
+
+  onLaunchFilterQueryChange(): void {
+    this.refreshActiveDayDetails();
+  }
+
+  clearLaunchFilters(): void {
+    this.launchFilters = {
+      query: '',
+      tags: []
+    };
+    this.refreshActiveDayDetails();
+  }
+
+  toggleLaunchFilterTag(tagName: string): void {
+    const normalizedTagName = this.normalizeTagName(tagName);
+    const isActive = this.launchFilters.tags.some((tag) => this.normalizeTagName(tag) === normalizedTagName);
+
+    this.launchFilters.tags = isActive
+      ? this.launchFilters.tags.filter((tag) => this.normalizeTagName(tag) !== normalizedTagName)
+      : [...this.launchFilters.tags, tagName];
+
+    this.refreshActiveDayDetails();
+  }
+
+  isLaunchFilterTagActive(tagName: string): boolean {
+    const normalizedTagName = this.normalizeTagName(tagName);
+    return this.launchFilters.tags.some((tag) => this.normalizeTagName(tag) === normalizedTagName);
+  }
+
+  getFilteredMonthResultCount(month: MonthSummary): number {
+    return this.getFilteredMonthProjection(month).reduce(
+      (count, day) => count + day.events.length + day.cardInvoiceForecasts.length,
+      0
+    );
+  }
+
+  getFilteredMonthProjection(month: MonthSummary): DayProjection[] {
+    if (!this.hasLaunchFilters) {
+      return month.projection;
+    }
+
+    return month.projection
+      .map((day) => this.buildFilteredDayProjection(month, day))
+      .filter((day): day is DayProjection => day !== null);
   }
 
   getSimplifiedMonthEntries(month: MonthSummary): SimplifiedMonthEntry[] {
@@ -1303,6 +1403,7 @@ export class AppComponent implements OnInit {
 
         return [...eventEntries, ...cardEntries];
       })
+      .filter((entry) => this.matchesSimplifiedEntry(entry))
       .sort((left, right) => {
         if (left.day !== right.day) {
           return left.day - right.day;
@@ -1890,7 +1991,9 @@ export class AppComponent implements OnInit {
     }
 
     const currentMonth = this.monthSummaries.find((month) => month.key === this.activeDayDetails?.month.key);
-    const currentDay = currentMonth?.projection.find((day) => day.day === this.activeDayDetails?.day.day);
+    const currentDay = currentMonth
+      ? this.getFilteredMonthProjection(currentMonth).find((day) => day.day === this.activeDayDetails?.day.day)
+      : undefined;
 
     if (!currentMonth || !currentDay) {
       this.activeDayDetails = null;
@@ -4042,6 +4145,122 @@ export class AppComponent implements OnInit {
       monthNumber: invoiceMonth,
       forecast,
     };
+  }
+
+  private buildFilteredDayProjection(month: MonthSummary, day: DayProjection): DayProjection | null {
+    const matchingEvents = day.events.filter((event) => this.matchesEventAgainstLaunchFilters(month, event));
+    const matchingForecasts = day.cardInvoiceForecasts.filter((forecast) => this.matchesForecastAgainstLaunchFilters(forecast));
+
+    if (!matchingEvents.length && !matchingForecasts.length) {
+      return null;
+    }
+
+    const income = Number(matchingEvents
+      .filter((event) => event.type === 'income')
+      .reduce((sum, event) => sum + event.amount, 0)
+      .toFixed(2));
+    const expense = Number((matchingEvents
+      .filter((event) => event.type === 'expense')
+      .reduce((sum, event) => sum + event.amount, 0) + matchingForecasts.reduce((sum, forecast) => sum + forecast.amount, 0))
+      .toFixed(2));
+    const investment = Number(matchingEvents
+      .filter((event) => event.type === 'investment')
+      .reduce((sum, event) => sum + event.amount, 0)
+      .toFixed(2));
+    const fixedCost = Number(matchingEvents
+      .filter((event) => event.type === 'daily')
+      .reduce((sum, event) => sum + event.amount, 0)
+      .toFixed(2));
+
+    return {
+      ...day,
+      income,
+      expense,
+      investment,
+      fixedCost,
+      events: matchingEvents,
+      notes: matchingEvents.map((event) => this.describeEvent(event, month.key)),
+      cardInvoiceForecasts: matchingForecasts,
+    };
+  }
+
+  private matchesSimplifiedEntry(entry: SimplifiedMonthEntry): boolean {
+    if (!this.hasLaunchFilters) {
+      return true;
+    }
+
+    if (!this.matchesSelectedTags(entry.tags)) {
+      return false;
+    }
+
+    return this.matchesSearchQuery([
+      entry.title,
+      entry.tagLabel,
+      entry.secondaryTag,
+      ...(entry.tags ?? [])
+    ]);
+  }
+
+  private matchesEventAgainstLaunchFilters(month: MonthSummary, event: FinancialEvent): boolean {
+    if (!this.hasLaunchFilters) {
+      return true;
+    }
+
+    if (!this.matchesSelectedTags(event.tags)) {
+      return false;
+    }
+
+    return this.matchesSearchQuery([
+      this.normalizeText(event.label),
+      this.describeEvent(event, month.key),
+      this.getEventTypeLabel(event.type),
+      ...(event.tags ?? [])
+    ]);
+  }
+
+  private matchesForecastAgainstLaunchFilters(forecast: CardInvoiceForecast): boolean {
+    if (!this.hasLaunchFilters) {
+      return true;
+    }
+
+    if (this.launchFilters.tags.length > 0) {
+      return false;
+    }
+
+    return this.matchesSearchQuery([
+      forecast.cardName,
+      this.getCardInvoiceForecastLabel(forecast),
+      'cartao',
+      'fatura'
+    ]);
+  }
+
+  private matchesSelectedTags(tags?: string[]): boolean {
+    if (this.launchFilters.tags.length === 0) {
+      return true;
+    }
+
+    if (!tags || tags.length === 0) {
+      return false;
+    }
+
+    const selectedTags = this.launchFilters.tags.map((tag) => this.normalizeTagName(tag));
+    return tags.some((tag) => selectedTags.includes(this.normalizeTagName(tag)));
+  }
+
+  private matchesSearchQuery(values: Array<string | undefined>): boolean {
+    const normalizedQuery = this.normalizeSearchValue(this.launchFilters.query);
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    return values
+      .map((value) => this.normalizeSearchValue(value ?? ''))
+      .some((value) => value.includes(normalizedQuery));
+  }
+
+  private normalizeSearchValue(value: string): string {
+    return this.normalizeText(value ?? '').trim().toLocaleLowerCase('pt-BR');
   }
 
   private normalizeText(text: string): string {

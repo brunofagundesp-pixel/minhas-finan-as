@@ -160,6 +160,32 @@
           </select>
         </label>
 
+        <div class="launch-filter-field launch-filter-field--tags" *ngIf="launchFilterTags.length > 0">
+          <span>Tags</span>
+
+          <details class="card-launch-tag-filter" [class.card-launch-tag-filter--active]="selectedLaunchFilterTags.length > 0">
+            <summary>
+              <span class="card-launch-tag-filter-summary-text">
+                {{ selectedLaunchFilterTags.length > 0 ? (selectedLaunchFilterTags.length + ' ' + (selectedLaunchFilterTags.length === 1 ? 'tag selecionada' : 'tags selecionadas')) : 'Todas as tags' }}
+              </span>
+              <span class="card-launch-tag-filter-summary-icon" aria-hidden="true">▾</span>
+            </summary>
+
+            <div class="card-launch-tag-filter-panel">
+              <button
+                *ngFor="let tag of launchFilterTags"
+                type="button"
+                class="card-launch-tag-filter-option"
+                [class.card-launch-tag-filter-option--active]="isLaunchFilterTagActive(tag.name)"
+                (click)="toggleLaunchFilterTag(tag.name); $event.stopPropagation()"
+              >
+                <span class="card-launch-tag-filter-check" aria-hidden="true">{{ isLaunchFilterTagActive(tag.name) ? '✓' : '+' }}</span>
+                <span class="card-launch-tag-filter-option-name" [ngStyle]="getTagBadgeStyle(tag.name)">{{ tag.name }}</span>
+              </button>
+            </div>
+          </details>
+        </div>
+
         <button type="button" class="btn-light launch-filter-clear" (click)="clearLaunchFilters()" [disabled]="!hasActiveFilters">
           Limpar filtros
         </button>
@@ -174,6 +200,9 @@
         </div>
         <div class="launch-item-main">
           <strong>{{ describeCardLaunch(launch) }}</strong>
+          <span class="launch-item-tags" *ngIf="getCardLaunchTags(launch).length > 0">
+            <span class="launch-item-tag" *ngFor="let tag of getCardLaunchTags(launch)" [ngStyle]="getTagBadgeStyle(tag)">{{ tag }}</span>
+          </span>
           <small>{{ launch.date | date:'dd/MM/yyyy' }}</small>
         </div>
         <div class="launch-item-meta">
@@ -269,7 +298,43 @@
     <div class="launch-grid one-col">
       <label>
         Tags
-        <input type="text" name="launchTags" [(ngModel)]="launchForm.tags" maxlength="100" placeholder="Ex: casa, semana" />
+        <div class="card-launch-tags-controls">
+          <div class="card-launch-tags-row">
+            <select
+              name="cardLaunchExistingTag"
+              [ngModel]="selectedExistingTag"
+              (ngModelChange)="onExistingTagSelected($event)"
+            >
+              <option value="">Selecionar tag existente</option>
+              <option *ngFor="let tag of availableTagsForSelection" [ngValue]="tag.name">{{ tag.name }}</option>
+            </select>
+
+            <input
+              type="text"
+              name="cardLaunchNewTag"
+              [(ngModel)]="newTagInput"
+              maxlength="40"
+              placeholder="Criar nova tag"
+              (keydown.enter)="onTagInputEnter($event)"
+            />
+
+            <button
+              type="button"
+              class="btn-tag-add"
+              (click)="createNewTagFromInput()"
+              [disabled]="!newTagInput.trim()"
+            >
+              + tag
+            </button>
+          </div>
+
+          <div class="launch-tags-list" *ngIf="launchForm.tags.length > 0">
+            <span class="launch-tag-chip" *ngFor="let tag of launchForm.tags" [ngStyle]="getTagBadgeStyle(tag)">
+              {{ tag }}
+              <button type="button" (click)="removeTagFromLaunch(tag)" aria-label="Remover tag">×</button>
+            </span>
+          </div>
+        </div>
       </label>
     </div>
 
