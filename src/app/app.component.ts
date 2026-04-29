@@ -219,7 +219,7 @@ export class AppComponent implements OnInit {
     {
       icon: '👋',
       title: 'Bem-vindo ao Previsa',
-      body: 'Um gestor financeiro pessoal focado em previsibilidade. Lance entradas, saidas e investimentos e veja para onde o seu caixa vai — mes a mes — antes de acontecer.',
+      body: 'Um gestor financeiro pessoal focado em previsibilidade. Lance entradas, saidas e investimentos e veja para onde o seu caixa vai, mes a mes, antes de acontecer.',
       tip: 'Use o botao ? no canto superior para abrir este guia novamente a qualquer momento.'
     },
     {
@@ -227,10 +227,10 @@ export class AppComponent implements OnInit {
       title: 'Adicionando lancamentos',
       body: 'Clique no botao azul + no canto inferior direito para abrir o formulario. Voce pode lancar:',
       bullets: [
-        'Entrada — receitas recebidas (salario, freelance, transferencia)',
-        'Saida — despesas e contas a pagar',
-        'Investido — reserva que sai do caixa',
-        'Diario — custo que se repete diariamente (ex: transporte R$ 8 por dia)'
+        'Entrada: receitas recebidas (salario, freelance, transferencia)',
+        'Saida: despesas e contas a pagar',
+        'Investido: reserva que sai do caixa',
+        'Diario: custo que se repete diariamente (ex: transporte R$ 8 por dia)'
       ],
       tip: 'Lancamentos parcelados usam o valor de cada parcela, nao o total da compra.'
     },
@@ -241,7 +241,7 @@ export class AppComponent implements OnInit {
       bullets: [
         'Lancamentos unicos sao alterados diretamente.',
         'Para series (parcelados ou fixos), voce escolhe: so este, este e os proximos, ou toda a serie.',
-        'Despesas podem ser marcadas como pagas — o registro permanece visivel no mes.'
+        'Despesas podem ser marcadas como pagas, e o registro permanece visivel no mes.'
       ]
     },
     {
@@ -249,10 +249,10 @@ export class AppComponent implements OnInit {
       title: 'Modos de visualizacao',
       body: 'Use os botoes no topo da aba Lancamentos para alternar entre quatro modos:',
       bullets: [
-        'Simplificado — lista apenas os dias com movimento no mes, sem repetir o diario dia a dia',
-        '3 meses — tres colunas lado a lado, ideal para acompanhamento diario',
-        '12 meses — visao anual em blocos, otima para planejamento de longo prazo',
-        'Personalizado — selecione exatamente os meses que quer comparar'
+        'Simplificado: lista apenas os dias com movimento no mes, sem repetir o diario dia a dia',
+        '3 meses: tres colunas lado a lado, bom para acompanhamento diario',
+        '12 meses: visao anual em blocos, boa para planejamento de longo prazo',
+        'Personalizado: selecione exatamente os meses que quer comparar'
       ],
       tip: 'O botao "mes atual" leva voce de volta ao mes de hoje com um clique.'
     },
@@ -398,20 +398,21 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     const saved = localStorage.getItem('previsa-dark');
-    if (saved === 'true' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      this.darkMode = true;
-      document.body.classList.add('dark');
-    }
+    this.darkMode = saved === 'true' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
     this.auth.user$.subscribe((user) => {
       this.userMenuOpen = false;
       this.currentUserId = user?.uid ?? null;
 
       if (!user) {
+        // Login deve permanecer sempre em modo claro.
+        document.body.classList.remove('dark');
         this.showOnboarding = false;
         this.seededMonthsUserId = null;
         return;
       }
+
+      document.body.classList.toggle('dark', this.darkMode);
 
       this.showOnboarding = !localStorage.getItem(this.getOnboardingStorageKey(user.uid));
     });

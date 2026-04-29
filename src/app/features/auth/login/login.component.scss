@@ -3,13 +3,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f1117;
+  background: linear-gradient(180deg, #f6f8fc 0%, #eef2f8 100%);
   padding: 1.5rem;
 }
 
 .login-card {
-  background: #1a1d27;
-  border: 1px solid #2a2d3a;
+  background: #ffffff;
+  border: 1px solid #dbe2ee;
+  box-shadow: 0 24px 56px rgba(34, 56, 102, 0.1);
   border-radius: 12px;
   padding: 2.5rem 2rem;
   width: 100%;
@@ -23,6 +24,18 @@
   text-align: center;
 }
 
+.login-brand-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.login-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+}
+
 .eyebrow {
   font-size: 0.7rem;
   font-weight: 600;
@@ -33,9 +46,9 @@
 }
 
 .login-title {
-  font-size: 1.4rem;
+  font-size: 1.55rem;
   font-weight: 700;
-  color: #e2e5f0;
+  color: #25314a;
   margin: 0;
 }
 
@@ -53,31 +66,32 @@
   label {
     font-size: 0.8rem;
     font-weight: 500;
-    color: #9499b0;
+    color: #5e6c86;
   }
 
   input {
-    background: #12141e;
-    border: 1px solid #2a2d3a;
+    background: #f9fbff;
+    border: 1px solid #d5deec;
     border-radius: 6px;
-    color: #e2e5f0;
+    color: #2f3d58;
     font-size: 0.9rem;
     padding: 0.6rem 0.75rem;
     outline: none;
     transition: border-color 0.15s;
 
     &::placeholder {
-      color: #454860;
+      color: #98a5bc;
     }
 
     &:focus {
       border-color: #5b6af0;
+      box-shadow: 0 0 0 3px rgba(91, 106, 240, 0.14);
     }
   }
 
   .form-field-hint {
     font-size: 0.72rem;
-    color: #5a5e7a;
+    color: #70809d;
     line-height: 1.4;
   }
 }
@@ -96,9 +110,9 @@
   display: grid;
   gap: 0.5rem;
   padding: 0.55rem 0.65rem;
-  border: 1px solid #2a2d3a;
+  border: 1px solid #d7dfec;
   border-radius: 8px;
-  background: #151824;
+  background: #f6f8fd;
 }
 
 .session-checkbox {
@@ -106,7 +120,7 @@
   align-items: center;
   gap: 0.45rem;
   font-size: 0.8rem;
-  color: #aeb4cc;
+  color: #4f607f;
 
   input {
     accent-color: #5b6af0;
@@ -117,7 +131,7 @@
   display: grid;
   gap: 0.45rem;
   font-size: 0.76rem;
-  color: #8f96b1;
+  color: #667897;
 }
 
 .session-day-options {
@@ -128,10 +142,10 @@
 
 .session-day-option {
   height: 29px;
-  border: 1px solid #303650;
+  border: 1px solid #cbd6ea;
   border-radius: 999px;
-  background: #0f1322;
-  color: #aeb5d0;
+  background: #ffffff;
+  color: #4e6286;
   font: inherit;
   font-size: 0.75rem;
   font-weight: 600;
@@ -140,8 +154,8 @@
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 
   &:hover {
-    border-color: #3f4a73;
-    color: #d9def1;
+    border-color: #a9b9d8;
+    color: #324666;
   }
 }
 
@@ -153,7 +167,7 @@
 
 .session-hint {
   font-size: 0.72rem;
-  color: #737a96;
+  color: #7183a3;
 }
 
 .btn-primary {
@@ -182,7 +196,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #3a3d52;
+  color: #9aa6bd;
   font-size: 0.75rem;
 
   &::before,
@@ -190,11 +204,11 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: #2a2d3a;
+    background: #dbe2ee;
   }
 
   span {
-    color: #5a5e7a;
+    color: #8796b2;
   }
 }
 
@@ -203,10 +217,10 @@
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  background: #1e2130;
-  border: 1px solid #2a2d3a;
+  background: #ffffff;
+  border: 1px solid #d5deec;
   border-radius: 6px;
-  color: #c8ccdf;
+  color: #324768;
   font-size: 0.875rem;
   font-weight: 500;
   padding: 0.6rem 1rem;
@@ -220,8 +234,8 @@
   }
 
   &:hover:not(:disabled) {
-    background: #252838;
-    border-color: #3a3d52;
+    background: #f5f8ff;
+    border-color: #b8c8e4;
   }
 
   &:disabled {
@@ -247,18 +261,18 @@
 .email-sent-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #e2e5f0;
+  color: #25314a;
   margin: 0;
 }
 
 .email-sent-desc {
   font-size: 0.85rem;
-  color: #7b8099;
+  color: #6f7f9c;
   margin: 0;
   line-height: 1.5;
 
   strong {
-    color: #c8ccdf;
+    color: #324768;
   }
 }
 

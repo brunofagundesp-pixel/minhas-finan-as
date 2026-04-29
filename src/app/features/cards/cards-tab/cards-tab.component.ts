@@ -33,7 +33,7 @@ interface LaunchTagCatalogItem {
 
 interface InvoiceMonth {
   year: number;
-  month: number; // 1–12
+  month: number; // 1-12
 }
 
 interface CardInvoiceDay {
@@ -122,12 +122,12 @@ export class CardsTabComponent implements OnInit {
   }
 
   get invoiceClosingDate(): string {
-    if (!this.selectedCard) return '—';
+    if (!this.selectedCard) return '-';
     return this.formatDate(this.getClosingDateForInvoiceMonth(this.invoiceMonth, this.selectedCard));
   }
 
   get invoiceDueDate(): string {
-    if (!this.selectedCard) return '—';
+    if (!this.selectedCard) return '-';
     return this.formatDate(this.getDueDateForInvoiceMonth(this.invoiceMonth, this.selectedCard));
   }
 

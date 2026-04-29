@@ -116,7 +116,7 @@
             <strong>{{ visibleWindow.label }}</strong>
             <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximos 3 meses">→</button>
           </div>
-          <small class="month-progress">{{ windowStartIndex + 1 }}–{{ windowStartIndex + visibleMonths.length }} de {{ monthSummaries.length }} meses</small>
+          <small class="month-progress">{{ windowStartIndex + 1 }} a {{ windowStartIndex + visibleMonths.length }} de {{ monthSummaries.length }} meses</small>
         </ng-container>
 
         <ng-container *ngIf="viewMode === 'custom'">
@@ -594,9 +594,9 @@
                 </div>
               </details>
             </span>
-            <span class="ledger-income">{{ day.income ? ('+ ' + formatCurrency(day.income)) : '—' }}</span>
-            <span class="ledger-expense">{{ day.expense ? ('- ' + formatCurrency(day.expense)) : '—' }}</span>
-            <span class="ledger-investment">{{ day.investment ? formatCurrency(day.investment) : '—' }}</span>
+            <span class="ledger-income">{{ day.income ? ('+ ' + formatCurrency(day.income)) : '-' }}</span>
+            <span class="ledger-expense">{{ day.expense ? ('- ' + formatCurrency(day.expense)) : '-' }}</span>
+            <span class="ledger-investment">{{ day.investment ? formatCurrency(day.investment) : '-' }}</span>
             <span class="ledger-fixed">{{ formatCurrency(day.fixedCost) }}</span>
             <span class="ledger-balance" [ngClass]="getBalanceClass(day.closingBalance)">{{ formatCurrency(day.closingBalance) }}</span>
           </div>
