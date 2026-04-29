@@ -417,6 +417,63 @@ export class AppComponent implements OnInit {
     window.visualViewport?.addEventListener('resize', setVvh);
     window.visualViewport?.addEventListener('scroll', setVvh);
 
+    // iOS Safari: when the keyboard opens with a position:fixed modal, the
+    // browser scrolls the layout viewport to bring the focused input into view,
+    // visually pushing the entire modal off-screen. Locking body scroll while
+    // any modal is mounted prevents that, and forcing the focused input to
+    // scroll into view inside its own scroll container keeps it visible above
+    // the keyboard. (This is NOT reproducible in browser mobile emulators —
+    // only real iOS / Android devices.)
+    const MODAL_SELECTOR = '.launch-modal, .series-action-modal';
+    let savedScrollY = 0;
+    let bodyLocked = false;
+    const lockBody = () => {
+      if (bodyLocked) return;
+      bodyLocked = true;
+      savedScrollY = window.scrollY;
+      const body = document.body;
+      body.style.position = 'fixed';
+      body.style.top = `-${savedScrollY}px`;
+      body.style.left = '0';
+      body.style.right = '0';
+      body.style.width = '100%';
+      body.classList.add('modal-open');
+    };
+    const unlockBody = () => {
+      if (!bodyLocked) return;
+      bodyLocked = false;
+      const body = document.body;
+      body.style.position = '';
+      body.style.top = '';
+      body.style.left = '';
+      body.style.right = '';
+      body.style.width = '';
+      body.classList.remove('modal-open');
+      window.scrollTo(0, savedScrollY);
+    };
+    const syncBodyLock = () => {
+      const anyOpen = !!document.querySelector(MODAL_SELECTOR);
+      if (anyOpen) lockBody(); else unlockBody();
+    };
+    const observer = new MutationObserver(syncBodyLock);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    document.addEventListener('focusin', (e) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (!target.matches('input, textarea, select')) return;
+      const scroller = target.closest('.launch-body, .launch-modal-body') as HTMLElement | null;
+      if (!scroller) return;
+      // Wait for the keyboard to finish animating so visualViewport.height is final.
+      setTimeout(() => {
+        try {
+          target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        } catch {
+          target.scrollIntoView();
+        }
+      }, 280);
+    });
+
     const saved = localStorage.getItem('previsa-dark');
     this.darkMode = saved === 'true' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
