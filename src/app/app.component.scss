@@ -2927,36 +2927,32 @@
 
 .launch-modal {
 	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	/* iOS Safari: shrink to the visual viewport height when keyboard is open */
-	height: var(--vvh, 100dvh);
+	inset: 0;
 	display: grid;
 	place-items: center;
 	z-index: 40;
 	padding: 12px;
-	overflow-y: auto;
+	/* Push card above keyboard: --keyboard-h is set by JS via visualViewport API.
+	   This avoids the iOS Safari bug where height:X + bottom:0 conflict. */
+	padding-bottom: max(12px, calc(var(--keyboard-h, 0px) + 12px));
+	overflow: hidden;
 }
 
 .series-action-modal {
 	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	height: var(--vvh, 100dvh);
+	inset: 0;
 	display: grid;
 	place-items: center;
 	z-index: 45;
 	padding: 12px;
-	overflow-y: auto;
+	padding-bottom: max(12px, calc(var(--keyboard-h, 0px) + 12px));
+	overflow: hidden;
 }
 
 .launch-backdrop {
 	position: absolute;
 	inset: 0;
+	z-index: 0;
 	background: rgba(19, 28, 41, 0.46);
 }
 
@@ -3034,8 +3030,9 @@
 
 .launch-card {
 	position: relative;
+	z-index: 1;
 	width: min(460px, calc(100% - 24px));
-	max-height: calc(var(--vvh, 100dvh) - 24px);
+	max-height: calc(var(--vvh, 100svh) - 24px);
 	overflow: hidden;
 	padding: 0;
 	border-radius: 14px;
@@ -3053,9 +3050,10 @@
 .launch-body {
 	flex: 1;
 	min-height: 0;
-	overflow-y: auto;
+	overflow-y: scroll;
 	-webkit-overflow-scrolling: touch;
 	overscroll-behavior: contain;
+	touch-action: pan-y;
 	padding: 18px;
 	display: grid;
 	gap: 12px;

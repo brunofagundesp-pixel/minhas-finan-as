@@ -1180,28 +1180,27 @@
 
 .launch-modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--vvh, 100dvh);
+  inset: 0;
   display: grid;
   place-items: center;
   z-index: 72;
   padding: 12px;
-  overflow-y: auto;
+  padding-bottom: max(12px, calc(var(--keyboard-h, 0px) + 12px));
+  overflow: hidden;
 }
 
 .launch-modal-backdrop {
   position: absolute;
   inset: 0;
+  z-index: 0;
   background: rgba(17, 24, 39, 0.52);
 }
 
 .launch-modal-panel {
   position: relative;
+  z-index: 1;
   width: min(980px, calc(100% - 24px));
-  max-height: calc(var(--vvh, 100dvh) - 24px);
+  max-height: calc(var(--vvh, 100svh) - 24px);
   overflow: hidden;
   border-radius: 16px;
   border: 1px solid #dbe4f0;
@@ -1215,9 +1214,10 @@
 .launch-modal-body {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 20px;
   display: grid;
   gap: 14px;

@@ -401,8 +401,17 @@ export class AppComponent implements OnInit {
     // position:fixed elements stay anchored to the layout viewport.
     // We expose the real visible height as --vvh so modals can use it.
     const setVvh = () => {
-      const h = window.visualViewport?.height ?? window.innerHeight;
-      document.documentElement.style.setProperty('--vvh', `${h}px`);
+      const vv = window.visualViewport;
+      if (vv) {
+        // --keyboard-h = how much the keyboard is covering (iOS: innerHeight stays
+        // full-screen while vv.height shrinks; Android: both shrink together → 0)
+        const kbh = Math.max(0, window.innerHeight - vv.height);
+        document.documentElement.style.setProperty('--vvh', `${vv.height}px`);
+        document.documentElement.style.setProperty('--keyboard-h', `${kbh}px`);
+      } else {
+        document.documentElement.style.setProperty('--vvh', `${window.innerHeight}px`);
+        document.documentElement.style.setProperty('--keyboard-h', '0px');
+      }
     };
     setVvh();
     window.visualViewport?.addEventListener('resize', setVvh);
