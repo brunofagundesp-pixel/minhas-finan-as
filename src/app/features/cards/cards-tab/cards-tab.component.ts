@@ -197,9 +197,15 @@ export class CardsTabComponent implements OnInit {
       }
     }
 
-    return Array.from(tagsByName.values())
+    const tags = Array.from(tagsByName.values())
       .map((tagName) => this.findTagInCatalog(tagName) ?? { name: tagName, color: this.getTagColor(tagName) })
       .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+
+    if (tags.length > 0) {
+      return tags;
+    }
+
+    return [...this.availableTags].sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
   }
 
   get firstLaunchDayInInvoiceMonth(): number | null {

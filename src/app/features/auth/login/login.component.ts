@@ -11,6 +11,15 @@ export class LoginComponent implements OnInit {
   password = '';
   errorMessage = '';
   loading = false;
+  trustBrowser = true;
+  trustDays = 7;
+
+  readonly trustDayOptions = [
+    { value: 1, label: '1 dia' },
+    { value: 7, label: '7 dias' },
+    { value: 15, label: '15 dias' },
+    { value: 30, label: '30 dias' }
+  ];
 
   constructor(private auth: AuthService) {}
 
@@ -35,7 +44,7 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
     this.loading = true;
     try {
-      await this.auth.loginWithEmailPassword(this.email, this.password);
+      await this.auth.loginWithEmailPassword(this.email, this.password, this.getTrustDaysOrSession());
     } catch (err: any) {
       this.errorMessage = this.describeAuthError(err);
     } finally {
@@ -47,12 +56,20 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
     this.loading = true;
     try {
-      await this.auth.loginWithGoogle();
+      await this.auth.loginWithGoogle(this.getTrustDaysOrSession());
     } catch (err: any) {
       this.errorMessage = this.describeAuthError(err, true);
     } finally {
       this.loading = false;
     }
+  }
+
+  private getTrustDaysOrSession(): number | null {
+    if (!this.trustBrowser) {
+      return null;
+    }
+
+    return Number.isInteger(this.trustDays) && this.trustDays > 0 ? this.trustDays : 7;
   }
 
   private describeAuthError(err: any, isGoogle = false): string {

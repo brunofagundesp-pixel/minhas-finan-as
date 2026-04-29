@@ -92,6 +92,70 @@
   border: 1px solid rgba(248, 113, 113, 0.2);
 }
 
+.session-preferences {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #2a2d3a;
+  border-radius: 8px;
+  background: #151824;
+}
+
+.session-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: #aeb4cc;
+
+  input {
+    accent-color: #5b6af0;
+  }
+}
+
+.session-days {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  color: #8f96b1;
+}
+
+.session-day-options {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.session-day-option {
+  height: 29px;
+  border: 1px solid #303650;
+  border-radius: 999px;
+  background: #0f1322;
+  color: #aeb5d0;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0 0.65rem;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+
+  &:hover {
+    border-color: #3f4a73;
+    color: #d9def1;
+  }
+}
+
+.session-day-option--active {
+  background: #25315b;
+  border-color: #5b6af0;
+  color: #ffffff;
+}
+
+.session-hint {
+  font-size: 0.72rem;
+  color: #737a96;
+}
+
 .btn-primary {
   background: #5b6af0;
   color: #fff;

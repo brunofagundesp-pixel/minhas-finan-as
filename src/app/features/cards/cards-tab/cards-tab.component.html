@@ -160,7 +160,7 @@
           </select>
         </label>
 
-        <div class="launch-filter-field launch-filter-field--tags" *ngIf="launchFilterTags.length > 0">
+        <div class="launch-filter-field launch-filter-field--tags">
           <span>Tags</span>
 
           <details class="card-launch-tag-filter" [class.card-launch-tag-filter--active]="selectedLaunchFilterTags.length > 0">
@@ -171,7 +171,7 @@
               <span class="card-launch-tag-filter-summary-icon" aria-hidden="true">▾</span>
             </summary>
 
-            <div class="card-launch-tag-filter-panel">
+            <div class="card-launch-tag-filter-panel" *ngIf="launchFilterTags.length > 0; else noCardFilterTags">
               <button
                 *ngFor="let tag of launchFilterTags"
                 type="button"
@@ -183,6 +183,10 @@
                 <span class="card-launch-tag-filter-option-name" [ngStyle]="getTagBadgeStyle(tag.name)">{{ tag.name }}</span>
               </button>
             </div>
+
+            <ng-template #noCardFilterTags>
+              <div class="card-launch-tag-filter-empty">Nenhuma tag cadastrada ainda.</div>
+            </ng-template>
           </details>
         </div>
 

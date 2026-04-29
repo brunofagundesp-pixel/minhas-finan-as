@@ -1292,6 +1292,43 @@ export class AppComponent implements OnInit {
     return 'ledger-outflow--ok';
   }
 
+  getMonthChartPoints(month: MonthSummary): Array<{ day: number; balance: number; height: number; tone: 'healthy' | 'warning' | 'negative' }> {
+    const checkpoints = [1, 5, 10, 15, 20, 25, 31];
+    const daysInMonth = new Date(month.year, month.monthNumber, 0).getDate();
+    const { min, amplitude } = this.getMonthChartRange(month, daysInMonth);
+
+    return checkpoints.map((checkpointDay) => {
+      const day = Math.min(checkpointDay, daysInMonth);
+      const projection = month.projection.find((entry) => entry.day === day);
+      const balance = projection?.closingBalance ?? month.closingBalance;
+      const height = 24 + ((balance - min) / amplitude) * 76;
+      const tone: 'healthy' | 'warning' | 'negative' = projection?.status ?? (balance < 0 ? 'negative' : 'healthy');
+
+      return {
+        day,
+        balance,
+        height,
+        tone
+      };
+    });
+  }
+
+  getMonthChartZeroLine(month: MonthSummary): number {
+    const daysInMonth = new Date(month.year, month.monthNumber, 0).getDate();
+    const { min, max, amplitude } = this.getMonthChartRange(month, daysInMonth);
+
+    if (max <= 0) {
+      return 100;
+    }
+
+    if (min >= 0) {
+      return 0;
+    }
+
+    const relative = ((0 - min) / amplitude) * 100;
+    return Math.min(100, Math.max(0, relative));
+  }
+
   get hasLaunchFilters(): boolean {
     return this.launchFilters.query.trim().length > 0 || this.launchFilters.tags.length > 0;
   }
@@ -1317,9 +1354,15 @@ export class AppComponent implements OnInit {
       }
     }
 
-    return Array.from(tagsInView.values())
+    const tags = Array.from(tagsInView.values())
       .map((tagName) => this.findTagInCatalog(tagName) ?? { name: tagName, color: this.getTagColor(tagName) })
       .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+
+    if (tags.length > 0) {
+      return tags;
+    }
+
+    return [...this.availableTags].sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
   }
 
   get launchFilterResultCount(): number {
@@ -4275,6 +4318,21 @@ export class AppComponent implements OnInit {
     } catch {
       return text;
     }
+  }
+
+  private getMonthChartRange(month: MonthSummary, daysInMonth: number): { min: number; max: number; amplitude: number } {
+    const balances = month.projection
+      .filter((entry) => entry.day <= daysInMonth)
+      .map((entry) => entry.closingBalance);
+
+    const min = Math.min(0, month.openingBalance, ...balances);
+    const max = Math.max(0, month.openingBalance, ...balances);
+
+    return {
+      min,
+      max,
+      amplitude: max - min || 1
+    };
   }
 
   private normalizeMonths(months: MonthDefinition[]): MonthDefinition[] {

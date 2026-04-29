@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 const EMAIL_KEY = 'emailForSignIn';
+const TRUST_UNTIL_KEY = 'authTrustUntil';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -12,13 +13,16 @@ export class AuthService {
 
   constructor(private afAuth: AngularFireAuth) {
     this.user$ = this.afAuth.authState;
+    this.enforceTrustedSessionWindow();
   }
 
   /**
    * Tenta fazer login com email+senha. Se o usuário não existir, cria a conta.
    * Google e email-link já criam conta automaticamente pelo Firebase.
    */
-  async loginWithEmailPassword(email: string, password: string): Promise<firebase.auth.UserCredential> {
+  async loginWithEmailPassword(email: string, password: string, trustDays: number | null): Promise<firebase.auth.UserCredential> {
+    await this.configurePersistence(trustDays);
+
     try {
       return await this.afAuth.createUserWithEmailAndPassword(email, password);
     } catch (err: any) {
@@ -32,7 +36,9 @@ export class AuthService {
     }
   }
 
-  loginWithGoogle(): Promise<firebase.auth.UserCredential> {
+  async loginWithGoogle(trustDays: number | null): Promise<firebase.auth.UserCredential> {
+    await this.configurePersistence(trustDays);
+
     const provider = new firebase.auth.GoogleAuthProvider();
     return this.afAuth.signInWithPopup(provider);
   }
@@ -67,6 +73,47 @@ export class AuthService {
 
   logout(): Promise<void> {
     return this.afAuth.signOut();
+  }
+
+  private async configurePersistence(trustDays: number | null): Promise<void> {
+    const usePersistentSession = Number.isInteger(trustDays) && (trustDays ?? 0) > 0;
+    await this.afAuth.setPersistence(
+      usePersistentSession ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION
+    );
+
+    if (usePersistentSession) {
+      const expiresAt = Date.now() + (Number(trustDays) * 24 * 60 * 60 * 1000);
+      localStorage.setItem(TRUST_UNTIL_KEY, String(expiresAt));
+      return;
+    }
+
+    localStorage.removeItem(TRUST_UNTIL_KEY);
+  }
+
+  private enforceTrustedSessionWindow(): void {
+    this.afAuth.authState.subscribe((user) => {
+      if (!user) {
+        return;
+      }
+
+      const trustUntilRaw = localStorage.getItem(TRUST_UNTIL_KEY);
+      if (!trustUntilRaw) {
+        return;
+      }
+
+      const trustUntil = Number(trustUntilRaw);
+      if (!Number.isFinite(trustUntil)) {
+        localStorage.removeItem(TRUST_UNTIL_KEY);
+        return;
+      }
+
+      if (Date.now() <= trustUntil) {
+        return;
+      }
+
+      localStorage.removeItem(TRUST_UNTIL_KEY);
+      this.afAuth.signOut();
+    });
   }
 }
 

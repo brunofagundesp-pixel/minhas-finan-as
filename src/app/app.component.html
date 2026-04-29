@@ -158,7 +158,7 @@
         />
       </div>
 
-      <div class="launch-filters-tags" *ngIf="visibleLaunchFilterTags.length > 0">
+      <div class="launch-filters-tags">
         <span class="launch-filters-label">Tags</span>
 
         <details class="launch-tag-select" [class.launch-tag-select--active]="launchFilters.tags.length > 0">
@@ -169,7 +169,7 @@
             <span class="launch-tag-select-summary-icon" aria-hidden="true">▾</span>
           </summary>
 
-          <div class="launch-tag-select-panel">
+          <div class="launch-tag-select-panel" *ngIf="visibleLaunchFilterTags.length > 0; else noLaunchFilterTags">
             <button
               *ngFor="let tag of visibleLaunchFilterTags"
               type="button"
@@ -181,6 +181,10 @@
               <span class="launch-tag-select-option-name" [ngStyle]="getTagBadgeStyle(tag.name)">{{ tag.name }}</span>
             </button>
           </div>
+
+          <ng-template #noLaunchFilterTags>
+            <div class="launch-tag-select-empty">Nenhuma tag cadastrada ainda.</div>
+          </ng-template>
         </details>
 
         <div class="launch-tag-select-selected" *ngIf="launchFilters.tags.length > 0">
@@ -828,9 +832,19 @@
             </span>
           </div>
 
-          <div class="month-bars" aria-hidden="true">
-            <div class="month-bar" *ngFor="let height of month.chartHeights" [style.height.%]="height"></div>
+          <div class="month-bars" [style.--month-zero-line.%]="getMonthChartZeroLine(month)">
+            <div class="month-bar-item" *ngFor="let point of getMonthChartPoints(month)">
+              <div
+                class="month-bar"
+                [class.month-bar--warning]="point.tone === 'warning'"
+                [class.month-bar--negative]="point.tone === 'negative'"
+                [style.height.%]="point.height"
+                [attr.title]="'Dia ' + point.day + ': ' + formatCurrency(point.balance)"
+              ></div>
+              <span class="month-bar-day">{{ point.day }}</span>
+            </div>
           </div>
+          <small class="month-chart-caption">Saldo projetado em dias-chave do mes</small>
 
           <div class="month-stats">
             <div>

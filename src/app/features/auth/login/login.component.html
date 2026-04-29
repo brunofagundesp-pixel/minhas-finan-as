@@ -33,6 +33,31 @@
         <span class="form-field-hint">Nova por aqui? Basta digitar uma senha e sua conta é criada automaticamente.</span>
       </div>
 
+      <div class="session-preferences">
+        <label class="session-checkbox">
+          <input type="checkbox" name="trustBrowser" [(ngModel)]="trustBrowser" />
+          <span>Confiar neste navegador</span>
+        </label>
+
+        <label class="session-days" *ngIf="trustBrowser">
+          Manter login por
+          <div class="session-day-options" role="group" aria-label="Tempo de sessao confiavel">
+            <button
+              type="button"
+              class="session-day-option"
+              *ngFor="let option of trustDayOptions"
+              [class.session-day-option--active]="trustDays === option.value"
+              (click)="trustDays = option.value"
+              [attr.aria-pressed]="trustDays === option.value"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </label>
+
+        <span class="session-hint" *ngIf="!trustBrowser">A sessao sera encerrada ao fechar o navegador.</span>
+      </div>
+
       <p class="login-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
 
       <button class="btn-primary" type="submit" [disabled]="loading">
