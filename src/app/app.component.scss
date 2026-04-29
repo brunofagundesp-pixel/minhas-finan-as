@@ -3777,6 +3777,35 @@
 	.fab-action-button {
 		min-width: 136px;
 	}
+
+	// ── Launch modal: let the outer modal scroll on mobile ────────────────
+	// The nested overflow inside .launch-card causes touch-scroll issues.
+	// On mobile, remove the card's own scroll and let .launch-modal handle it.
+	.launch-modal {
+		align-items: start;
+		justify-items: center;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.launch-card {
+		max-height: none;
+		overflow: visible;
+		width: calc(100% - 24px);
+	}
+
+	// Header no longer needs negative sticky top, it just stays at top of card
+	.launch-head {
+		position: sticky;
+		top: 0;
+		z-index: 3;
+	}
+
+	// Footer sticks to bottom of the outer modal's viewport
+	.launch-actions {
+		position: sticky;
+		bottom: 0;
+		margin-bottom: -18px;
+	}
 }
 
 // ─── Onboarding Modal ─────────────────────────────────────────────────────────

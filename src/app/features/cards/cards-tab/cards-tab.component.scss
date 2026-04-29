@@ -2004,4 +2004,29 @@
   .series-action-buttons {
     grid-template-columns: 1fr;
   }
+
+  // ── Launch modal: let the outer modal scroll on mobile ────────────────
+  .launch-modal {
+    align-items: start;
+    justify-items: center;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .launch-modal-panel {
+    max-height: none;
+    overflow: visible;
+    width: calc(100% - 24px);
+  }
+
+  .launch-modal-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+
+  .launch-modal-actions {
+    position: sticky;
+    bottom: 0;
+    margin-bottom: -20px;
+  }
 }
