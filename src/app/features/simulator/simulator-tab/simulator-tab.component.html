@@ -1,0 +1,293 @@
+<section class="simulator-tab">
+  <header class="simulator-header">
+    <div>
+      <p class="eyebrow">simulador</p>
+      <h2>E se a renda mudasse?</h2>
+      <p class="simulator-subtitle">
+        Experimente cenários hipotéticos (perda de emprego, redução de salário, cortes de gastos)
+        e veja por quanto tempo o seu padrão atual se sustenta. As parcelas de cartão já compradas
+        continuam sendo cobradas, e é justamente isso que o simulador mostra.
+      </p>
+    </div>
+    <button type="button" class="ghost-button" (click)="resetScenario()" [disabled]="isLoading">
+      Resetar cenário
+    </button>
+  </header>
+
+  <p class="simulator-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+  <div class="simulator-loading" *ngIf="isLoading">Carregando dados…</div>
+
+  <ng-container *ngIf="!isLoading && current as result">
+    <!-- Veredito principal -->
+    <section class="verdict" [class.verdict--danger]="result.brokenAt">
+      <div class="verdict-main">
+        <p class="verdict-eyebrow">Runway estimado</p>
+        <p class="verdict-value">{{ formatRunway(result.runwayMonths) }}</p>
+        <p class="verdict-hint" *ngIf="result.brokenAt">
+          Saldo cruza zero em <strong>{{ result.brokenAt.label }}</strong>.
+        </p>
+        <p class="verdict-hint" *ngIf="!result.brokenAt">
+          Você se mantém positivo por todo o horizonte de {{ scenario.horizonMonths }} meses.
+        </p>
+      </div>
+      <div class="verdict-side">
+        <div>
+          <p class="verdict-label">Saldo final</p>
+          <p class="verdict-number" [class.is-negative]="result.finalBalance < 0">
+            {{ formatBRL(result.finalBalance) }}
+          </p>
+        </div>
+        <div *ngIf="baseline">
+          <p class="verdict-label">Sem mudanças (base)</p>
+          <p class="verdict-number" [class.is-negative]="baseline.finalBalance < 0">
+            {{ formatBRL(baseline.finalBalance) }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controles -->
+    <section class="controls">
+      <h3>Cenário</h3>
+
+      <div class="income-card">
+        <div class="income-card-detected">
+          <p class="income-card-eyebrow">Sua renda detectada para {{ referenceMonthLabel }}</p>
+          <p class="income-card-value">{{ formatBRL(detectedIncome) }}</p>
+          <p class="income-card-hint" *ngIf="detectedIncome === 0">
+            Não encontramos lançamentos de receita no mês de referência.
+            Você ainda pode usar o simulador: informe abaixo um valor que represente
+            sua renda mensal hoje (vai entrar como bônus).
+          </p>
+          <p class="income-card-hint" *ngIf="detectedIncome > 0">
+            Soma das receitas lançadas. Se algo está faltando, registre na aba Lançamentos.
+          </p>
+        </div>
+
+        <div class="income-card-new">
+          <label class="control-field">
+            <span>Quanto você vai receber por mês daqui pra frente?</span>
+            <input
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="0,00"
+              [ngModel]="newIncomeInputDisplay"
+              (ngModelChange)="onNewIncomeInputChange($event)"
+            />
+            <small *ngIf="incomeDeltaPercent !== null">
+              <ng-container *ngIf="incomeDeltaPercent === 0">Igual à renda atual.</ng-container>
+              <ng-container *ngIf="incomeDeltaPercent < 0">
+                Equivale a uma <strong>queda de {{ (-incomeDeltaPercent).toFixed(0) }}%</strong>.
+              </ng-container>
+              <ng-container *ngIf="incomeDeltaPercent > 0">
+                Equivale a um <strong>aumento de {{ incomeDeltaPercent.toFixed(0) }}%</strong>.
+              </ng-container>
+            </small>
+          </label>
+
+          <div class="quick-actions" *ngIf="detectedIncome > 0">
+            <span class="quick-actions-label">Atalhos:</span>
+            <button type="button" class="quick-chip" (click)="applyQuickIncomeChange(1)">
+              Mantive
+            </button>
+            <button type="button" class="quick-chip quick-chip--danger" (click)="applyQuickIncomeChange(0)">
+              Perdi tudo
+            </button>
+            <button type="button" class="quick-chip" (click)="applyQuickIncomeChange(0.5)">
+              Caiu pela metade
+            </button>
+            <button type="button" class="quick-chip" (click)="applyQuickIncomeChange(0.7)">
+              Caiu 30%
+            </button>
+            <button type="button" class="quick-chip quick-chip--positive" (click)="applyQuickIncomeChange(1.2)">
+              Aumentou 20%
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card despesas: total detectado + input em R$ + chips de tags -->
+      <div class="income-card expense-card">
+        <div class="income-card-detected">
+          <p class="income-card-eyebrow">Suas despesas detectadas em {{ referenceMonthLabel }}</p>
+          <p class="income-card-value">{{ formatBRL(detectedExpensesTotal) }}</p>
+          <p class="income-card-hint" *ngIf="detectedExpensesTotal === 0">
+            Não há despesas lançadas no mês de referência. Você pode digitar abaixo
+            quanto consegue cortar mensalmente.
+          </p>
+          <p class="income-card-hint" *ngIf="detectedExpensesTotal > 0">
+            Inclui despesas, investimentos e custo diário fixo. Cartão (parcelas já compradas)
+            não entra: continua sendo cobrado.
+          </p>
+        </div>
+
+        <div class="income-card-new">
+          <label class="control-field">
+            <span>Quanto você consegue cortar por mês? (R$)</span>
+            <input
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="0,00"
+              [ngModel]="manualCutInputDisplay"
+              (ngModelChange)="onManualCutChange($event)"
+            />
+            <small *ngIf="cutDeltaPercent !== null && totalCutAmount > 0">
+              Total de corte: <strong>{{ formatBRL(totalCutAmount) }}</strong>
+              ({{ cutDeltaPercent.toFixed(0) }}% das despesas)<ng-container *ngIf="tagsCutAmount > 0">,
+                sendo {{ formatBRL(tagsCutAmount) }} via tags</ng-container>.
+            </small>
+            <small *ngIf="totalCutAmount === 0">
+              Sem corte aplicado. Marque tags abaixo ou digite um valor.
+            </small>
+          </label>
+
+          <div class="tag-chips" *ngIf="tagBreakdown.length > 0">
+            <p class="tag-chips-label">
+              Marque o que você consegue cortar (somamos automaticamente):
+            </p>
+            <div class="tag-chips-list">
+              <button
+                *ngFor="let tag of tagBreakdown"
+                type="button"
+                class="tag-chip"
+                [class.tag-chip--selected]="isTagSelected(tag.key)"
+                [style.--tag-color]="tag.color"
+                (click)="toggleTag(tag.key)"
+              >
+                <span class="tag-chip-dot" aria-hidden="true"></span>
+                <span class="tag-chip-label">{{ tag.label }}</span>
+                <span class="tag-chip-amount">{{ formatBRL(tag.amount) }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <label class="control-field">
+          <span>Reserva atual (R$)</span>
+          <input
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="0,00"
+            [ngModel]="emergencyFundDisplay"
+            (ngModelChange)="onEmergencyFundInputChange($event)"
+          />
+        </label>
+
+        <label class="control-field">
+          <span>Rescisão / entrada única (R$)</span>
+          <input
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="0,00"
+            [ngModel]="severanceDisplay"
+            (ngModelChange)="onSeveranceInputChange($event)"
+          />
+        </label>
+
+        <label class="control-field">
+          <span>Seguro-desemprego mensal (R$)</span>
+          <input
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="0,00"
+            [ngModel]="unemploymentMonthlyDisplay"
+            (ngModelChange)="onUnemploymentMonthlyInputChange($event)"
+          />
+        </label>
+
+        <label class="control-field">
+          <span>Parcelas do seguro</span>
+          <input
+            type="number"
+            min="0"
+            max="12"
+            step="1"
+            [ngModel]="scenario.unemploymentInsurance.months"
+            (ngModelChange)="updateUnemploymentInsurance('months', $event || 0)"
+          />
+        </label>
+
+        <label class="control-field">
+          <span>Horizonte (meses)</span>
+          <input
+            type="number"
+            min="1"
+            max="36"
+            step="1"
+            [ngModel]="scenario.horizonMonths"
+            (ngModelChange)="updateScenario('horizonMonths', $event || 12)"
+          />
+        </label>
+      </div>
+    </section>
+
+    <!-- Tabela mensal -->
+    <section class="month-table-wrap">
+      <h3>Projeção mês a mês</h3>
+      <div class="month-table-scroll">
+        <table class="month-table">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th>Receita</th>
+              <th>Seguro-desemp.</th>
+              <th>Rescisão</th>
+              <th>Despesas</th>
+              <th>Investimentos</th>
+              <th>Custo fixo diário</th>
+              <th>Cartão</th>
+              <th>Resultado</th>
+              <th>Saldo acumulado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let m of result.months; trackBy: trackByMonth"
+              [class.is-underwater]="m.isUnderwater"
+            >
+              <td>{{ m.label }}</td>
+              <td>{{ formatBRL(m.income) }}</td>
+              <td [class.is-muted]="m.unemploymentInflow === 0">
+                {{ m.unemploymentInflow > 0 ? formatBRL(m.unemploymentInflow) : '—' }}
+              </td>
+              <td [class.is-muted]="m.severanceInflow === 0">
+                {{ m.severanceInflow > 0 ? formatBRL(m.severanceInflow) : '—' }}
+              </td>
+              <td>{{ formatBRL(m.variableExpenses) }}</td>
+              <td>{{ formatBRL(m.investments) }}</td>
+              <td>{{ formatBRL(m.dailyFixedCost) }}</td>
+              <td>{{ formatBRL(m.cardCommitments) }}</td>
+              <td [class.is-negative]="m.netFlow < 0">{{ formatBRL(m.netFlow) }}</td>
+              <td [class.is-negative]="m.cumulativeBalance < 0">
+                <strong>{{ formatBRL(m.cumulativeBalance) }}</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mini-gráfico de saldo -->
+      <div class="balance-bars" aria-label="Saldo acumulado por mês">
+        <div
+          class="balance-bar"
+          *ngFor="let m of result.months; trackBy: trackByMonth"
+          [class.is-underwater]="m.isUnderwater"
+          [title]="m.label + ': ' + formatBRL(m.cumulativeBalance)"
+        >
+          <div
+            class="balance-bar-fill"
+            [style.height.%]="balanceBarHeight(m, result.months)"
+          ></div>
+          <span class="balance-bar-label">{{ m.label }}</span>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</section>

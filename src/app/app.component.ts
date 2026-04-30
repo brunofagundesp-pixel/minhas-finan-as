@@ -3,6 +3,7 @@ import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, M
 import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.component';
 import { AuthService } from './core/services/auth.service';
 import { TagsService } from './core/services/tags.service';
+import { DailyAutoSkipService } from './core/services/daily-auto-skip.service';
 import { forkJoin, Subscription } from 'rxjs';
 
 type LaunchType = EventType;
@@ -183,7 +184,7 @@ interface OnboardingStep {
   tip?: string;
 }
 
-type AppTab = 'entries' | 'dashboard' | 'cards' | 'settings' | 'config';
+type AppTab = 'entries' | 'dashboard' | 'cards' | 'settings' | 'config' | 'simulator';
 
 @Component({
   selector: 'app-root',
@@ -429,7 +430,8 @@ export class AppComponent implements OnInit {
     private readonly financeApi: FinanceApiService,
     public readonly auth: AuthService,
     private cdr: ChangeDetectorRef,
-    private readonly tagsService: TagsService
+    private readonly tagsService: TagsService,
+    private readonly dailyAutoSkip: DailyAutoSkipService
   ) {
     // Inicializa o input de previsão para hoje + 30 dias.
     const defaultForecast = new Date();
@@ -541,6 +543,9 @@ export class AppComponent implements OnInit {
     this.loadMonths();
     this.loadCardForecastData();
     this.loadAvailableTags();
+
+    // Auto-skip do diário quando o dia vira (00h00).
+    this.dailyAutoSkip.start(() => this.monthDefinitions);
   }
 
   toggleUserMenu(): void {

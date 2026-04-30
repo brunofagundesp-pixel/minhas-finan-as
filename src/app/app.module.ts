@@ -11,6 +11,7 @@ import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.componen
 import { ConfigTabComponent } from './features/config/config-tab/config-tab.component';
 import { LoginComponent } from './features/auth/login/login.component';
 import { SettingsTabComponent } from './features/settings/settings-tab/settings-tab.component';
+import { SimulatorTabComponent } from './features/simulator/simulator-tab/simulator-tab.component';
 import { BudgetsSummaryComponent } from './shared/budgets-summary/budgets-summary.component';
 import { AnnouncementsModalComponent } from './shared/announcements-modal/announcements-modal.component';
 import { environment } from '../environments/environment';
@@ -22,6 +23,7 @@ import { environment } from '../environments/environment';
     ConfigTabComponent,
     LoginComponent,
     SettingsTabComponent,
+    SimulatorTabComponent,
     BudgetsSummaryComponent,
     AnnouncementsModalComponent
   ],

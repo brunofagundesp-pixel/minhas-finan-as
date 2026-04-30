@@ -31,6 +31,9 @@
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
           Metas
         </button>
+        <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'simulator'" (click)="setActiveTab('simulator')">
+          Simulador
+        </button>
       </nav>
 
       <button class="topbar-help-btn" type="button" (click)="openOnboarding(); mobileTopbarMenuOpen = false" aria-label="Abrir guia de início" title="Ver guia de início">?</button>
@@ -695,6 +698,10 @@
 
   <section *ngIf="activeTab === 'settings'" class="settings-tab-view">
     <app-settings-tab></app-settings-tab>
+  </section>
+
+  <section *ngIf="activeTab === 'simulator'" class="simulator-tab-view">
+    <app-simulator-tab></app-simulator-tab>
   </section>
 
   <section *ngIf="activeTab === 'config'" class="config-tab-view">

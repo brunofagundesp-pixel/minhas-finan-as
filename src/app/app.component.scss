@@ -801,6 +801,34 @@
 	}
 }
 
+/**
+ * Em viewports intermediários (entre o mobile e o full-desktop) o layout em
+ * 280px + 1fr deixa a coluna de "Lançamentos" estreita demais — a data ocupa
+ * 84px + valor + ações 80px sobra pouco para o título e o valor acaba
+ * quebrando para a linha de baixo, sobrepondo visualmente o título.
+ *
+ * Aqui empilhamos vertical (resumo em cima, lançamentos embaixo) e tiramos
+ * o sticky para o resumo respirar antes do simulador.
+ */
+@media (min-width: 721px) and (max-width: 1660px) {
+	/**
+	 * No modo simplificado existe um único card de mês — sem este override,
+	 * a regra `.ledger-grid { repeat(2, 1fr) }` deste mesmo breakpoint deixa
+	 * a segunda coluna vazia e o card preso à esquerda.
+	 */
+	.entries-view--simplified .ledger-grid--single {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.simplified-shell {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.simplified-summary-card {
+		position: static;
+	}
+}
+
 .simplified-list {
 	display: grid;
 	gap: 0;
