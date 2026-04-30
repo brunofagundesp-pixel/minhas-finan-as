@@ -1,0 +1,424 @@
+.config-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 0;
+}
+
+.config-header {
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin: 0 0 4px;
+  }
+  h2 {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+    color: var(--ink-strong);
+  }
+  .config-subtitle {
+    margin: 0;
+    color: var(--ink-soft);
+  }
+}
+
+.config-error {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(227, 81, 110, 0.12);
+  color: var(--danger);
+  margin: 0;
+}
+
+.config-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 14px rgba(39, 49, 66, 0.05);
+}
+
+.config-section-head {
+  h3 {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    color: var(--ink-strong);
+  }
+  .config-section-hint {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+}
+
+.config-loading,
+.config-empty {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--surface-raised);
+  border: 1px dashed var(--border);
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.tag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+
+  &--editing {
+    background: var(--surface);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.12);
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 10px rgba(39, 49, 66, 0.18);
+}
+
+.tag-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tag-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-strong);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    background: var(--surface-raised);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  .tag-action-icon {
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  &--danger {
+    color: var(--danger);
+    border-color: rgba(227, 81, 110, 0.4);
+    background: rgba(227, 81, 110, 0.06);
+
+    &:hover {
+      background: rgba(227, 81, 110, 0.12);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+  }
+}
+
+.tag-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+
+  .tag-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+
+    input[type='text'] {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink-strong);
+      font-size: 0.95rem;
+
+      &:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.15);
+      }
+    }
+  }
+
+  .tag-palette {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag-palette-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.1s ease, border-color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &:hover {
+      transform: scale(1.08);
+    }
+
+    &--active {
+      border-color: var(--surface);
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+  }
+
+  .tag-edit-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+
+  .tag-row-actions {
+    margin-top: 4px;
+    justify-content: flex-end;
+
+    .btn-primary,
+    .btn-light {
+      height: 40px;
+      min-width: 120px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+  }
+}
+
+// ----- Modal de exclusão -----------------------------------------------------
+
+// Estilos do modal replicados do app.component.scss porque a encapsulação
+// do Angular impede que aquelas classes globais alcancem este componente.
+.series-action-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 45;
+  padding: 12px;
+  padding-bottom: max(12px, calc(var(--keyboard-h, 0px) + 12px));
+  overflow: hidden;
+}
+
+.launch-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(19, 28, 41, 0.46);
+}
+
+.series-action-card {
+  position: relative;
+  width: min(420px, calc(100% - 24px));
+  max-height: calc(var(--vvh, 100dvh) - 24px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  z-index: 1;
+  background: #ffffff;
+  border: 1px solid #dbe2ec;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(30, 42, 56, 0.06);
+
+  h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-family: var(--font-display);
+    color: var(--ink-strong);
+    padding-block: 4px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+}
+
+.series-action-card--danger {
+  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 38%);
+  border-color: #f1cfd6;
+  box-shadow: 0 22px 44px rgba(68, 18, 31, 0.18);
+
+  h3 {
+    color: #7e1f35;
+  }
+}
+
+.series-action-badge {
+  justify-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff1f3;
+  border: 1px solid #f3d1d8;
+  color: #b53b53;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.series-action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+
+  .btn-light,
+  .btn-primary,
+  .btn-danger {
+    white-space: nowrap;
+  }
+}
+
+.tag-impact {
+  list-style: disc;
+  margin: 8px 0 0;
+  padding-left: 22px;
+  color: var(--ink-strong);
+  font-size: 0.9rem;
+
+  li + li {
+    margin-top: 4px;
+  }
+
+  strong {
+    color: var(--danger);
+  }
+}
+
+.tag-impact-note {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.tag-password-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+
+  input[type='password'] {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-strong);
+    font-size: 0.95rem;
+
+    &:focus {
+      outline: none;
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(227, 81, 110, 0.15);
+    }
+  }
+}
+
+.tag-password-error {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+// Botões padrão (replicados do app.component.scss devido à encapsulação)
+.btn-light,
+.btn-primary {
+  height: 38px;
+  border-radius: 10px;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-light {
+  border: 1px solid #d4dae5;
+  background: #f4f7fb;
+  color: #5d6979;
+}
+
+.btn-primary {
+  border: 0;
+  background: #1f5cc2;
+  color: #ffffff;
+}
+
+.btn-danger {
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #d94a62, #b92f4b);
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(185, 47, 75, 0.24);
+}
+
+.btn-light:disabled,
+.btn-primary:disabled,
+.btn-danger:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

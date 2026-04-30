@@ -2264,6 +2264,95 @@
 	margin-bottom: 20px;
 }
 
+.forecast-panel {
+	padding: 18px;
+	margin-bottom: 20px;
+}
+
+.forecast-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18px;
+	flex-wrap: wrap;
+	margin-bottom: 16px;
+}
+
+.forecast-date-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 13px;
+	color: var(--muted, #6a7280);
+
+	input {
+		padding: 8px 10px;
+		border-radius: 8px;
+		border: 1px solid rgba(0, 0, 0, 0.12);
+		background: rgba(255, 255, 255, 0.04);
+		color: inherit;
+		font-size: 14px;
+		min-width: 170px;
+	}
+}
+
+.forecast-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 12px;
+}
+
+.forecast-card {
+	padding: 14px 16px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.forecast-card-label {
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--muted, #6a7280);
+	margin: 0;
+}
+
+.forecast-card-date {
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0;
+}
+
+.forecast-card-value {
+	font-size: 22px;
+	font-weight: 700;
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+}
+
+.forecast-card-value--negative {
+	color: #dc2626;
+}
+
+.forecast-card-hint {
+	font-size: 13px;
+	color: var(--muted, #6a7280);
+	margin: 0;
+}
+
+.forecast-card--alert:not(.forecast-card--ok) {
+	border-color: rgba(220, 38, 38, 0.4);
+	background: rgba(220, 38, 38, 0.06);
+}
+
+.forecast-card--ok {
+	border-color: rgba(15, 159, 120, 0.35);
+	background: rgba(15, 159, 120, 0.05);
+}
+
 .window-head {
 	display: flex;
 	align-items: flex-start;

@@ -8,6 +8,7 @@ import { AngularFireAuthModule } from '@angular/fire/compat/auth';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.component';
+import { ConfigTabComponent } from './features/config/config-tab/config-tab.component';
 import { LoginComponent } from './features/auth/login/login.component';
 import { SettingsTabComponent } from './features/settings/settings-tab/settings-tab.component';
 import { BudgetsSummaryComponent } from './shared/budgets-summary/budgets-summary.component';
@@ -18,6 +19,7 @@ import { environment } from '../environments/environment';
   declarations: [
     AppComponent,
     CardsTabComponent,
+    ConfigTabComponent,
     LoginComponent,
     SettingsTabComponent,
     BudgetsSummaryComponent,

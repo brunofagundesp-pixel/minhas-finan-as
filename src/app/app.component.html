@@ -56,6 +56,10 @@
           <span class="user-dropdown-email" *ngIf="user.displayName">{{ user.email }}</span>
         </div>
         <div class="user-dropdown-divider"></div>
+        <button class="user-dropdown-item" type="button" (click)="setActiveTab('config'); userMenuOpen = false">
+          <span class="user-dropdown-item-icon">⚙️</span>
+          Configurações
+        </button>
         <button class="user-dropdown-item" type="button" (click)="toggleDarkMode()">
           <span class="user-dropdown-item-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
           {{ darkMode ? 'Modo claro' : 'Modo escuro' }}
@@ -691,6 +695,10 @@
     <app-settings-tab></app-settings-tab>
   </section>
 
+  <section *ngIf="activeTab === 'config'" class="config-tab-view">
+    <app-config-tab></app-config-tab>
+  </section>
+
   <div
     *ngIf="activeDayDetails"
     class="day-details-mobile-backdrop"
@@ -784,6 +792,73 @@
         title="Metas do periodo"
         emptyStateMessage="Voce ainda nao cadastrou metas. Va em Configuracoes para definir tetos por tag, cartao ou geral."
       ></app-budgets-summary>
+    </section>
+
+    <section class="panel forecast-panel">
+      <header class="forecast-head">
+        <div>
+          <p class="eyebrow">previsibilidade</p>
+          <h2>Previsao de saldo</h2>
+          <p class="section-text">Consulte o saldo projetado para qualquer dia do horizonte e veja os pontos de atencao.</p>
+        </div>
+        <label class="forecast-date-field">
+          <span>Data alvo</span>
+          <input
+            type="date"
+            [(ngModel)]="forecastDateInput"
+            [min]="forecastDateMin"
+            [max]="forecastDateMax"
+          />
+        </label>
+      </header>
+
+      <div class="forecast-grid">
+        <article class="forecast-card forecast-card--target">
+          <p class="forecast-card-label">Saldo previsto em</p>
+          <p class="forecast-card-date">{{ forecastDateLabel || '—' }}</p>
+          <p
+            *ngIf="forecastBalanceAtDate !== null"
+            class="forecast-card-value"
+            [ngClass]="getBalanceClass(forecastBalanceAtDate)"
+          >
+            {{ formatCurrency(forecastBalanceAtDate) }}
+          </p>
+          <p *ngIf="forecastBalanceAtDate === null && forecastDateOutOfRange" class="forecast-card-hint">
+            Fora do horizonte carregado.
+          </p>
+          <p *ngIf="forecastBalanceAtDate === null && !forecastDateOutOfRange" class="forecast-card-hint">
+            Selecione uma data.
+          </p>
+        </article>
+
+        <article class="forecast-card forecast-card--alert" [class.forecast-card--ok]="!forecastFirstNegative">
+          <p class="forecast-card-label">Primeiro dia negativo {{ forecastDateLabel ? 'até ' + forecastDateLabel : '' }}</p>
+          <ng-container *ngIf="forecastFirstNegative as neg; else noNegative">
+            <p class="forecast-card-date">{{ neg.dateLabel }}</p>
+            <p class="forecast-card-value forecast-card-value--negative">{{ formatCurrency(neg.balance) }}</p>
+          </ng-container>
+          <ng-template #noNegative>
+            <p class="forecast-card-date">Sem alertas</p>
+            <p class="forecast-card-hint">Saldo se mantém positivo no período.</p>
+          </ng-template>
+        </article>
+
+        <article class="forecast-card forecast-card--min" *ngIf="forecastMinPoint as minP">
+          <p class="forecast-card-label">Menor saldo {{ forecastDateLabel ? 'até ' + forecastDateLabel : 'previsto' }}</p>
+          <p class="forecast-card-date">{{ minP.dateLabel }}</p>
+          <p class="forecast-card-value" [ngClass]="getBalanceClass(minP.balance)">
+            {{ formatCurrency(minP.balance) }}
+          </p>
+        </article>
+
+        <article class="forecast-card forecast-card--max" *ngIf="forecastMaxPoint as maxP">
+          <p class="forecast-card-label">Maior saldo {{ forecastDateLabel ? 'até ' + forecastDateLabel : 'previsto' }}</p>
+          <p class="forecast-card-date">{{ maxP.dateLabel }}</p>
+          <p class="forecast-card-value" [ngClass]="getBalanceClass(maxP.balance)">
+            {{ formatCurrency(maxP.balance) }}
+          </p>
+        </article>
+      </div>
     </section>
 
     <section class="panel window-panel">

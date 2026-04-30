@@ -1,0 +1,137 @@
+<section class="config-tab">
+  <header class="config-header">
+    <p class="eyebrow">configurações</p>
+    <h2>Preferências</h2>
+    <p class="config-subtitle">Gerencie suas tags e ajustes gerais do app.</p>
+  </header>
+
+  <p class="config-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+  <article class="config-section">
+    <header class="config-section-head">
+      <h3>Tags</h3>
+      <p class="config-section-hint">
+        Renomeie, troque a cor ou exclua tags do catálogo. Ao excluir, a tag também é
+        removida de todos os lançamentos que a utilizam — os lançamentos continuam
+        existindo, só ficam sem essa categoria.
+      </p>
+    </header>
+
+    <div class="config-loading" *ngIf="isLoading">Carregando tags…</div>
+
+    <div class="config-empty" *ngIf="!isLoading && tags.length === 0">
+      Nenhuma tag cadastrada ainda. Crie tags ao lançar uma despesa ou receita.
+    </div>
+
+    <ul class="tag-list" *ngIf="!isLoading && tags.length > 0">
+      <li
+        class="tag-row"
+        *ngFor="let tag of tags; trackBy: trackByTagName"
+        [class.tag-row--editing]="editing?.originalName === tag.name"
+      >
+        <ng-container *ngIf="editing?.originalName !== tag.name">
+          <span class="tag-chip" [style.background]="tag.color">{{ tag.name }}</span>
+          <div class="tag-row-actions">
+            <button type="button" class="tag-action-btn" (click)="startEdit(tag)" aria-label="Editar tag" title="Editar">
+              <span class="tag-action-icon">✎</span>
+              <span class="tag-action-label">Editar</span>
+            </button>
+            <button type="button" class="tag-action-btn tag-action-btn--danger" (click)="requestDelete(tag)" aria-label="Excluir tag" title="Excluir">
+              <span class="tag-action-icon">🗑</span>
+              <span class="tag-action-label">Excluir</span>
+            </button>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="editing?.originalName === tag.name && editing as e">
+          <div class="tag-edit">
+            <label class="tag-edit-field">
+              <span>Nome</span>
+              <input
+                type="text"
+                [(ngModel)]="e.name"
+                maxlength="30"
+                placeholder="Nome da tag"
+                (keydown.enter)="confirmEdit()"
+                (keydown.escape)="cancelEdit()"
+              />
+            </label>
+            <div class="tag-edit-field">
+              <span>Cor</span>
+              <div class="tag-palette">
+                <button
+                  *ngFor="let color of palette"
+                  type="button"
+                  class="tag-palette-swatch"
+                  [class.tag-palette-swatch--active]="e.color === color"
+                  [style.background]="color"
+                  [attr.aria-label]="'Selecionar cor ' + color"
+                  (click)="selectColor(color)"
+                ></button>
+              </div>
+            </div>
+            <div class="tag-edit-preview">
+              <small>Pré-visualização:</small>
+              <span class="tag-chip" [style.background]="e.color">{{ e.name || '—' }}</span>
+            </div>
+            <div class="tag-row-actions">
+              <button type="button" class="btn-primary" (click)="confirmEdit()">Salvar</button>
+              <button type="button" class="btn-light" (click)="cancelEdit()">Cancelar</button>
+            </div>
+          </div>
+        </ng-container>
+      </li>
+    </ul>
+  </article>
+</section>
+
+<!-- Modal de confirmação de exclusão (coerente com series-action-modal) -->
+<div class="series-action-modal" *ngIf="pendingDelete as pd" role="dialog" aria-modal="true" aria-label="Confirmar exclusão de tag">
+  <div class="launch-backdrop" (click)="cancelDelete()"></div>
+
+  <div class="series-action-card series-action-card--danger panel">
+    <span class="series-action-badge">Atenção</span>
+    <h3>Excluir a tag “{{ pd.tag.name }}”?</h3>
+    <p>
+      Esta ação remove a tag do catálogo
+      <ng-container *ngIf="pd.affectedEventsCount > 0 || pd.affectedLaunchesCount > 0">
+        e a desassocia de todos os lançamentos que a utilizam:
+      </ng-container>
+      <ng-container *ngIf="pd.affectedEventsCount === 0 && pd.affectedLaunchesCount === 0">
+        . Nenhum lançamento usa essa tag no momento.
+      </ng-container>
+    </p>
+
+    <ul class="tag-impact" *ngIf="pd.affectedEventsCount > 0 || pd.affectedLaunchesCount > 0">
+      <li *ngIf="pd.affectedEventsCount > 0">
+        <strong>{{ pd.affectedEventsCount }}</strong> lançamento(s) recorrente(s) ou diário(s)
+      </li>
+      <li *ngIf="pd.affectedLaunchesCount > 0">
+        <strong>{{ pd.affectedLaunchesCount }}</strong> lançamento(s) de cartão
+      </li>
+    </ul>
+
+    <p class="tag-impact-note">Os lançamentos continuam existindo — apenas perdem a tag.</p>
+
+    <label class="tag-password-field" *ngIf="!pd.passwordSkipped">
+      <span>Para confirmar, digite sua senha</span>
+      <input
+        type="password"
+        [(ngModel)]="pd.passwordInput"
+        autocomplete="current-password"
+        placeholder="Sua senha"
+        (keydown.enter)="confirmDelete()"
+        [disabled]="pd.isProcessing"
+      />
+    </label>
+
+    <p class="tag-password-error" *ngIf="pd.passwordError">{{ pd.passwordError }}</p>
+
+    <div class="series-action-buttons">
+      <button type="button" class="btn-light" (click)="cancelDelete()" [disabled]="pd.isProcessing">Cancelar</button>
+      <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="pd.isProcessing">
+        {{ pd.isProcessing ? 'Excluindo…' : 'Excluir tag' }}
+      </button>
+    </div>
+  </div>
+</div>

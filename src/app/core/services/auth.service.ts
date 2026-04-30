@@ -75,6 +75,35 @@ export class AuthService {
     return this.afAuth.signOut();
   }
 
+  /**
+   * Re-autentica o usuário corrente com email+senha. Usado em ações sensíveis
+   * (ex.: excluir tag em massa) para confirmar que é o dono da conta.
+   * Retorna true se a senha confere; false em qualquer outro caso.
+   */
+  async reauthenticateWithPassword(password: string): Promise<boolean> {
+    const user = await this.afAuth.currentUser;
+    if (!user || !user.email) {
+      return false;
+    }
+    try {
+      const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+      await user.reauthenticateWithCredential(credential);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * True quando o usuário corrente entrou usando senha. Para usuários do
+   * Google (sem provedor `password`), pular a confirmação por senha.
+   */
+  async hasPasswordProvider(): Promise<boolean> {
+    const user = await this.afAuth.currentUser;
+    if (!user) return false;
+    return user.providerData.some((p) => p?.providerId === 'password');
+  }
+
   private async configurePersistence(trustDays: number | null): Promise<void> {
     const usePersistentSession = Number.isInteger(trustDays) && (trustDays ?? 0) > 0;
     await this.afAuth.setPersistence(

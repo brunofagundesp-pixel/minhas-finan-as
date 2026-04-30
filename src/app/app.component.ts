@@ -183,7 +183,7 @@ interface OnboardingStep {
   tip?: string;
 }
 
-type AppTab = 'entries' | 'dashboard' | 'cards' | 'settings';
+type AppTab = 'entries' | 'dashboard' | 'cards' | 'settings' | 'config';
 
 @Component({
   selector: 'app-root',
@@ -200,6 +200,9 @@ export class AppComponent implements OnInit {
   isLoading = true;
   dataError = '';
   isSavingLaunch = false;
+
+  /** Data alvo (YYYY-MM-DD) consultada no card de previsão de saldo. */
+  forecastDateInput = '';
   entriesFeedback = '';
   activeDayDetails: ActiveDayDetails | null = null;
   deletingEventIds = new Set<string>();
@@ -427,7 +430,15 @@ export class AppComponent implements OnInit {
     public readonly auth: AuthService,
     private cdr: ChangeDetectorRef,
     private readonly tagsService: TagsService
-  ) {}
+  ) {
+    // Inicializa o input de previsão para hoje + 30 dias.
+    const defaultForecast = new Date();
+    defaultForecast.setDate(defaultForecast.getDate() + 30);
+    const y = defaultForecast.getFullYear();
+    const m = String(defaultForecast.getMonth() + 1).padStart(2, '0');
+    const d = String(defaultForecast.getDate()).padStart(2, '0');
+    this.forecastDateInput = `${y}-${m}-${d}`;
+  }
 
   ngOnInit(): void {
     // Fix iOS Safari: the virtual keyboard shrinks the visual viewport but
@@ -605,6 +616,7 @@ export class AppComponent implements OnInit {
     let amountSum = 0;
     let flagsHash = 0;
     let dayHash = 0;
+    let tagHash = 0;
     for (const month of this.monthDefinitions) {
       eventsCount += month.events.length;
       amountSum += month.openingBalance || 0;
@@ -614,6 +626,14 @@ export class AppComponent implements OnInit {
         dayHash = (dayHash + event.day) | 0;
         if (event.paid) flagsHash++;
         if (event.suppressed) flagsHash += 7;
+        if (event.tags && event.tags.length) {
+          for (const tag of event.tags) {
+            for (let i = 0; i < tag.length; i++) {
+              tagHash = ((tagHash * 31) + tag.charCodeAt(i)) | 0;
+            }
+            tagHash = (tagHash + 1) | 0;
+          }
+        }
       }
     }
     let launchSum = 0;
@@ -621,6 +641,12 @@ export class AppComponent implements OnInit {
     for (const launch of this.cardLaunches) {
       launchSum += launch.amount || 0;
       if (launch.paid) launchPaid++;
+      const tagsCsv = launch.tags;
+      if (tagsCsv) {
+        for (let i = 0; i < tagsCsv.length; i++) {
+          tagHash = ((tagHash * 31) + tagsCsv.charCodeAt(i)) | 0;
+        }
+      }
     }
     return [
       this.monthDefinitions.length,
@@ -628,6 +654,7 @@ export class AppComponent implements OnInit {
       amountSum.toFixed(2),
       flagsHash,
       dayHash,
+      tagHash,
       this.cards.length,
       this.cardLaunches.length,
       launchSum.toFixed(2),
@@ -660,6 +687,139 @@ export class AppComponent implements OnInit {
 
   get nextPressurePoint(): string {
     return this.findNextPressurePoint();
+  }
+
+  // -------------------------------------------------------------------------
+  // Card "Previsão de saldo" (dashboard)
+  // -------------------------------------------------------------------------
+
+  /** Linha do tempo dia-a-dia de todos os meses carregados. */
+  private get forecastTimeline(): Array<{ date: Date; balance: number; iso: string }> {
+    // Há cenários em que existem dois `MonthSummary` para o mesmo (ano, mês)
+    // — por exemplo, docs com keys "2026-05" e "mai-2026". Aqui escolhemos
+    // exatamente um summary por mês civil, preferindo o que carrega mais
+    // movimentação (maior soma de income+expense+investment+fixedCost), para
+    // não pegar o doc duplicado/vazio.
+    const byMonth = new Map<string, MonthSummary>();
+    const score = (m: MonthSummary) =>
+      (m.totalIncome ?? 0) + (m.totalExpenses ?? 0) + (m.totalInvestments ?? 0) + (m.totalFixedCosts ?? 0);
+    for (const month of this.monthSummaries) {
+      const monthKey = `${month.year}-${String(month.monthNumber).padStart(2, '0')}`;
+      const existing = byMonth.get(monthKey);
+      if (!existing || score(month) > score(existing)) {
+        byMonth.set(monthKey, month);
+      }
+    }
+    const timeline: Array<{ date: Date; balance: number; iso: string }> = [];
+    for (const month of byMonth.values()) {
+      for (const day of month.projection) {
+        const date = new Date(month.year, month.monthNumber - 1, day.day);
+        const iso = `${month.year}-${String(month.monthNumber).padStart(2, '0')}-${String(day.day).padStart(2, '0')}`;
+        timeline.push({ date, balance: day.closingBalance, iso });
+      }
+    }
+    return timeline.sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
+  /** Saldo previsto na data informada (ou null se fora do horizonte). */
+  get forecastBalanceAtDate(): number | null {
+    const iso = (this.forecastDateInput || '').trim();
+    if (!iso) {
+      return null;
+    }
+    const point = this.forecastTimeline.find((p) => p.iso === iso);
+    return point ? point.balance : null;
+  }
+
+  /** Label amigável da data alvo (ou string vazia se inválida). */
+  get forecastDateLabel(): string {
+    const iso = (this.forecastDateInput || '').trim();
+    if (!iso) return '';
+    const parsed = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  /** True quando a data está fora do horizonte projetado. */
+  get forecastDateOutOfRange(): boolean {
+    const iso = (this.forecastDateInput || '').trim();
+    if (!iso) return false;
+    const timeline = this.forecastTimeline;
+    if (!timeline.length) return false;
+    return !timeline.some((p) => p.iso === iso);
+  }
+
+  /** Primeiro dia do horizonte em que o saldo fica negativo (ou null). */
+  get forecastFirstNegative(): { dateLabel: string; balance: number } | null {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const limit = this.forecastTargetDate;
+    for (const point of this.forecastTimeline) {
+      if (point.date.getTime() < today.getTime()) {
+        continue;
+      }
+      if (limit && point.date.getTime() > limit.getTime()) {
+        break;
+      }
+      if (point.balance < 0) {
+        return {
+          dateLabel: point.date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+          balance: point.balance
+        };
+      }
+    }
+    return null;
+  }
+
+  /** Menor saldo previsto entre hoje e a data alvo. */
+  get forecastMinPoint(): { dateLabel: string; balance: number } | null {
+    return this.findExtremePoint('min');
+  }
+
+  /** Maior saldo previsto entre hoje e a data alvo. */
+  get forecastMaxPoint(): { dateLabel: string; balance: number } | null {
+    return this.findExtremePoint('max');
+  }
+
+  /** Date object da `forecastDateInput` (ou null se inválido/vazio). */
+  private get forecastTargetDate(): Date | null {
+    const iso = (this.forecastDateInput || '').trim();
+    if (!iso) return null;
+    const parsed = new Date(`${iso}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private findExtremePoint(kind: 'min' | 'max'): { dateLabel: string; balance: number } | null {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const limit = this.forecastTargetDate;
+    let best: { date: Date; balance: number } | null = null;
+    for (const point of this.forecastTimeline) {
+      if (point.date.getTime() < today.getTime()) continue;
+      if (limit && point.date.getTime() > limit.getTime()) break;
+      if (
+        !best ||
+        (kind === 'min' && point.balance < best.balance) ||
+        (kind === 'max' && point.balance > best.balance)
+      ) {
+        best = { date: point.date, balance: point.balance };
+      }
+    }
+    if (!best) return null;
+    return {
+      dateLabel: best.date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+      balance: best.balance
+    };
+  }
+
+  /** Limites min/max do input de data (formato YYYY-MM-DD). */
+  get forecastDateMin(): string {
+    const tl = this.forecastTimeline;
+    return tl.length ? tl[0].iso : '';
+  }
+  get forecastDateMax(): string {
+    const tl = this.forecastTimeline;
+    return tl.length ? tl[tl.length - 1].iso : '';
   }
 
   get visibleMonths(): MonthSummary[] {
