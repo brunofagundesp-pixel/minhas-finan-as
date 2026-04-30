@@ -644,6 +644,7 @@
 	border-radius: 999px;
 	background: #e8ecf2;
 	border: 1px solid #d4dae5;
+	flex-shrink: 0;
 }
 
 .month-switch strong {
@@ -651,6 +652,7 @@
 	text-align: center;
 	font-size: 0.86rem;
 	color: var(--ink-strong);
+	white-space: nowrap;
 }
 
 .month-progress {
@@ -3803,18 +3805,51 @@
 		flex-direction: column;
 	}
 
-	.topbar,
-	.entries-toolbar {
+	.topbar {
 		flex-direction: column;
 		align-items: flex-start;
 	}
 
-	.month-progress {
-		align-self: flex-start;
-	}
-
 	.ledger-grid {
 		grid-template-columns: 1fr;
+	}
+}
+
+// A toolbar de Lancamentos (titulo + picker de modo + pill de navegacao +
+// progresso) so cabe confortavelmente acima de ~1250px. Abaixo disso
+// empilhamos titulo em cima e controles abaixo, deixando o pill quebrar
+// para uma 2a linha quando preciso.
+@media (max-width: 1250px) {
+	.entries-toolbar {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 10px;
+	}
+
+	.entries-toolbar > :first-child {
+		justify-self: start;
+		width: 100%;
+	}
+
+	.entries-controls-mobile {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px 12px;
+		width: 100%;
+	}
+
+	.view-controls,
+	.entries-nav {
+		justify-self: stretch;
+	}
+
+	.entries-nav {
+		flex-wrap: wrap;
+		justify-self: start;
+	}
+
+	.month-progress {
+		align-self: center;
 	}
 }
 

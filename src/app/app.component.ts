@@ -888,8 +888,20 @@ export class AppComponent implements OnInit {
     const firstMonth = months[0];
     const lastMonth = months[months.length - 1];
 
+    // Label compacto para nao quebrar em varias linhas no pill de navegacao.
+    // Mesmo ano  -> "Abril a Junho · 2026"
+    // Anos diff  -> "Dez/2026 a Fev/2027"
+    let label: string;
+    if (months.length === 1) {
+      label = `${firstMonth.title} · ${firstMonth.year}`;
+    } else if (firstMonth.year === lastMonth.year) {
+      label = `${firstMonth.title} a ${lastMonth.title} · ${firstMonth.year}`;
+    } else {
+      label = `${firstMonth.title}/${firstMonth.year} a ${lastMonth.title}/${lastMonth.year}`;
+    }
+
     return {
-      label: months.map((month) => `${month.title}/${month.year}`).join(' + '),
+      label,
       months,
       totalIncome: months.reduce((total, month) => total + month.totalIncome, 0),
       totalExpenses: months.reduce((total, month) => total + month.totalExpenses, 0),
