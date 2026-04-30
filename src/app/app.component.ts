@@ -4,6 +4,7 @@ import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.componen
 import { AuthService } from './core/services/auth.service';
 import { TagsService } from './core/services/tags.service';
 import { DailyAutoSkipService } from './core/services/daily-auto-skip.service';
+import { AnnouncementsService } from './core/services/announcements.service';
 import { forkJoin, Subscription } from 'rxjs';
 
 type LaunchType = EventType;
@@ -272,6 +273,29 @@ export class AppComponent implements OnInit {
         'O impacto aparece como uma linha roxa na tabela de dias desse mês.',
         'Você enxerga o peso da fatura no caixa antes de ela chegar.'
       ]
+    },
+    {
+      icon: '🎯',
+      title: 'Metas de gasto',
+      body: 'Na aba Metas você define quanto pretende gastar por mês e o Previsa acompanha o progresso pra você, sem precisar abrir planilha.',
+      bullets: [
+        'Defina metas para a carteira inteira, para um cartão específico ou para uma tag (ex: alimentação, lazer).',
+        'Acompanhe o quanto já gastou, o quanto ainda pode gastar e a projeção de fechamento na barra de progresso.',
+        'Receba um alerta visual quando estourar o limite, no Dashboard e na aba Cartões.'
+      ],
+      tip: 'Metas de cartão podem usar o ciclo da fatura no lugar do mês do calendário, pra bater com o que vai ser cobrado.'
+    },
+    {
+      icon: '🧪',
+      title: 'Simulador de cenários',
+      body: 'A aba Simulador responde uma pergunta simples: se a sua renda mudar agora, por quanto tempo o seu padrão de vida atual se sustenta?',
+      bullets: [
+        'Informe quanto pretende ganhar nos próximos meses (ou aplique uma redução percentual).',
+        'Marque as tags de gasto que dá pra cortar no cenário e veja o impacto imediato no caixa.',
+        'Some uma rescisão ou seguro-desemprego pra ver o fôlego que isso te dá.',
+        'O resultado mostra mês a mês quando o saldo cruza o zero, pra você se planejar com calma.'
+      ],
+      tip: 'Use também pra testar o oposto: "e se eu ganhasse 20% a mais e investisse a diferença?".'
     }
   ];
 
@@ -431,7 +455,8 @@ export class AppComponent implements OnInit {
     public readonly auth: AuthService,
     private cdr: ChangeDetectorRef,
     private readonly tagsService: TagsService,
-    private readonly dailyAutoSkip: DailyAutoSkipService
+    private readonly dailyAutoSkip: DailyAutoSkipService,
+    private readonly announcementsService: AnnouncementsService
   ) {
     // Inicializa o input de previsão para hoje + 30 dias.
     const defaultForecast = new Date();
@@ -588,8 +613,22 @@ export class AppComponent implements OnInit {
   }
 
   closeOnboarding(): void {
+    // Se for a primeira vez que o usuario fecha o tutorial, considera que ele
+    // ja conhece tudo que existe hoje no app: marca todos os anuncios pendentes
+    // como vistos para nao bombardear com "novidades" do que, para ele, ja e o
+    // estado inicial. Anuncios futuros (publicados depois) seguem aparecendo.
+    const isFirstClose = !localStorage.getItem(this.getOnboardingStorageKey());
     this.showOnboarding = false;
     localStorage.setItem(this.getOnboardingStorageKey(), 'true');
+    if (isFirstClose) {
+      this.announcementsService.pending$
+        .subscribe((pending) => {
+          if (pending.length) {
+            this.announcementsService.markAsSeen(pending.map((a) => a.id));
+          }
+        })
+        .unsubscribe();
+    }
   }
 
   nextOnboardingStep(): void {
