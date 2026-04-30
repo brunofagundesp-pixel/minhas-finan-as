@@ -2015,7 +2015,7 @@ export class AppComponent implements OnInit {
   }
 
   get manualLaunchTypeOptions(): Array<{ value: LaunchType; label: string }> {
-    return this.launchTypeOptions.filter((option) => option.value !== 'daily');
+    return this.launchTypeOptions;
   }
 
   setActiveTab(tab: AppTab): void {
