@@ -1513,7 +1513,8 @@
     </div>
   </div>
 </main>
-<app-announcements-modal></app-announcements-modal>
+<!-- Anúncios só aparecem depois que o usuário fecha o tutorial inicial. -->
+<app-announcements-modal *ngIf="!showOnboarding"></app-announcements-modal>
 </ng-container>
 
 <ng-template #loginTpl>

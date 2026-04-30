@@ -28,6 +28,17 @@ const STORAGE_KEY = 'mf:announcements:seen';
 
 const ANNOUNCEMENTS: Announcement[] = [
   {
+    id: 'simulator-and-daily-auto-skip-2026-04-30',
+    publishedAt: '2026-04-30',
+    badge: 'Novidade',
+    title: 'Simulador de cenários + diário inteligente',
+    body: [
+      'Nova aba Simulador: descubra por quanto tempo seu padrão de vida se sustenta se a renda mudar. Informe quanto pretende ganhar, marque tags que dá pra cortar, adicione rescisão ou seguro-desemprego e veja mês a mês quando o saldo cruza zero.',
+      'Diário do dia anterior agora é zerado automaticamente: se você não lançou nada no dia que passou, o sistema entende que não houve gasto e remove o valor estimado.',
+      'A tela de lançamentos simplificada também ficou melhor em telas médias (1080–1660px), agora ocupando toda a largura disponível.'
+    ]
+  },
+  {
     id: 'budgets-2026-04',
     publishedAt: '2026-04-29',
     badge: 'Novidade',
