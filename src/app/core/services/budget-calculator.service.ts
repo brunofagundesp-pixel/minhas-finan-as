@@ -50,6 +50,14 @@ export interface BudgetProgress {
 const WARNING_THRESHOLD = 0.7;
 
 /**
+ * Tag-key implícita para lançamentos do tipo "daily". Qualquer evento com
+ * `type === 'daily'` é automaticamente considerado como pertencente à tag
+ * "diário", de modo que orçamentos por tag chamados "diário" agreguem todos
+ * os lançamentos diários — mesmo quando o usuário não marca a tag à mão.
+ */
+const DAILY_IMPLICIT_TAG_KEY = normalizeTagName('diário');
+
+/**
  * Cálculo (puro) do progresso das metas. Não toca em Firestore.
  * Os dados de transações vêm pré-carregados pelos serviços que orquestram a UI.
  */
@@ -84,7 +92,15 @@ export class BudgetCalculatorService {
     const daysElapsedRaw = this.daysBetween(period.startDate, now) + 1;
     const daysElapsed = Math.min(daysTotal, Math.max(1, daysElapsedRaw));
 
-    const projectedSpent = (spent / daysElapsed) * daysTotal;
+    // Para períodos que ainda não começaram (now <= início) ou já encerrados
+    // (now >= fim), a "projeção pelo ritmo atual" não tem sentido — usamos o
+    // gasto efetivo. A comparação com `<=` cobre o caso em que a UI passa o
+    // primeiro dia do mês futuro como `now`.
+    const periodNotStarted = now.getTime() <= period.startDate.getTime();
+    const periodEnded = now.getTime() >= period.endDate.getTime();
+    const projectedSpent = periodNotStarted || periodEnded
+      ? spent
+      : (spent / daysElapsed) * daysTotal;
     const projectedPercent = safeAmount > 0 ? projectedSpent / safeAmount : 0;
     const projectedStatus = this.deriveStatus(projectedPercent);
 
@@ -243,17 +259,28 @@ export class BudgetCalculatorService {
     let total = 0;
 
     // Eventos do mês civil correspondente.
+    // Atenção: pode haver múltiplos docs para o mesmo (year, monthNumber)
+    // — por ex., um doc com key "2026-06" e outro com key "jun-2026".
+    // Precisamos agregar todos para não perder eventos.
     if (period.year !== undefined && period.month !== undefined) {
-      const monthDef = context.months.find(
+      const monthDefs = context.months.filter(
         (m) => m.year === period.year && m.monthNumber === period.month
       );
-      if (monthDef) {
+      const seenEventIds = new Set<string>();
+      for (const monthDef of monthDefs) {
         for (const ev of monthDef.events ?? []) {
+          // Deduplica por id quando o mesmo evento aparece em mais de um doc.
+          if (ev.id && seenEventIds.has(ev.id)) {
+            continue;
+          }
           if (!this.isExpenseEvent(ev)) {
             continue;
           }
           if (!this.eventMatchesTag(ev, tagKey)) {
             continue;
+          }
+          if (ev.id) {
+            seenEventIds.add(ev.id);
           }
           total += this.absAmount(ev.amount);
         }
@@ -347,10 +374,16 @@ export class BudgetCalculatorService {
   // -------------------------------------------------------------------------
 
   private isExpenseEvent(ev: FinancialEvent): boolean {
-    return ev.type === 'expense' && ev.suppressed !== true;
+    return (ev.type === 'expense' || ev.type === 'daily') && ev.suppressed !== true;
   }
 
   private eventMatchesTag(ev: FinancialEvent, tagKey: string): boolean {
+    // Lançamentos do tipo "daily" são tratados implicitamente como se
+    // tivessem a tag "diário", para que o orçamento dessa tag agregue todos
+    // os diários sem o usuário precisar marcar a tag manualmente.
+    if (ev.type === 'daily' && tagKey === DAILY_IMPLICIT_TAG_KEY) {
+      return true;
+    }
     const tags = ev.tags ?? [];
     return tags.some((t) => normalizeTagName(t) === tagKey);
   }

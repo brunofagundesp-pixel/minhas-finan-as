@@ -123,9 +123,10 @@ export class BudgetsSummaryComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   /**
-   * Quando o mês de referência é o atual, usa `today` real para que `daysElapsed`
-   * e a projeção fiquem corretos. Para meses passados/futuros, usa o último dia
-   * do mês (passados → 100% decorrido) ou o primeiro (futuros → começo).
+   * Para o mês atual, usa `today` real (projeção pelo ritmo do mês).
+   * Para meses passados, usa o último dia (100% decorrido).
+   * Para meses futuros, usa o primeiro dia — o serviço detecta que o período
+   * ainda não começou (now <= startDate) e suprime a projeção fictícia.
    */
   private referenceForCalculator(): Date {
     const ref = this.currentReferenceDate;
@@ -138,7 +139,7 @@ export class BudgetsSummaryComponent implements OnInit, OnChanges, OnDestroy {
     if (isPast) {
       return new Date(ref.getFullYear(), ref.getMonth() + 1, 0); // último dia
     }
-    return new Date(ref.getFullYear(), ref.getMonth(), 1); // primeiro dia
+    return new Date(ref.getFullYear(), ref.getMonth(), 1); // primeiro dia (futuro)
   }
 
   goToPreviousMonth(): void {
