@@ -3905,7 +3905,7 @@ export class AppComponent implements OnInit {
     this.isLoading = true;
     this.dataError = '';
 
-    this.financeApi.getMonths().subscribe({
+    this.financeApi.getMonths({ fromYear: new Date().getFullYear() - 1 }).subscribe({
       next: (months) => {
         const hadMonthsBefore = this.monthDefinitions.length > 0;
 

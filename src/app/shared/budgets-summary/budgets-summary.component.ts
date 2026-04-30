@@ -80,7 +80,7 @@ export class BudgetsSummaryComponent implements OnInit, OnChanges, OnDestroy {
       combineLatest([
         this.budgetsService.budgets$,
         this.tagsService.tags$,
-        this.api.getMonths(),
+        this.api.getMonths({ fromYear: new Date().getFullYear() - 1 }),
         this.api.getCards(),
         this.api.getCardLaunches()
       ]).subscribe({

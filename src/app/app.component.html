@@ -1,4 +1,6 @@
-<ng-container *ngIf="(auth.user$ | async) !== null; else loginTpl">
+<ng-container *ngIf="auth.authState$ | async as authState">
+<ng-container *ngIf="authState.ready; else authBootTpl">
+<ng-container *ngIf="authState.user !== null; else loginTpl">
 <main class="shell">
   <header class="topbar">
     <button
@@ -1509,4 +1511,12 @@
 
 <ng-template #loginTpl>
   <app-login></app-login>
+</ng-template>
+</ng-container>
+</ng-container>
+
+<ng-template #authBootTpl>
+  <div class="auth-boot" role="status" aria-live="polite" aria-label="Carregando">
+    <div class="auth-boot-spinner" aria-hidden="true"></div>
+  </div>
 </ng-template>

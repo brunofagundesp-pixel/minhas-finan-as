@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/firestore';
 import { map, Observable, of, switchMap } from 'rxjs';
 
 export interface CreditCard {
@@ -66,6 +68,18 @@ export interface MonthDefinition {
   events: FinancialEvent[];
 }
 
+/**
+ * Janela opcional para limitar a leitura de `users/{uid}/months`. Útil para
+ * acelerar o boot evitando trazer anos antigos. Quando omitido, retorna todos
+ * os meses do usuário.
+ */
+export interface MonthsQueryRange {
+  /** Inclusive — só traz meses com `year >= fromYear`. */
+  fromYear?: number;
+  /** Inclusive — só traz meses com `year <= toYear`. */
+  toYear?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FinanceApiService {
   private readonly monthsCollection = 'months';
@@ -83,12 +97,24 @@ export class FinanceApiService {
     return user.uid;
   }
 
-  getMonths(): Observable<MonthDefinition[]> {
+  getMonths(range?: MonthsQueryRange): Observable<MonthDefinition[]> {
     return this.afAuth.authState.pipe(
       switchMap(user => {
         if (!user) return of([]);
         return this.firestore
-          .collection<MonthDefinition>(`users/${user.uid}/${this.monthsCollection}`)
+          .collection<MonthDefinition>(
+            `users/${user.uid}/${this.monthsCollection}`,
+            (ref) => {
+              let query: firebase.firestore.Query = ref;
+              if (range?.fromYear !== undefined) {
+                query = query.where('year', '>=', range.fromYear);
+              }
+              if (range?.toYear !== undefined) {
+                query = query.where('year', '<=', range.toYear);
+              }
+              return query;
+            }
+          )
           .valueChanges({ idField: 'id' });
       }),
       map(months => months.sort((a, b) => (a.year - b.year) || (a.monthNumber - b.monthNumber)))

@@ -54,3 +54,27 @@ body {
 body::before {
 	content: none;
 }
+
+
+.auth-boot {
+position: fixed;
+inset: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+background: var(--bg);
+z-index: 9999;
+}
+
+.auth-boot-spinner {
+width: 36px;
+height: 36px;
+border-radius: 50%;
+border: 3px solid var(--border);
+border-top-color: var(--accent);
+animation: auth-boot-spin 800ms linear infinite;
+}
+
+@keyframes auth-boot-spin {
+to { transform: rotate(360deg); }
+}

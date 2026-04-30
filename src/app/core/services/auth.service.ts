@@ -2,17 +2,35 @@ import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 import { Observable } from 'rxjs';
+import { map, shareReplay, startWith } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 const EMAIL_KEY = 'emailForSignIn';
 const TRUST_UNTIL_KEY = 'authTrustUntil';
 
+export interface AuthState {
+  /** True quando o Firebase Auth já restaurou (ou não) a sessão persistida. */
+  ready: boolean;
+  user: firebase.User | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   user$: Observable<firebase.User | null>;
+  /**
+   * Estado completo de autenticação, incluindo um flag `ready` que só vira
+   * true após a primeira emissão do Firebase. Use isto para evitar o flash da
+   * tela de login enquanto a sessão persistida ainda está sendo restaurada.
+   */
+  authState$: Observable<AuthState>;
 
   constructor(private afAuth: AngularFireAuth) {
     this.user$ = this.afAuth.authState;
+    this.authState$ = this.afAuth.authState.pipe(
+      map<firebase.User | null, AuthState>((user) => ({ ready: true, user })),
+      startWith<AuthState>({ ready: false, user: null }),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
     this.enforceTrustedSessionWindow();
   }
 
