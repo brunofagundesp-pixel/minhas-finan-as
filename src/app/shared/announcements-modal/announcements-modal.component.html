@@ -10,7 +10,7 @@
         class="announcements-close"
         (click)="dismiss()"
         aria-label="Fechar"
-        title="Fechar e nao mostrar novamente"
+        title="Fechar e não mostrar novamente"
       >×</button>
     </header>
 
@@ -41,13 +41,13 @@
           class="announcements-btn announcements-btn--primary"
           *ngIf="hasNext"
           (click)="goNext()"
-        >Proximo</button>
+        >Próximo</button>
         <button
           type="button"
           class="announcements-btn announcements-btn--primary"
           *ngIf="!hasNext"
           (click)="dismiss()"
-        >Entendi, nao mostrar novamente</button>
+        >Entendi, não mostrar novamente</button>
       </div>
     </footer>
   </div>

@@ -225,51 +225,51 @@ export class AppComponent implements OnInit {
     {
       icon: '👋',
       title: 'Bem-vindo ao Previsa',
-      body: 'Um gestor financeiro pessoal focado em previsibilidade. Lance entradas, saidas e investimentos e veja para onde o seu caixa vai, mes a mes, antes de acontecer.',
-      tip: 'Use o botao ? no canto superior para abrir este guia novamente a qualquer momento.'
+      body: 'Um gestor financeiro pessoal focado em previsibilidade. Lance entradas, saídas e investimentos e veja para onde o seu caixa vai, mês a mês, antes de acontecer.',
+      tip: 'Use o botão ? no canto superior para abrir este guia novamente a qualquer momento.'
     },
     {
       icon: '➕',
-      title: 'Adicionando lancamentos',
-      body: 'Clique no botao azul + no canto inferior direito para abrir o formulario. Voce pode lancar:',
+      title: 'Adicionando lançamentos',
+      body: 'Clique no botão azul + no canto inferior direito para abrir o formulario. Você pode lançar:',
       bullets: [
         'Entrada: receitas recebidas (salario, freelance, transferencia)',
-        'Saida: despesas e contas a pagar',
+        'Saída: despesas e contas a pagar',
         'Investido: reserva que sai do caixa',
-        'Diario: custo que se repete diariamente (ex: transporte R$ 8 por dia)'
+        'Diário: custo que se repete diariamente (ex: transporte R$ 8 por dia)'
       ],
-      tip: 'Lancamentos parcelados usam o valor de cada parcela, nao o total da compra.'
+      tip: 'Lançamentos parcelados usam o valor de cada parcela, não o total da compra.'
     },
     {
       icon: '✏️',
       title: 'Editando e excluindo',
-      body: 'Passe o mouse sobre qualquer linha da tabela de dias para ver os botoes de acao.',
+      body: 'Passe o mouse sobre qualquer linha da tabela de dias para ver os botões de ação.',
       bullets: [
-        'Lancamentos unicos sao alterados diretamente.',
-        'Para series (parcelados ou fixos), voce escolhe: so este, este e os proximos, ou toda a serie.',
-        'Despesas podem ser marcadas como pagas, e o registro permanece visivel no mes.'
+        'Lançamentos únicos são alterados diretamente.',
+        'Para series (parcelados ou fixos), você escolhe: so este, este e os próximos, ou toda a serie.',
+        'Despesas podem ser marcadas como pagas, e o registro permanece visivel no mês.'
       ]
     },
     {
       icon: '📅',
       title: 'Modos de visualizacao',
-      body: 'Use os botoes no topo da aba Lancamentos para alternar entre quatro modos:',
+      body: 'Use os botões no topo da aba Lançamentos para alternar entre quatro modos:',
       bullets: [
-        'Simplificado: lista apenas os dias com movimento no mes, sem repetir o diario dia a dia',
-        '3 meses: tres colunas lado a lado, bom para acompanhamento diario',
+        'Simplificado: lista apenas os dias com movimento no mês, sem repetir o diário dia a dia',
+        '3 meses: tres colunas lado a lado, bom para acompanhamento diário',
         '12 meses: visao anual em blocos, boa para planejamento de longo prazo',
         'Personalizado: selecione exatamente os meses que quer comparar'
       ],
-      tip: 'O botao "mes atual" leva voce de volta ao mes de hoje com um clique.'
+      tip: 'O botão "mês atual" leva você de volta ao mês de hoje com um clique.'
     },
     {
       icon: '💳',
-      title: 'Cartoes de credito',
-      body: 'Cadastre seus cartoes na aba Cartoes e registre compras com a data da compra.',
+      title: 'Cartões de credito',
+      body: 'Cadastre seus cartões na aba Cartões e registre compras com a data da compra.',
       bullets: [
-        'O Previsa calcula a fatura prevista e projeta o debito no mes do vencimento.',
-        'O impacto aparece como uma linha roxa na tabela de dias desse mes.',
-        'Voce enxerga o peso da fatura no caixa antes de ela chegar.'
+        'O Previsa calcula a fatura prevista e projeta o debito no mês do vencimento.',
+        'O impacto aparece como uma linha roxa na tabela de dias desse mês.',
+        'Você enxerga o peso da fatura no caixa antes de ela chegar.'
       ]
     }
   ];
@@ -330,14 +330,14 @@ export class AppComponent implements OnInit {
   readonly repeatModeOptions: Array<{ value: RepeatMode; label: string }> = [
     { value: 'daily', label: 'Todo dia' },
     { value: 'weekly', label: 'Toda semana' },
-    { value: 'monthly', label: 'Todo mes' }
+    { value: 'monthly', label: 'Todo mês' }
   ];
 
   readonly dailyRepeatModeOptions: Array<{ value: DailyRepeatSelection; label: string }> = [
-    { value: 'none', label: 'Nao repetir' },
+    { value: 'none', label: 'Não repetir' },
     { value: 'daily', label: 'Todo dia' },
     { value: 'weekly', label: 'Toda semana' },
-    { value: 'monthly', label: 'Todo mes' }
+    { value: 'monthly', label: 'Todo mês' }
   ];
 
   readonly dailyRecurrenceKindOptions: Array<{ value: Exclude<RecurrenceKind, 'single'>; label: string }> = [
@@ -348,15 +348,15 @@ export class AppComponent implements OnInit {
   readonly visionCards: VisionCard[] = [
     {
       title: 'Linha do tempo de compromissos',
-      description: 'Agrupa vencimentos, aportes e entradas futuras em uma faixa cronologica para voce enxergar onde o caixa aperta.'
+      description: 'Agrupa vencimentos, aportes e entradas futuras em uma faixa cronologica para você enxergar onde o caixa aperta.'
     },
     {
-      title: 'Mapa de calor do saldo diario',
+      title: 'Mapa de calor do saldo diário',
       description: 'Troca dezenas de linhas por intensidade visual, destacando dias de conforto, alerta e saldo negativo.'
     },
     {
       title: 'Pontes entre meses',
-      description: 'Mostra quanto saldo cada mes entrega para o proximo, deixando claro o efeito acumulado das decisoes.'
+      description: 'Mostra quanto saldo cada mês entrega para o próximo, deixando claro o efeito acumulado das decisoes.'
     }
   ];
 
@@ -1033,11 +1033,11 @@ export class AppComponent implements OnInit {
       return month ? `${month.title} de ${month.year}` : 'Lancamentos';
     }
     if (this.viewMode === '12month') {
-      return `Lancamentos de ${this.twelveMonthYear}`;
+      return `Lançamentos de ${this.twelveMonthYear}`;
     }
     if (this.viewMode === 'custom') {
       const months = this.launchMonths;
-      if (!months.length) return 'Periodo personalizado';
+      if (!months.length) return 'Período personalizado';
       if (months.length === 1) return `${months[0].title} de ${months[0].year}`;
       const first = months[0];
       const last = months[months.length - 1];
@@ -1107,13 +1107,13 @@ export class AppComponent implements OnInit {
     if (this.isDailyFormOpen) {
       if (!this.dailyForm.effectiveDate || !this.monthDefinitions.length) {
         return this.isEditingLaunch
-          ? 'Edicao ativa: ajuste o valor e a data de inicio deste diario.'
-          : 'Defina valor e data para aplicar o diario dali em diante.';
+          ? 'Edição ativa: ajuste o valor e a data de início deste diário.'
+          : 'Defina valor e data para aplicar o diário dali em diante.';
       }
 
       const parsedDate = new Date(`${this.dailyForm.effectiveDate}T00:00:00`);
       if (Number.isNaN(parsedDate.getTime())) {
-        return 'A data selecionada para o diario e invalida.';
+        return 'A data selecionada para o diário e invalida.';
       }
 
       const startIndex = this.findMonthIndex(parsedDate.getFullYear(), parsedDate.getMonth() + 1);
@@ -1126,32 +1126,32 @@ export class AppComponent implements OnInit {
       const installments = this.showDailyInstallmentsField ? this.dailyForm.installments : 1;
 
       if (recurrenceKind === 'single' || !repeatMode) {
-        return `O diario sera aplicado apenas no dia ${parsedDate.getDate()}.`;
+        return `O diário será aplicado apenas no dia ${parsedDate.getDate()}.`;
       }
 
       const preview = this.buildRecurrencePreview(parsedDate, recurrenceKind, repeatMode, installments);
       if (!preview || preview.occurrences <= 0) {
-        return 'Nenhum diario sera criado com as regras atuais.';
+        return 'Nenhum diário será criado com as regras atuais.';
       }
 
       const first = this.formatMonthRef(preview.firstMonthIndex);
       const last = this.formatMonthRef(preview.lastMonthIndex);
 
       if (preview.occurrences === 1) {
-        return `Vai criar 1 ponto de inicio para o diario em ${first}.`;
+        return `Vai criar 1 ponto de início para o diário em ${first}.`;
       }
 
-      return `Vai criar ${preview.occurrences} pontos de inicio para o diario entre ${first} e ${last}.`;
+      return `Vai criar ${preview.occurrences} pontos de início para o diário entre ${first} e ${last}.`;
     }
 
     if (this.isEditingSeries) {
       if (!this.launchForm.date || !this.monthDefinitions.length) {
-        return 'Edicao ativa: as alteracoes valem para toda a serie.';
+        return 'Edição ativa: as alterações valem para toda a serie.';
       }
     }
 
     if (this.isEditingSingleLaunch) {
-      return 'Edicao ativa: as alteracoes valem somente para este lancamento.';
+      return 'Edição ativa: as alterações valem somente para este lançamento.';
     }
 
     if (!this.launchForm.date || !this.monthDefinitions.length) {
@@ -1177,7 +1177,7 @@ export class AppComponent implements OnInit {
     );
 
     if (!preview || preview.occurrences <= 0) {
-      return 'Nenhum lancamento sera criado com as regras atuais.';
+      return 'Nenhum lançamento será criado com as regras atuais.';
     }
 
     const first = this.formatMonthRef(preview.firstMonthIndex);
@@ -1187,18 +1187,18 @@ export class AppComponent implements OnInit {
     const valueStr = this.formatCurrency(this.launchForm.amount || 0);
 
     if (preview.occurrences === 1) {
-      return `Vai criar 1 lancamento em ${first}.`;
+      return `Vai criar 1 lançamento em ${first}.`;
     }
 
     if (isInstallment) {
-      return `Vai criar ${preview.occurrences} parcelas de ${valueStr} cada entre ${first} e ${last}. O valor inserido ja e o valor de cada parcela.`;
+      return `Vai criar ${preview.occurrences} parcelas de ${valueStr} cada entre ${first} e ${last}. O valor inserido já e o valor de cada parcela.`;
     }
 
     if (isFixedSeries) {
-      return `Vai criar lancamentos recorrentes de ${valueStr} entre ${first} e ${last}. A serie continua nos novos meses ate voce excluir.`;
+      return `Vai criar lançamentos recorrentes de ${valueStr} entre ${first} e ${last}. A serie continua nos novos meses até você excluir.`;
     }
 
-    return `Vai criar ${preview.occurrences} lancamentos de ${valueStr} entre ${first} e ${last}.`;
+    return `Vai criar ${preview.occurrences} lançamentos de ${valueStr} entre ${first} e ${last}.`;
   }
 
   get launchDecisionAdvice(): LaunchDecisionAdvice | null {
@@ -1364,7 +1364,7 @@ export class AppComponent implements OnInit {
         title: 'Essa compra te deixa no vermelho nesse dia',
         summary: `No dia ${parsedDate.getDate()}, seu saldo sai de ${this.formatCurrency(currentDayBalance)} para ${this.formatCurrency(scenarioDayBalance)}.`,
         detail: nextGood
-          ? `Melhor esperar até ${nextGood.day}, quando esse lancamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
+          ? `Melhor esperar até ${nextGood.day}, quando esse lançamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
           : `Seu caixa fica no vermelho nesse período. Melhor esperar uma entrada ou reduzir esse valor.`
       });
     }
@@ -1375,9 +1375,9 @@ export class AppComponent implements OnInit {
       return attachDayBalance({
         tone: 'risk',
         title: 'Pessimo dia pra fazer essa despesa',
-        summary: `No dia ${parsedDate.getDate()}, o saldo ja esta em ${this.formatCurrency(currentDayBalance)}.`,
+        summary: `No dia ${parsedDate.getDate()}, o saldo já esta em ${this.formatCurrency(currentDayBalance)}.`,
         detail: nextGood
-          ? `Melhor esperar até ${nextGood.day}, quando esse lancamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
+          ? `Melhor esperar até ${nextGood.day}, quando esse lançamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
           : `Seu caixa fica no vermelho nesse período. Espere uma entrada.`
       });
     }
@@ -1388,9 +1388,9 @@ export class AppComponent implements OnInit {
       return attachDayBalance({
         tone: 'warn',
         title: 'Dia muito apertado pra essa compra',
-        summary: `Depois desse lancamento, o saldo do dia fica em apenas ${this.formatCurrency(scenarioDayBalance)}.`,
+        summary: `Depois desse lançamento, o saldo do dia fica em apenas ${this.formatCurrency(scenarioDayBalance)}.`,
         detail: nextGood
-          ? `Prefere esperar? No dia ${nextGood.day}, esse lancamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
+          ? `Prefere esperar? No dia ${nextGood.day}, esse lançamento ainda deixa o saldo em ${this.formatCurrency(nextGood.resultingBalance)}.`
           : `Tem pouca folga nesse dia. Vale acompanhar de perto.`
       });
     }
@@ -1425,7 +1425,7 @@ export class AppComponent implements OnInit {
       return attachDayBalance({
         tone: 'good',
         title: 'Essa compra e tranquila nesse dia',
-        summary: `Depois desse lancamento, o saldo do dia fica em ${this.formatCurrency(scenarioDayBalance)}.`,
+        summary: `Depois desse lançamento, o saldo do dia fica em ${this.formatCurrency(scenarioDayBalance)}.`,
         detail: `Tem folga confortavel. Segue firme com a compra.`
       });
     }
@@ -1460,8 +1460,8 @@ export class AppComponent implements OnInit {
       return attachDayBalance({
         tone: 'good',
         title: 'Essa compra cabe bem nesse dia',
-        summary: `Depois desse lancamento, o saldo do dia fica em ${this.formatCurrency(scenarioDayBalance)}.`,
-        detail: `Positivo e com margem. Voce pode fazer a compra tranquilo.`
+        summary: `Depois desse lançamento, o saldo do dia fica em ${this.formatCurrency(scenarioDayBalance)}.`,
+        detail: `Positivo e com margem. Você pode fazer a compra tranquilo.`
       });
     }
 
@@ -1504,17 +1504,17 @@ export class AppComponent implements OnInit {
         return attachDayBalance({
           tone: 'good',
           title: 'Você coloca isso depois dos dias criticos',
-          summary: `Os dias em vermelho ja estao agendados (${currentRed.day}).`,
-          detail: `Seu lancamento no dia 25 e depois disso, e o caixa volta pra ${this.formatCurrency(bestAfterLaunch)}. Tranquilo.`
+          summary: `Os dias em vermelho já estao agendados (${currentRed.day}).`,
+          detail: `Seu lançamento no dia 25 e depois disso, e o caixa volta pra ${this.formatCurrency(bestAfterLaunch)}. Tranquilo.`
         });
       }
 
       // Já tinha vermelho, não piora muito
       return attachDayBalance({
         tone: 'warn',
-        title: 'Ja tem dias comprometidos no horizonte',
+        title: 'Já tem dias comprometidos no horizonte',
         summary: `O primeiro fica em ${currentRed.day} com saldo de ${this.formatCurrency(currentRed.balance)}.`,
-        detail: `Essa despesa piora um pouco mais. Mas se ja esta planejando, segue o plano.`
+        detail: `Essa despesa piora um pouco mais. Mas se já esta planejando, segue o plano.`
       });
     }
 
@@ -1543,7 +1543,7 @@ export class AppComponent implements OnInit {
         tone: 'warn',
         title: 'Essa despesa aperta o caixa',
         summary: `Reduz o menor saldo em ${this.formatCurrency(Math.abs(worstDelta))}.`,
-        detail: `Depois dela o saldo minimo fica em ${this.formatCurrency(scenarioWorst)}. Tem folga, mas pouca.`
+        detail: `Depois dela o saldo mínimo fica em ${this.formatCurrency(scenarioWorst)}. Tem folga, mas pouca.`
       };
     }
 
@@ -1553,7 +1553,7 @@ export class AppComponent implements OnInit {
         tone: 'warn',
         title: 'Essa despesa e parcelada',
         summary: `${installments} parcelas de ${this.formatCurrency(this.launchForm.amount)} cada.`,
-        detail: `Lembre de levar em conta as outras ${installments - 1} proximas no planejamento.`
+        detail: `Lembre de levar em conta as outras ${installments - 1} próximas no planejamento.`
       };
     }
 
@@ -1968,11 +1968,11 @@ export class AppComponent implements OnInit {
   }
 
   get launchModalTitle(): string {
-    return this.isEditingLaunch ? 'Editar lancamento' : 'Novo lancamento';
+    return this.isEditingLaunch ? 'Editar lançamento' : 'Novo lançamento';
   }
 
   get dailyModalTitle(): string {
-    return this.isEditingLaunch ? 'Editar diario' : 'Novo diario';
+    return this.isEditingLaunch ? 'Editar diário' : 'Novo diário';
   }
 
   get seriesActionTitle(): string {
@@ -1981,36 +1981,36 @@ export class AppComponent implements OnInit {
     }
 
     const actionLabel = this.pendingEventAction.type === 'edit' ? 'Editar' : 'Excluir';
-    const targetLabel = this.pendingEventAction.event.type === 'daily' ? 'serie de diario' : 'recorrencia';
+    const targetLabel = this.pendingEventAction.event.type === 'daily' ? 'serie de diário' : 'recorrencia';
     return `${actionLabel} ${targetLabel}`;
   }
 
   get seriesActionDescription(): string {
     if (!this.pendingEventAction) {
-      return 'Escolha se a acao vale apenas para este item ou para toda a serie.';
+      return 'Escolha se a ação vale apenas para este item ou para toda a serie.';
     }
 
     if (this.pendingEventAction.type === 'delete') {
       if (this.pendingEventAction.event.type === 'daily') {
-        return 'Esse diario faz parte de uma serie. Voce quer excluir so este, este e os proximos, ou toda a serie deste diario?';
+        return 'Esse diário faz parte de uma serie. Você quer excluir so este, este e os próximos, ou toda a serie deste diário?';
       }
 
-      return 'Esse lancamento faz parte de uma serie. Voce quer excluir so este, este e os proximos, ou toda a serie?';
+      return 'Esse lançamento faz parte de uma serie. Você quer excluir so este, este e os próximos, ou toda a serie?';
     }
 
     if (this.pendingEventAction.type === 'edit') {
       if (this.pendingEventAction.event.type === 'daily') {
-        return 'Esse diario faz parte de uma serie. Voce quer editar so este, este e os proximos, ou toda a serie deste diario?';
+        return 'Esse diário faz parte de uma serie. Você quer editar so este, este e os próximos, ou toda a serie deste diário?';
       }
 
-      return 'Esse lancamento faz parte de uma serie. Voce quer editar so este, este e os proximos, ou toda a serie?';
+      return 'Esse lançamento faz parte de uma serie. Você quer editar so este, este e os próximos, ou toda a serie?';
     }
 
     if (this.pendingEventAction.event.type === 'daily') {
-      return 'Esse diario faz parte de uma serie. Voce quer aplicar a acao so neste diario ou em toda a serie deste diario?';
+      return 'Esse diário faz parte de uma serie. Você quer aplicar a ação so neste diário ou em toda a serie deste diário?';
     }
 
-    return 'Esse lancamento faz parte de uma serie. Voce quer aplicar a acao so neste lancamento ou em toda a serie?';
+    return 'Esse lançamento faz parte de uma serie. Você quer aplicar a ação so neste lançamento ou em toda a serie?';
   }
 
   // ---- Preview do lancamento sob acao (mostrado na modal de escopo) ----
@@ -2027,7 +2027,7 @@ export class AppComponent implements OnInit {
   }
 
   get pendingEventLabel(): string {
-    return this.pendingEventAction?.event.label?.trim() || 'Sem descricao';
+    return this.pendingEventAction?.event.label?.trim() || 'Sem descrição';
   }
 
   get pendingEventAmountLabel(): string {
@@ -2064,7 +2064,7 @@ export class AppComponent implements OnInit {
       return ev.seriesOccurrences ? `Parcelado em ${ev.seriesOccurrences}x` : 'Parcelado';
     }
     if (ev.recurrenceKind === 'fixed') {
-      return 'Recorrencia fixa';
+      return 'Recorrência fixa';
     }
     return 'Faz parte de uma serie';
   }
@@ -2083,7 +2083,7 @@ export class AppComponent implements OnInit {
   }
 
   get pendingDeleteLabel(): string {
-    return this.pendingDeleteConfirmation?.event.label?.trim() || 'Sem descricao';
+    return this.pendingDeleteConfirmation?.event.label?.trim() || 'Sem descrição';
   }
 
   get pendingDeleteAmountLabel(): string {
@@ -2111,13 +2111,13 @@ export class AppComponent implements OnInit {
     const c = this.pendingDeleteConfirmation;
     if (!c) return '';
     if (c.scope === 'series') return 'Toda a serie';
-    if (c.scope === 'forward') return 'Este e os proximos';
+    if (c.scope === 'forward') return 'Este e os próximos';
     return 'Apenas este';
   }
 
   get deleteConfirmationTitle(): string {
     if (!this.pendingDeleteConfirmation) {
-      return 'Confirmar exclusao';
+      return 'Confirmar exclusão';
     }
 
     const isDaily = this.pendingDeleteConfirmation.event.type === 'daily';
@@ -2125,53 +2125,53 @@ export class AppComponent implements OnInit {
     const isForward = this.pendingDeleteConfirmation.scope === 'forward';
 
     if (isDaily && isSeries) {
-      return 'Excluir serie de diario';
+      return 'Excluir serie de diário';
     }
 
     if (isDaily && isForward) {
-      return 'Excluir diario e proximos';
+      return 'Excluir diário e próximos';
     }
 
     if (isDaily) {
-      return 'Excluir diario';
+      return 'Excluir diário';
     }
 
     if (isForward) {
-      return 'Excluir lancamento e proximos';
+      return 'Excluir lançamento e próximos';
     }
 
-    return isSeries ? 'Excluir serie de lancamentos' : 'Excluir lancamento';
+    return isSeries ? 'Excluir serie de lançamentos' : 'Excluir lançamento';
   }
 
   get deleteConfirmationDescription(): string {
     if (!this.pendingDeleteConfirmation) {
-      return 'Confirme a exclusao.';
+      return 'Confirme a exclusão.';
     }
 
     const { event, scope } = this.pendingDeleteConfirmation;
     const isDaily = event.type === 'daily';
 
     if (isDaily && scope === 'series') {
-      return 'Voce vai excluir toda a serie deste diario. Essa acao nao pode ser desfeita.';
+      return 'Você vai excluir toda a serie deste diário. Essa ação não pode ser desfeita.';
     }
 
     if (isDaily && scope === 'forward') {
-      return 'Voce vai excluir este diario e todos os proximos dessa recorrencia. Os diarios anteriores serao mantidos.';
+      return 'Você vai excluir este diário e todos os próximos dessa recorrência. Os diários anteriores serão mantidos.';
     }
 
     if (scope === 'forward') {
-      return 'Voce vai excluir este lancamento e todos os proximos dessa recorrencia. Os lancamentos anteriores serao mantidos.';
+      return 'Você vai excluir este lançamento e todos os próximos dessa recorrência. Os lançamentos anteriores serão mantidos.';
     }
 
     if (isDaily) {
-      return 'Voce vai excluir este diario. Essa acao nao pode ser desfeita.';
+      return 'Você vai excluir este diário. Essa ação não pode ser desfeita.';
     }
 
     if (scope === 'series') {
-      return 'Voce vai excluir toda a serie deste lancamento. Essa acao nao pode ser desfeita.';
+      return 'Você vai excluir toda a serie deste lançamento. Essa ação não pode ser desfeita.';
     }
 
-    return 'Voce vai excluir este lancamento. Essa acao nao pode ser desfeita.';
+    return 'Você vai excluir este lançamento. Essa ação não pode ser desfeita.';
   }
 
   get manualLaunchTypeOptions(): Array<{ value: LaunchType; label: string }> {
@@ -2252,7 +2252,7 @@ export class AppComponent implements OnInit {
         month.events = previousEvents;
         this.payingEventIds.delete(eventId);
         this.refreshActiveDayDetails();
-        this.entriesFeedback = 'Nao foi possivel atualizar o status de pagamento do lancamento.';
+        this.entriesFeedback = 'Não foi possivel atualizar o status de pagamento do lançamento.';
       }
     });
   }
@@ -2323,7 +2323,7 @@ export class AppComponent implements OnInit {
       switch (event.repeatMode) {
         case 'daily': return 'todo dia';
         case 'weekly': return 'toda semana';
-        case 'monthly': return 'todo mes';
+        case 'monthly': return 'todo mês';
         default: return '';
       }
     })();
@@ -2335,7 +2335,7 @@ export class AppComponent implements OnInit {
     }
 
     if (event.recurrenceKind === 'fixed') {
-      const parts = ['Recorrencia fixa', repeatLabel ? `(${repeatLabel})` : ''].filter(Boolean);
+      const parts = ['Recorrência fixa', repeatLabel ? `(${repeatLabel})` : ''].filter(Boolean);
       return parts.join(' ');
     }
 
@@ -2862,14 +2862,14 @@ export class AppComponent implements OnInit {
     this.financeApi.updateMonth(month).subscribe({
       next: () => {
         this.deletingEventIds.delete(eventId);
-        this.entriesFeedback = eventType === 'daily' ? 'Diario removido.' : 'Lancamento removido.';
+        this.entriesFeedback = eventType === 'daily' ? 'Diário removido.' : 'Lançamento removido.';
       },
       error: () => {
         month.events = previousEvents;
         this.deletingEventIds.delete(eventId);
         this.entriesFeedback = eventType === 'daily'
-          ? 'Nao foi possivel excluir o diario. Confira o backend e tente novamente.'
-          : 'Nao foi possivel excluir o lancamento. Confira o backend e tente novamente.';
+          ? 'Não foi possivel excluir o diário. Confira o backend e tente novamente.'
+          : 'Não foi possivel excluir o lançamento. Confira o backend e tente novamente.';
       }
     });
   }
@@ -2887,7 +2887,7 @@ export class AppComponent implements OnInit {
     this.launchError = '';
 
     if (!this.launchForm.date) {
-      this.launchError = 'Informe a data do lancamento.';
+      this.launchError = 'Informe a data do lançamento.';
       return;
     }
 
@@ -2967,7 +2967,7 @@ export class AppComponent implements OnInit {
 
     if (!touchedMonths.length) {
       this.isSavingLaunch = false;
-      this.launchError = 'Nao foi possivel aplicar a repeticao dentro dos meses carregados.';
+      this.launchError = 'Não foi possivel aplicar a repetição dentro dos meses carregados.';
       return;
     }
 
@@ -2987,7 +2987,7 @@ export class AppComponent implements OnInit {
       error: (err) => {
         console.error('[submitLaunchForm] Firestore error:', err);
         this.isSavingLaunch = false;
-        this.launchError = 'Nao foi possivel salvar no backend. Confira se o servidor esta ativo.';
+        this.launchError = 'Não foi possivel salvar no backend. Confira se o servidor esta ativo.';
       }
     });
   }
@@ -3000,18 +3000,18 @@ export class AppComponent implements OnInit {
     this.dailyError = '';
 
     if (!this.dailyForm.effectiveDate) {
-      this.dailyError = 'Informe a data inicial do diario.';
+      this.dailyError = 'Informe a data inicial do diário.';
       return;
     }
 
     if (this.dailyForm.amount === null || Number.isNaN(this.dailyForm.amount) || this.dailyForm.amount <= 0) {
-      this.dailyError = 'Informe um valor valido para o diario.';
+      this.dailyError = 'Informe um valor valido para o diário.';
       return;
     }
 
     const parsedDate = new Date(`${this.dailyForm.effectiveDate}T00:00:00`);
     if (Number.isNaN(parsedDate.getTime())) {
-      this.dailyError = 'Nao foi possivel identificar a data efetiva do diario.';
+      this.dailyError = 'Não foi possivel identificar a data efetiva do diário.';
       return;
     }
 
@@ -3025,7 +3025,7 @@ export class AppComponent implements OnInit {
     }
 
     if (this.showDailyInstallmentsField && (!Number.isInteger(this.dailyForm.installments) || this.dailyForm.installments < 1)) {
-      this.dailyError = 'Informe uma quantidade valida de repeticoes para o diario.';
+      this.dailyError = 'Informe uma quantidade valida de repetições para o diário.';
       return;
     }
 
@@ -3054,7 +3054,7 @@ export class AppComponent implements OnInit {
       parsedDate,
       'daily',
       amount,
-      'diario manual',
+      'diário manual',
       recurrenceKind,
       repeatMode ?? 'monthly',
       installments
@@ -3062,19 +3062,19 @@ export class AppComponent implements OnInit {
 
     if (!touchedMonths.length) {
       this.isSavingLaunch = false;
-      this.dailyError = 'Nao foi possivel aplicar o diario dentro dos meses carregados.';
+      this.dailyError = 'Não foi possivel aplicar o diário dentro dos meses carregados.';
       return;
     }
 
     forkJoin(touchedMonths.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Diario criado.';
+        this.entriesFeedback = 'Diário criado.';
         this.closeDailyForm();
       },
       error: () => {
         this.isSavingLaunch = false;
-        this.dailyError = 'Nao foi possivel salvar o diario no backend.';
+        this.dailyError = 'Não foi possivel salvar o diário no backend.';
       }
     });
   }
@@ -3178,7 +3178,7 @@ export class AppComponent implements OnInit {
 
   private submitLaunchEdit(parsedDate: Date, amount: number, label: string): void {
     if (!this.editingEventId || !this.editingSourceMonthKey) {
-      this.launchError = 'Nao foi possivel identificar o lancamento para edicao.';
+      this.launchError = 'Não foi possivel identificar o lançamento para edição.';
       return;
     }
 
@@ -3197,7 +3197,7 @@ export class AppComponent implements OnInit {
     const originalEvent = sourceMonth.events.find((event) => event.id === this.editingEventId);
 
     if (!originalEvent) {
-      this.launchError = 'Lancamento nao encontrado para editar.';
+      this.launchError = 'Lançamento não encontrado para editar.';
       return;
     }
 
@@ -3220,7 +3220,7 @@ export class AppComponent implements OnInit {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Lancamento atualizado.';
+        this.entriesFeedback = 'Lançamento atualizado.';
         this.closeLaunchForm();
       },
       error: () => {
@@ -3229,14 +3229,14 @@ export class AppComponent implements OnInit {
           targetMonth.events = originalTargetEvents;
         }
         this.isSavingLaunch = false;
-        this.launchError = 'Nao foi possivel salvar a edicao no backend.';
+        this.launchError = 'Não foi possivel salvar a edição no backend.';
       }
     });
   }
 
   private submitDailySingleEdit(parsedDate: Date, amount: number): void {
     if (!this.editingEventId || !this.editingSourceMonthKey) {
-      this.dailyError = 'Nao foi possivel identificar o diario para edicao.';
+      this.dailyError = 'Não foi possivel identificar o diário para edição.';
       return;
     }
 
@@ -3255,7 +3255,7 @@ export class AppComponent implements OnInit {
     const originalEvent = sourceMonth.events.find((event) => event.id === this.editingEventId);
 
     if (!originalEvent) {
-      this.dailyError = 'Diario nao encontrado para editar.';
+      this.dailyError = 'Diário não encontrado para editar.';
       return;
     }
 
@@ -3299,7 +3299,7 @@ export class AppComponent implements OnInit {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Diario atualizado.';
+        this.entriesFeedback = 'Diário atualizado.';
         this.closeDailyForm();
       },
       error: () => {
@@ -3308,21 +3308,21 @@ export class AppComponent implements OnInit {
           targetMonth.events = originalTargetEvents;
         }
         this.isSavingLaunch = false;
-        this.dailyError = 'Nao foi possivel salvar a edicao do diario.';
+        this.dailyError = 'Não foi possivel salvar a edição do diário.';
       }
     });
   }
 
   private submitDailySeriesEdit(parsedDate: Date, amount: number, recurrenceKind: RecurrenceKind, repeatMode: RepeatMode | null, installments: number): void {
     if (!this.editingSeriesId) {
-      this.dailyError = 'Nao foi possivel identificar a serie de diario.';
+      this.dailyError = 'Não foi possivel identificar a serie de diário.';
       return;
     }
 
     const anchorDay = this.editingAnchorDay;
     const referenceEvent = this.findEventBySeriesId(this.editingSeriesId);
     if (!referenceEvent) {
-      this.dailyError = 'Serie de diario nao encontrada.';
+      this.dailyError = 'Serie de diário não encontrada.';
       return;
     }
 
@@ -3352,7 +3352,7 @@ export class AppComponent implements OnInit {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Serie de diario atualizada.';
+        this.entriesFeedback = 'Serie de diário atualizada.';
         this.closeDailyForm();
       },
       error: () => {
@@ -3363,27 +3363,27 @@ export class AppComponent implements OnInit {
           }
         }
         this.isSavingLaunch = false;
-        this.dailyError = 'Nao foi possivel salvar a serie de diario.';
+        this.dailyError = 'Não foi possivel salvar a serie de diário.';
       }
     });
   }
 
   private submitDailyForwardSeriesEdit(parsedDate: Date, amount: number, recurrenceKind: RecurrenceKind, repeatMode: RepeatMode | null, installments: number): void {
     if (!this.editingSeriesId || !this.editingSourceMonthKey || this.editingAnchorDay === null) {
-      this.dailyError = 'Nao foi possivel identificar a recorrencia de diario para edicao.';
+      this.dailyError = 'Não foi possivel identificar a recorrência de diário para edição.';
       return;
     }
 
     const anchorDay = this.editingAnchorDay;
     const referenceEvent = this.findEventBySeriesId(this.editingSeriesId);
     if (!referenceEvent) {
-      this.dailyError = 'Serie de diario nao encontrada.';
+      this.dailyError = 'Serie de diário não encontrada.';
       return;
     }
 
     const triggerMonthIndex = this.monthDefinitions.findIndex((month) => month.key === this.editingSourceMonthKey);
     if (triggerMonthIndex < 0) {
-      this.dailyError = 'Nao foi possivel identificar o ponto inicial da edicao.';
+      this.dailyError = 'Não foi possivel identificar o ponto inicial da edição.';
       return;
     }
 
@@ -3426,7 +3426,7 @@ export class AppComponent implements OnInit {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Este diario e os proximos foram atualizados.';
+        this.entriesFeedback = 'Este diário e os próximos foram atualizados.';
         this.closeDailyForm();
       },
       error: () => {
@@ -3437,14 +3437,14 @@ export class AppComponent implements OnInit {
           }
         }
         this.isSavingLaunch = false;
-        this.dailyError = 'Nao foi possivel salvar este diario e os proximos.';
+        this.dailyError = 'Não foi possivel salvar este diário e os próximos.';
       }
     });
   }
 
   private submitSeriesEdit(parsedDate: Date, amount: number, label: string): void {
     if (!this.editingSeriesId) {
-      this.launchError = 'Nao foi possivel identificar a serie para edicao.';
+      this.launchError = 'Não foi possivel identificar a serie para edição.';
       return;
     }
 
@@ -3486,7 +3486,7 @@ export class AppComponent implements OnInit {
           month.events = events;
         }
       }
-      this.launchError = 'Nao foi possivel aplicar a edicao da serie.';
+      this.launchError = 'Não foi possivel aplicar a edição da serie.';
       return;
     }
 
@@ -3505,21 +3505,21 @@ export class AppComponent implements OnInit {
           }
         }
         this.isSavingLaunch = false;
-        this.launchError = 'Nao foi possivel salvar a serie no backend.';
+        this.launchError = 'Não foi possivel salvar a serie no backend.';
       }
     });
   }
 
   private submitForwardSeriesEdit(parsedDate: Date, amount: number, label: string): void {
     if (!this.editingSeriesId || !this.editingSourceMonthKey || this.editingAnchorDay === null) {
-      this.launchError = 'Nao foi possivel identificar a recorrencia para edicao.';
+      this.launchError = 'Não foi possivel identificar a recorrência para edição.';
       return;
     }
 
     const anchorDay = this.editingAnchorDay;
     const triggerMonthIndex = this.monthDefinitions.findIndex((month) => month.key === this.editingSourceMonthKey);
     if (triggerMonthIndex < 0) {
-      this.launchError = 'Nao foi possivel identificar o ponto inicial da edicao.';
+      this.launchError = 'Não foi possivel identificar o ponto inicial da edição.';
       return;
     }
 
@@ -3564,7 +3564,7 @@ export class AppComponent implements OnInit {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Este lancamento e os proximos foram atualizados.';
+        this.entriesFeedback = 'Este lançamento e os próximos foram atualizados.';
         this.closeLaunchForm();
       },
       error: () => {
@@ -3575,7 +3575,7 @@ export class AppComponent implements OnInit {
           }
         }
         this.isSavingLaunch = false;
-        this.launchError = 'Nao foi possivel salvar este lancamento e os proximos.';
+        this.launchError = 'Não foi possivel salvar este lançamento e os próximos.';
       }
     });
   }
@@ -3637,14 +3637,14 @@ export class AppComponent implements OnInit {
     }
 
     if (type === 'expense') {
-      return 'saida manual';
+      return 'saída manual';
     }
 
     if (type === 'investment') {
       return 'investimento manual';
     }
 
-    return 'diario manual';
+    return 'diário manual';
   }
 
   private createEmptyLaunchForm(): LaunchFormState {
@@ -3957,7 +3957,7 @@ export class AppComponent implements OnInit {
       error: () => {
         this.monthDefinitions = [];
         this.isLoading = false;
-        this.dataError = 'Nao foi possivel carregar os dados do backend. Inicie o servidor local e tente novamente.';
+        this.dataError = 'Não foi possivel carregar os dados do backend. Inicie o servidor local e tente novamente.';
       }
     });
   }
@@ -4122,7 +4122,7 @@ export class AppComponent implements OnInit {
   private formatMonthRef(monthIndex: number): string {
     const month = this.monthDefinitions[monthIndex];
     if (!month) {
-      return 'mes indisponivel';
+      return 'mês indisponivel';
     }
 
     return `${month.title}/${month.year}`;
@@ -4144,7 +4144,7 @@ export class AppComponent implements OnInit {
     const monthsToPersist = Array.from(monthsToPersistMap.values());
     forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
-        this.entriesFeedback = 'Nao foi possivel persistir alguns meses futuros no backend.';
+        this.entriesFeedback = 'Não foi possivel persistir alguns meses futuros no backend.';
       }
     });
   }
@@ -4186,7 +4186,7 @@ export class AppComponent implements OnInit {
     const monthsToPersist = Array.from(monthsToPersistMap.values());
     forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
-        this.entriesFeedback = 'Nao foi possivel atualizar o horizonte de meses no backend.';
+        this.entriesFeedback = 'Não foi possivel atualizar o horizonte de meses no backend.';
       }
     });
   }
@@ -4312,7 +4312,7 @@ export class AppComponent implements OnInit {
 
     forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
-        this.entriesFeedback = 'Nao foi possivel persistir alguns meses futuros no backend.';
+        this.entriesFeedback = 'Não foi possivel persistir alguns meses futuros no backend.';
       }
     });
   }
@@ -4340,7 +4340,7 @@ export class AppComponent implements OnInit {
 
     forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
-        this.entriesFeedback = 'Nao foi possivel persistir alguns meses do ano selecionado no backend.';
+        this.entriesFeedback = 'Não foi possivel persistir alguns meses do ano selecionado no backend.';
       }
     });
   }
@@ -4679,7 +4679,7 @@ export class AppComponent implements OnInit {
       tagLabel: 'Cartao',
       secondaryTag: launchesLabel,
       amount: forecast.amount,
-      statusLabel: forecast.isPaid ? 'Pago' : 'Abrir cartao',
+      statusLabel: forecast.isPaid ? 'Pago' : 'Abrir cartão',
       paid: !!forecast.isPaid,
       day: day.day,
       monthYear: invoiceYear,
@@ -4869,7 +4869,7 @@ export class AppComponent implements OnInit {
         repeatMode: 'monthly',
         seriesOccurrences: 1,
         day: 1,
-        label: 'diario base',
+        label: 'diário base',
         amount: month.dailyFixedCost,
         type: 'daily'
       }
@@ -4916,7 +4916,7 @@ export class AppComponent implements OnInit {
         if (triggerEventId) {
           this.deletingEventIds.delete(triggerEventId);
         }
-        this.entriesFeedback = 'Nao foi possivel excluir a serie. Confira o backend e tente novamente.';
+        this.entriesFeedback = 'Não foi possivel excluir a serie. Confira o backend e tente novamente.';
       }
     });
   }
@@ -4978,8 +4978,8 @@ export class AppComponent implements OnInit {
           this.deletingEventIds.delete(triggerEventId);
         }
         this.entriesFeedback = triggerEvent.type === 'daily'
-          ? 'Este diario e os proximos foram removidos.'
-          : 'Este lancamento e os proximos foram removidos.';
+          ? 'Este diário e os próximos foram removidos.'
+          : 'Este lançamento e os próximos foram removidos.';
       },
       error: () => {
         for (const [savedMonthKey, events] of backups) {
@@ -4992,8 +4992,8 @@ export class AppComponent implements OnInit {
           this.deletingEventIds.delete(triggerEventId);
         }
         this.entriesFeedback = triggerEvent.type === 'daily'
-          ? 'Nao foi possivel excluir este diario e os proximos. Confira o backend e tente novamente.'
-          : 'Nao foi possivel excluir este lancamento e os proximos. Confira o backend e tente novamente.';
+          ? 'Não foi possivel excluir este diário e os próximos. Confira o backend e tente novamente.'
+          : 'Não foi possivel excluir este lançamento e os próximos. Confira o backend e tente novamente.';
       }
     });
   }

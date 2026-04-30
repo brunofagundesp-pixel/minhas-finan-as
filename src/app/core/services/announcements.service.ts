@@ -33,20 +33,20 @@ const ANNOUNCEMENTS: Announcement[] = [
     badge: 'Novidade',
     title: 'Metas de gasto',
     body: [
-      'Voce agora pode definir metas mensais de gasto para a sua carteira inteira, para um cartao especifico ou para uma tag.',
-      'Configure na aba Metas. O acompanhamento aparece no Dashboard e na aba Cartoes, com barra de progresso, projecao de fechamento e alertas quando passar dos limites.',
-      'Cada meta pode usar periodo Mensal (calendario das compras) ou Ciclo de fatura (somente para metas de cartao, agrupa pelo ciclo que sera cobrado).'
+      'Você agora pode definir metas mensais de gasto para a sua carteira inteira, para um cartão específico ou para uma tag.',
+      'Configure na aba Metas. O acompanhamento aparece no Dashboard e na aba Cartões, com barra de progresso, projecao de fechamento e alertas quando passar dos limites.',
+      'Cada meta pode usar período Mensal (calendário das compras) ou Ciclo de fatura (somente para metas de cartão, agrupa pelo ciclo que será cobrado).'
     ]
   },
   {
     id: 'cards-calendar-grouping-2026-04',
     publishedAt: '2026-04-29',
     badge: 'Ajuste',
-    title: 'Cartoes agora agrupam por mes da compra',
+    title: 'Cartões agora agrupam por mês da compra',
     body: [
-      'Na aba Cartoes, os lancamentos sao agrupados pelo mes calendario da compra ou parcela. Comprou em 29/04? Aparece em Abril, mesmo se a fatura for cobrada em Maio.',
-      'As datas de Fechamento e Vencimento exibidas referem-se ao ciclo em que essa fatura sera cobrada (ou seja, o mes seguinte do agrupamento).',
-      'Metas com periodo "Ciclo de fatura" mostram listras diagonais na barra de progresso para deixar claro que o valor representa o que sera cobrado naquela fatura, nao o gasto do mes calendario.'
+      'Na aba Cartões, os lançamentos são agrupados pelo mês calendário da compra ou parcela. Comprou em 29/04? Aparece em Abril, mesmo se a fatura for cobrada em Maio.',
+      'As datas de Fechamento e Vencimento exibidas referem-se ao ciclo em que essa fatura será cobrada (ou seja, o mês seguinte do agrupamento).',
+      'Metas com período "Ciclo de fatura" mostram listras diagonais na barra de progresso para deixar claro que o valor representa o que será cobrado naquela fatura, não o gasto do mês calendário.'
     ]
   }
 ];

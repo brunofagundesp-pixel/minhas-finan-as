@@ -83,16 +83,16 @@ export class LoginComponent implements OnInit {
       case 'auth/operation-not-allowed':
       case 'auth/configuration-not-found':
         return isGoogle
-          ? 'O login com Google nao esta habilitado no Firebase Auth. Ative esse provedor no console do Firebase.'
-          : 'O login com e-mail e senha nao esta habilitado no Firebase Auth. Ative o provedor Email/Senha no console do Firebase.';
+          ? 'O login com Google não esta habilitado no Firebase Auth. Ative esse provedor no console do Firebase.'
+          : 'O login com e-mail e senha não esta habilitado no Firebase Auth. Ative o provedor Email/Senha no console do Firebase.';
       case 'auth/invalid-credential':
         return isGoogle
-          ? 'Nao foi possivel autenticar com Google. Verifique a configuracao do provedor no Firebase Auth.'
+          ? 'Não foi possivel autenticar com Google. Verifique a configuração do provedor no Firebase Auth.'
           : 'E-mail ou senha invalidos.';
       case 'auth/popup-closed-by-user':
         return 'A janela de login foi fechada antes da conclusao.';
       case 'auth/network-request-failed':
-        return 'Falha de rede ao tentar autenticar. Verifique sua conexao e tente novamente.';
+        return 'Falha de rede ao tentar autenticar. Verifique sua conexão e tente novamente.';
       default:
         return err?.message ?? (isGoogle ? 'Erro ao entrar com Google.' : 'Erro ao entrar.');
     }

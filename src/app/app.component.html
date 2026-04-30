@@ -13,25 +13,25 @@
     <div class="topbar-mobile-content" [class.topbar-mobile-content--open]="mobileTopbarMenuOpen">
       <div class="topbar-brand">
         <h1 class="app-title">Previsa</h1>
-        <p class="topbar-subtitle">lancamentos diarios + dashboard de previsibilidade</p>
+        <p class="topbar-subtitle">lançamentos diários + dashboard de previsibilidade</p>
       </div>
 
-      <nav class="app-tabs" aria-label="Navegacao principal">
+      <nav class="app-tabs" aria-label="Navegação principal">
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'dashboard'" (click)="setActiveTab('dashboard')">
           Dashboard
         </button>
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'entries'" (click)="setActiveTab('entries')">
-          Lancamentos
+          Lançamentos
         </button>
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'cards'" (click)="setActiveTab('cards')">
-          Cartoes
+          Cartões
         </button>
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
           Metas
         </button>
       </nav>
 
-      <button class="topbar-help-btn" type="button" (click)="openOnboarding(); mobileTopbarMenuOpen = false" aria-label="Abrir guia de inicio" title="Ver guia de inicio">?</button>
+      <button class="topbar-help-btn" type="button" (click)="openOnboarding(); mobileTopbarMenuOpen = false" aria-label="Abrir guia de início" title="Ver guia de início">?</button>
     </div>
 
     <div class="topbar-user" *ngIf="auth.user$ | async as user">
@@ -88,9 +88,9 @@
         type="button"
         (click)="toggleMobileEntriesControls()"
         [attr.aria-expanded]="mobileEntriesControlsOpen"
-        aria-label="Abrir filtros e periodo"
+        aria-label="Abrir filtros e período"
       >
-        {{ mobileEntriesControlsOpen ? 'ocultar filtros e periodo' : 'filtros e periodo' }}
+        {{ mobileEntriesControlsOpen ? 'ocultar filtros e período' : 'filtros e período' }}
       </button>
 
       <div class="entries-controls-mobile" [class.entries-controls-mobile--open]="mobileEntriesControlsOpen">
@@ -103,47 +103,47 @@
           </div>
 
           <button class="current-month-button" type="button" (click)="goToCurrentMonth()" [disabled]="!hasCurrentMonthInData">
-            mes atual
+            mês atual
           </button>
         </div>
 
         <div class="entries-nav">
         <ng-container *ngIf="viewMode === '1month'">
-          <div class="month-switch" aria-label="Navegacao mensal">
-            <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver mes anterior">←</button>
+          <div class="month-switch" aria-label="Navegação mensal">
+            <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver mês anterior">←</button>
             <strong>{{ entriesTitle }}</strong>
-            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximo mes">→</button>
+            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver próximo mês">→</button>
           </div>
           <small class="month-progress">{{ singleMonthProgressLabel }}</small>
         </ng-container>
 
         <ng-container *ngIf="viewMode === '3month'">
-          <div class="month-switch" aria-label="Navegacao de meses">
+          <div class="month-switch" aria-label="Navegação de meses">
             <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver 3 meses anteriores">←</button>
             <strong>{{ visibleWindow.label }}</strong>
-            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximos 3 meses">→</button>
+            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver próximos 3 meses">→</button>
           </div>
           <small class="month-progress">{{ windowStartIndex + 1 }} a {{ windowStartIndex + visibleMonths.length }} de {{ monthSummaries.length }} meses</small>
         </ng-container>
 
         <ng-container *ngIf="viewMode === 'custom'">
           <div class="custom-range">
-            <select [ngModel]="customStartIndex" (ngModelChange)="onCustomStartChange($event)" aria-label="Mes inicial">
+            <select [ngModel]="customStartIndex" (ngModelChange)="onCustomStartChange($event)" aria-label="Mês inicial">
               <option *ngFor="let m of monthSummaries; let i = index" [ngValue]="i">{{ m.title }} {{ m.year }}</option>
             </select>
-            <span class="custom-range-sep">ate</span>
-            <select [ngModel]="customEndIndex" (ngModelChange)="onCustomEndChange($event)" aria-label="Mes final">
+            <span class="custom-range-sep">até</span>
+            <select [ngModel]="customEndIndex" (ngModelChange)="onCustomEndChange($event)" aria-label="Mês final">
               <option *ngFor="let m of monthSummaries; let i = index" [ngValue]="i" [disabled]="i < customStartIndex">{{ m.title }} {{ m.year }}</option>
             </select>
-            <small class="month-progress">{{ launchMonths.length }} {{ launchMonths.length === 1 ? 'mes' : 'meses' }}</small>
+            <small class="month-progress">{{ launchMonths.length }} {{ launchMonths.length === 1 ? 'mês' : 'meses' }}</small>
           </div>
         </ng-container>
 
         <ng-container *ngIf="viewMode === '12month'">
-          <div class="month-switch" aria-label="Navegacao de 12 meses">
+          <div class="month-switch" aria-label="Navegação de 12 meses">
             <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver ano anterior">←</button>
             <strong>{{ twelveMonthWindowLabel }}</strong>
-            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximo ano">→</button>
+            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver próximo ano">→</button>
           </div>
           <small class="month-progress">12 meses de {{ twelveMonthWindowLabel }}</small>
         </ng-container>
@@ -151,7 +151,7 @@
       </div>
     </header>
 
-    <section class="panel launch-filters" aria-label="Filtros de lancamentos">
+    <section class="panel launch-filters" aria-label="Filtros de lançamentos">
       <div class="launch-filters-search">
         <label class="launch-filters-label" for="launch-filter-query">Buscar</label>
         <input
@@ -159,8 +159,8 @@
           type="search"
           [(ngModel)]="launchFilters.query"
           (ngModelChange)="onLaunchFilterQueryChange()"
-          placeholder="Nome, descricao, cartao ou tag"
-          aria-label="Buscar lancamentos por nome, descricao ou tag"
+          placeholder="Nome, descrição, cartão ou tag"
+          aria-label="Buscar lançamentos por nome, descrição ou tag"
         />
       </div>
 
@@ -212,13 +212,13 @@
           <strong>{{ launchFilterResultCount }}</strong>
           <span>
             {{ launchFilterResultCount === 1 ? 'resultado' : 'resultados' }}
-            em {{ launchFilterMatchedMonthCount }} {{ launchFilterMatchedMonthCount === 1 ? 'mes' : 'meses' }}
+            em {{ launchFilterMatchedMonthCount }} {{ launchFilterMatchedMonthCount === 1 ? 'mês' : 'meses' }}
           </span>
           <button type="button" class="launch-filters-clear" (click)="clearLaunchFilters()">limpar</button>
         </ng-container>
 
         <ng-template #launchFilterIdleState>
-          <span>Filtre por nome ou tag nos lancamentos exibidos.</span>
+          <span>Filtre por nome ou tag nos lançamentos exibidos.</span>
         </ng-template>
       </div>
     </section>
@@ -241,7 +241,7 @@
           <div>
             <p class="eyebrow">
               {{ month.title }} {{ month.year }}
-              <span *ngIf="isCurrentMonth(month)" class="current-chip">mes atual</span>
+              <span *ngIf="isCurrentMonth(month)" class="current-chip">mês atual</span>
             </p>
             <strong *ngIf="viewMode !== '1month'">{{ formatCurrency(month.closingBalance) }}</strong>
             <small *ngIf="viewMode !== '1month' && hasLaunchFilters" class="ledger-filter-summary">
@@ -260,7 +260,7 @@
             <aside
               class="simplified-summary-card"
               [class.simplified-summary-card--mobile-open]="mobileSimplifiedSummaryOpen"
-              aria-label="Resumo do mes"
+              aria-label="Resumo do mês"
             >
               <div class="simplified-summary-top">
                 <div>
@@ -290,7 +290,7 @@
                   <strong class="simplified-entry-value--income">{{ formatCurrency(month.totalIncome) }}</strong>
                 </div>
                 <div class="simplified-summary-row">
-                  <span>Saidas</span>
+                  <span>Saídas</span>
                   <strong class="simplified-entry-value--expense">{{ formatCurrency(month.totalExpenses) }}</strong>
                 </div>
                 <div class="simplified-summary-row">
@@ -298,7 +298,7 @@
                   <strong class="simplified-entry-value--investment">{{ formatCurrency(month.totalInvestments) }}</strong>
                 </div>
                 <div class="simplified-summary-row">
-                  <span>Diario</span>
+                  <span>Diário</span>
                   <strong>{{ formatCurrency(month.totalFixedCosts) }}</strong>
                 </div>
                 <div class="simplified-summary-row">
@@ -306,23 +306,23 @@
                   <strong [ngClass]="getBalanceClass(getMonthPerformance(month))">{{ formatCurrency(getMonthPerformance(month)) }}</strong>
                 </div>
                 <div class="simplified-summary-row">
-                  <span>Media diaria</span>
+                  <span>Média diária</span>
                   <strong [ngClass]="getBalanceClass(getMonthDailyAverage(month))">{{ formatCurrency(getMonthDailyAverage(month)) }}</strong>
                 </div>
                 <div class="simplified-summary-row">
-                  <span>Saida total</span>
+                  <span>Saída total</span>
                   <strong [ngClass]="getMonthOutflowRiskClass(month)">{{ formatCurrency(getMonthTotalOutflow(month)) }}</strong>
                 </div>
                 <div class="simplified-summary-row">
-                  <span>Minimo do mes</span>
+                  <span>Mínimo do mês</span>
                   <strong [ngClass]="getBalanceClass(month.minBalance)">{{ formatCurrency(month.minBalance) }}</strong>
                 </div>
               </div>
             </aside>
 
-            <section class="simplified-launches-card" aria-label="Lancamentos do mes">
+            <section class="simplified-launches-card" aria-label="Lançamentos do mês">
               <header class="simplified-launches-head">
-                <strong>Lancamentos</strong>
+                <strong>Lançamentos</strong>
                 <span>{{ entries.length }} {{ entries.length === 1 ? 'item' : 'itens' }}</span>
               </header>
 
@@ -380,7 +380,7 @@
                           class="simplified-entry-icon-action"
                           (click)="editSimplifiedEntry(entry); $event.stopPropagation()"
                           [disabled]="!entry.event || isDeletingEvent(entry.event.id)"
-                          aria-label="Editar lancamento"
+                          aria-label="Editar lançamento"
                           title="Editar"
                         >
                           ✎
@@ -392,7 +392,7 @@
                           class="simplified-entry-icon-action simplified-entry-icon-action--danger"
                           (click)="deleteSimplifiedEntry(entry); $event.stopPropagation()"
                           [disabled]="!entry.event || isDeletingEvent(entry.event.id)"
-                          aria-label="Excluir lancamento"
+                          aria-label="Excluir lançamento"
                           title="Excluir"
                         >
                           {{ entry.event && isDeletingEvent(entry.event.id) ? '...' : '×' }}
@@ -403,8 +403,8 @@
                           type="button"
                           class="simplified-entry-icon-action simplified-entry-icon-action--primary"
                           (click)="openCardForecastMonth(entry); $event.stopPropagation()"
-                          [attr.aria-label]="'Abrir fatura de ' + entry.title + ' em cartoes'"
-                          [title]="'Abrir cartao'"
+                          [attr.aria-label]="'Abrir fatura de ' + entry.title + ' em cartões'"
+                          [title]="'Abrir cartão'"
                         >
                           💳
                         </button>
@@ -417,7 +417,7 @@
                           class="simplified-entry-menu-button"
                           (click)="toggleSimplifiedEntryMenu(entry); $event.stopPropagation()"
                           [attr.aria-expanded]="openSimplifiedEntryMenuKey === entry.key"
-                          aria-label="Abrir menu de acoes"
+                          aria-label="Abrir menu de ações"
                         >
                           ⋮
                         </button>
@@ -458,7 +458,7 @@
                             class="simplified-entry-menu-item"
                             (click)="openCardForecastMonth(entry); closeSimplifiedEntryMenus()"
                           >
-                            Abrir cartao
+                            Abrir cartão
                           </button>
                         </div>
                       </div>
@@ -469,8 +469,8 @@
 
               <ng-template #simplifiedMonthEmpty>
                 <div class="simplified-empty">
-                  <strong>{{ hasLaunchFilters ? 'Nenhum lancamento bateu com o filtro' : 'Sem lancamentos visiveis neste mes' }}</strong>
-                  <p>{{ hasLaunchFilters ? 'Tente outro nome ou remova algumas tags para ampliar a busca.' : 'Entradas, saidas, investimentos e faturas previstas aparecerao aqui em ordem de data.' }}</p>
+                  <strong>{{ hasLaunchFilters ? 'Nenhum lançamento bateu com o filtro' : 'Sem lançamentos visiveis neste mês' }}</strong>
+                  <p>{{ hasLaunchFilters ? 'Tente outro nome ou remova algumas tags para ampliar a busca.' : 'Entradas, saídas, investimentos e faturas previstas aparecerao aqui em ordem de data.' }}</p>
                 </div>
               </ng-template>
             </section>
@@ -483,9 +483,9 @@
           <div class="ledger-row ledger-row--head">
             <span>dia</span>
             <span>entrada</span>
-            <span>saida</span>
+            <span>saída</span>
             <span>investido</span>
-            <span>diario</span>
+            <span>diário</span>
             <span>saldo</span>
           </div>
 
@@ -518,7 +518,7 @@
               </button>
 
               <details class="day-notes" *ngIf="getDayDetailCount(day) > 0" (toggle)="onDayNotesToggle($event)">
-                <summary aria-label="Ver lancamentos do dia">
+                <summary aria-label="Ver lançamentos do dia">
                   <span class="ledger-note-count" [class.ledger-note-count--paid]="isDayFullyPaid(day)">
                     <ng-container *ngIf="isDayFullyPaid(day) && day.cardInvoiceForecasts.length === 0; else noteCountValue">
                       <svg class="ledger-note-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -561,7 +561,7 @@
                           class="day-event-quick-action day-event-quick-action--paid"
                           (click)="toggleEventPaid(month.key, event)"
                           [disabled]="isPayingEvent(event.id) || isDeletingEvent(event.id)"
-                          [attr.aria-label]="isEventPaid(event) ? 'Lancamento pago' : 'Marcar lancamento como pago'"
+                          [attr.aria-label]="isEventPaid(event) ? 'Lançamento pago' : 'Marcar lançamento como pago'"
                           [title]="isEventPaid(event) ? 'Pago' : 'Marcar pago'"
                         >
                           {{ isPayingEvent(event.id) ? '...' : (isEventPaid(event) ? '✓' : '○') }}
@@ -572,7 +572,7 @@
                           class="day-event-quick-action"
                           (click)="openEventActionPrompt('edit', month.key, event)"
                           [disabled]="isDeletingEvent(event.id)"
-                          aria-label="Editar lancamento"
+                          aria-label="Editar lançamento"
                           title="Editar"
                         >
                           ✎
@@ -583,7 +583,7 @@
                           class="day-event-quick-action day-event-quick-action--danger"
                           (click)="openEventActionPrompt('delete', month.key, event)"
                           [disabled]="isDeletingEvent(event.id)"
-                          aria-label="Excluir lancamento"
+                          aria-label="Excluir lançamento"
                           title="Excluir"
                         >
                           {{ isDeletingEvent(event.id) ? '...' : '×' }}
@@ -597,7 +597,7 @@
                       [class.event-item--paid]="forecast.isPaid"
                     >
                       <span class="day-event-main">
-                        <span class="day-event-type-dot day-event-type-dot--card" title="Cartao"></span>
+                        <span class="day-event-type-dot day-event-type-dot--card" title="Cartão"></span>
                         <span class="day-event-content">
                           <span class="day-event-description">{{ getCardInvoiceForecastLabel(forecast) }}</span>
                         </span>
@@ -609,7 +609,7 @@
                           type="button"
                           [disabled]="forecast.isPaid || isPayingInvoice(forecast.cardId, month.year, month.monthNumber)"
                           (click)="payCardInvoiceForecast(forecast.cardId, month.year, month.monthNumber)"
-                          [title]="forecast.isPaid ? 'Fatura ja paga' : 'Marcar fatura como paga'"
+                          [title]="forecast.isPaid ? 'Fatura já paga' : 'Marcar fatura como paga'"
                         >{{ isPayingInvoice(forecast.cardId, month.year, month.monthNumber) ? '...' : (forecast.isPaid ? 'Pago' : 'Pagar') }}</button>
                       </span>
                     </li>
@@ -628,18 +628,18 @@
 
         <ng-template #detailedMonthEmpty>
           <div class="ledger-filter-empty" *ngIf="hasLaunchFilters">
-            <strong>Nenhum lancamento encontrado</strong>
-            <p>Esse mes nao teve itens que combinam com o filtro atual.</p>
+            <strong>Nenhum lançamento encontrado</strong>
+            <p>Esse mês não teve itens que combinam com o filtro atual.</p>
           </div>
         </ng-template>
         </ng-template>
 
-        <div class="ledger-footer" aria-label="Resumo do mes" *ngIf="viewMode !== '1month'">
+        <div class="ledger-footer" aria-label="Resumo do mês" *ngIf="viewMode !== '1month'">
           <article class="ledger-footer-item">
             <span
               class="ledger-footer-label"
               tabindex="0"
-              data-tooltip="A performance e a diferenca entre quanto entrou e quanto saiu (entradas - saidas - investimentos - diario)."
+              data-tooltip="A performance e a diferença entre quanto entrou e quanto saiu (entradas - saídas - investimentos - diário)."
             >
               performance
             </span>
@@ -652,9 +652,9 @@
             <span
               class="ledger-footer-label"
               tabindex="0"
-              data-tooltip="Aqui e a media de gasto diario do mes. Se a media for maior que o definido em meta, ficara vermelho. Se estiver dentro do estipulado, ficara verde."
+              data-tooltip="Aqui e a média de gasto diário do mês. Se a média for maior que o definido em meta, ficara vermelho. Se estiver dentro do estipulado, ficara verde."
             >
-              media diaria
+              média diária
             </span>
             <strong [ngClass]="getBalanceClass(getMonthDailyAverage(month))">
               {{ formatCurrency(getMonthDailyAverage(month)) }}
@@ -665,9 +665,9 @@
             <span
               class="ledger-footer-label"
               tabindex="0"
-              data-tooltip="Saidas + investimentos + diario. Verde quando compromete pouco da entrada, amarelo quando compromete quase tudo, vermelho quando ultrapassa o que entrou no mes."
+              data-tooltip="Saídas + investimentos + diário. Verde quando compromete pouco da entrada, amarelo quando compromete quase tudo, vermelho quando ultrapassa o que entrou no mês."
             >
-              saida total
+              saída total
             </span>
             <strong [ngClass]="getMonthOutflowRiskClass(month)">{{ formatCurrency(getMonthTotalOutflow(month)) }}</strong>
           </article>
@@ -676,9 +676,9 @@
             <span
               class="ledger-footer-label"
               tabindex="0"
-              data-tooltip="Aqui voce vera o menor valor na planilha esse mes."
+              data-tooltip="Aqui você vera o menor valor na planilha esse mês."
             >
-              minimo do mes
+              mínimo do mês
             </span>
             <strong [ngClass]="getBalanceClass(month.minBalance)">{{ formatCurrency(month.minBalance) }}</strong>
           </article>
@@ -767,7 +767,7 @@
             [class.event-item--paid]="forecast.isPaid"
           >
             <span class="day-event-main">
-              <span class="day-event-type-dot day-event-type-dot--card" title="Cartao"></span>
+              <span class="day-event-type-dot day-event-type-dot--card" title="Cartão"></span>
               <span class="day-event-description">{{ getCardInvoiceForecastLabel(forecast) }}</span>
             </span>
             <span class="day-event-actions">
@@ -777,7 +777,7 @@
                 type="button"
                 [disabled]="forecast.isPaid || isPayingInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
                 (click)="payCardInvoiceForecast(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
-                [title]="forecast.isPaid ? 'Fatura ja paga' : 'Marcar fatura como paga'"
+                [title]="forecast.isPaid ? 'Fatura já paga' : 'Marcar fatura como paga'"
               >{{ isPayingInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber) ? '...' : (forecast.isPaid ? 'Pago' : 'Pagar') }}</button>
             </span>
           </li>
@@ -789,8 +789,8 @@
   <section *ngIf="activeTab === 'dashboard'" class="dashboard-view">
     <section class="panel budgets-panel">
       <app-budgets-summary
-        title="Metas do periodo"
-        emptyStateMessage="Voce ainda nao cadastrou metas. Va em Configuracoes para definir tetos por tag, cartao ou geral."
+        title="Metas do período"
+        emptyStateMessage="Você ainda não cadastrou metas. Va em Configurações para definir tetos por tag, cartão ou geral."
       ></app-budgets-summary>
     </section>
 
@@ -798,8 +798,8 @@
       <header class="forecast-head">
         <div>
           <p class="eyebrow">previsibilidade</p>
-          <h2>Previsao de saldo</h2>
-          <p class="section-text">Consulte o saldo projetado para qualquer dia do horizonte e veja os pontos de atencao.</p>
+          <h2>Previsão de saldo</h2>
+          <p class="section-text">Consulte o saldo projetado para qualquer dia do horizonte e veja os pontos de atenção.</p>
         </div>
         <label class="forecast-date-field">
           <span>Data alvo</span>
@@ -867,7 +867,7 @@
           <p class="eyebrow">janela trimestral</p>
           <h2>{{ visibleWindow.label }}</h2>
           <p class="section-text">
-            Resumo dos proximos 3 meses com os totais principais: entrada, saida, investimentos, custos fixos e saldo final.
+            Resumo dos próximos 3 meses com os totais principais: entrada, saída, investimentos, custos fixos e saldo final.
           </p>
         </div>
 
@@ -875,7 +875,7 @@
           <button class="nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver 3 meses anteriores">
             ←
           </button>
-          <button class="nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver proximos 3 meses">
+          <button class="nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver próximos 3 meses">
             →
           </button>
         </div>
@@ -886,7 +886,7 @@
           <span
             class="dashboard-field-label"
             tabindex="0"
-            data-tooltip="Saldo no inicio do primeiro mes da janela (saldo de abertura)."
+            data-tooltip="Saldo no início do primeiro mês da janela (saldo de abertura)."
           >saldo inicial</span>
           <strong>{{ formatCurrency(visibleWindow.openingBalance) }}</strong>
         </article>
@@ -895,7 +895,7 @@
             class="dashboard-field-label"
             tabindex="0"
             data-tooltip="Soma de todas as entradas dos 3 meses exibidos nesta janela."
-          >entrada (periodo)</span>
+          >entrada (período)</span>
           <strong>{{ formatCurrency(visibleWindow.totalIncome) }}</strong>
         </article>
         <article class="window-pill">
@@ -903,30 +903,30 @@
             class="dashboard-field-label"
             tabindex="0"
             data-tooltip="Soma das despesas dos 3 meses exibidos nesta janela."
-          >saida (periodo)</span>
+          >saída (período)</span>
           <strong>{{ formatCurrency(visibleWindow.totalExpenses) }}</strong>
         </article>
         <article class="window-pill">
           <span
             class="dashboard-field-label"
             tabindex="0"
-            data-tooltip="Soma dos lancamentos marcados como investimento nos 3 meses da janela."
-          >investimentos (periodo)</span>
+            data-tooltip="Soma dos lançamentos marcados como investimento nos 3 meses da janela."
+          >investimentos (período)</span>
           <strong>{{ formatCurrency(visibleWindow.totalInvestments) }}</strong>
         </article>
         <article class="window-pill">
           <span
             class="dashboard-field-label"
             tabindex="0"
-            data-tooltip="Total de custos diarios recorrentes (tipo diario) acumulados no periodo."
-          >custos fixos (periodo)</span>
+            data-tooltip="Total de custos diários recorrentes (tipo diário) acumulados no período."
+          >custos fixos (período)</span>
           <strong>{{ formatCurrency(visibleWindow.totalFixedCosts) }}</strong>
         </article>
         <article class="window-pill emphasis-soft">
           <span
             class="dashboard-field-label"
             tabindex="0"
-            data-tooltip="Saldo projetado no fim do ultimo mes da janela."
+            data-tooltip="Saldo projetado no fim do último mês da janela."
           >saldo final</span>
           <strong>{{ formatCurrency(visibleWindow.closingBalance) }}</strong>
         </article>
@@ -957,14 +957,14 @@
               <span class="month-bar-day">{{ point.day }}</span>
             </div>
           </div>
-          <small class="month-chart-caption">Saldo projetado em dias-chave do mes</small>
+          <small class="month-chart-caption">Saldo projetado em dias-chave do mês</small>
 
           <div class="month-stats">
             <div>
               <span
                 class="dashboard-field-label"
                 tabindex="0"
-                data-tooltip="Saldo no inicio deste mes."
+                data-tooltip="Saldo no início deste mês."
               >Saldo inicial</span>
               <strong>{{ formatCurrency(month.openingBalance) }}</strong>
             </div>
@@ -972,7 +972,7 @@
               <span
                 class="dashboard-field-label"
                 tabindex="0"
-                data-tooltip="Total de entradas deste mes."
+                data-tooltip="Total de entradas deste mês."
               >Entrada</span>
               <strong>{{ formatCurrency(month.totalIncome) }}</strong>
             </div>
@@ -980,15 +980,15 @@
               <span
                 class="dashboard-field-label"
                 tabindex="0"
-                data-tooltip="Total de despesas deste mes."
-              >Saida</span>
+                data-tooltip="Total de despesas deste mês."
+              >Saída</span>
               <strong>{{ formatCurrency(month.totalExpenses) }}</strong>
             </div>
             <div>
               <span
                 class="dashboard-field-label"
                 tabindex="0"
-                data-tooltip="Total investido neste mes."
+                data-tooltip="Total investido neste mês."
               >Investimentos</span>
               <strong>{{ formatCurrency(month.totalInvestments) }}</strong>
             </div>
@@ -996,7 +996,7 @@
               <span
                 class="dashboard-field-label"
                 tabindex="0"
-                data-tooltip="Custo diario recorrente acumulado no mes (lancamentos do tipo diario)."
+                data-tooltip="Custo diário recorrente acumulado no mês (lançamentos do tipo diário)."
               >Custos fixos</span>
               <strong>{{ formatCurrency(month.totalFixedCosts) }}</strong>
             </div>
@@ -1004,8 +1004,8 @@
               <span
                 class="dashboard-field-label"
                 tabindex="0"
-                data-tooltip="Menor saldo projetado atingido durante este mes."
-              >Piso do mes</span>
+                data-tooltip="Menor saldo projetado atingido durante este mês."
+              >Piso do mês</span>
               <strong>{{ formatCurrency(month.minBalance) }}</strong>
             </div>
           </div>
@@ -1018,14 +1018,14 @@
         <div class="section-head compact">
           <div>
             <p class="eyebrow">dados funcionais</p>
-            <h2>Resumo rapido do periodo</h2>
+            <h2>Resumo rápido do período</h2>
           </div>
         </div>
 
         <section class="dashboard-functional-card">
           <div class="dashboard-functional-head">
-            <h3>Cartoes de credito</h3>
-            <small>Resumo da fatura atual por cartao</small>
+            <h3>Cartões de credito</h3>
+            <small>Resumo da fatura atual por cartão</small>
           </div>
 
           <div class="dashboard-cards-list" *ngIf="dashboardCardSummaries.length; else noCardsSummary">
@@ -1046,14 +1046,14 @@
           </div>
 
           <ng-template #noCardsSummary>
-            <p class="dashboard-empty">Sem cartoes cadastrados.</p>
+            <p class="dashboard-empty">Sem cartões cadastrados.</p>
           </ng-template>
         </section>
 
         <section class="dashboard-functional-card">
           <div class="dashboard-functional-head">
             <h3>Despesas por categoria</h3>
-            <small>Com base nas saidas dos meses exibidos</small>
+            <small>Com base nas saídas dos meses exibidos</small>
           </div>
 
           <div class="dashboard-expense-wrap" *ngIf="dashboardExpenseTotal > 0; else noExpensesSummary">
@@ -1087,18 +1087,18 @@
       <article class="panel">
         <div class="section-head compact">
           <div>
-            <p class="eyebrow">ritmo diario</p>
+            <p class="eyebrow">ritmo diário</p>
             <h2>{{ focusMonth.title }} {{ focusMonth.year }} em detalhe</h2>
           </div>
 
           <p class="section-text">
-            Visao diaria do mes para entender como cada dia afeta o saldo.
+            Visao diária do mês para entender como cada dia afeta o saldo.
           </p>
         </div>
 
         <div class="legend">
           <span><i class="dot healthy"></i> conforto</span>
-          <span><i class="dot warning"></i> atencao</span>
+          <span><i class="dot warning"></i> atenção</span>
           <span><i class="dot negative"></i> pressao</span>
         </div>
 
@@ -1114,12 +1114,12 @@
             <div class="projection-main">
               <div class="projection-values">
                 <span class="income" *ngIf="day.income">Entrada {{ formatCurrency(day.income) }}</span>
-                <span class="expense" *ngIf="day.expense">Saida {{ formatCurrency(day.expense) }}</span>
+                <span class="expense" *ngIf="day.expense">Saída {{ formatCurrency(day.expense) }}</span>
                 <span class="investment" *ngIf="day.investment">Investimentos {{ formatCurrency(day.investment) }}</span>
                 <span class="fixed">Custos fixos {{ formatCurrency(day.fixedCost) }}</span>
               </div>
 
-              <small>{{ day.notes.length ? day.notes.join(' • ') : 'Sem lancamentos neste dia, apenas custos fixos.' }}</small>
+              <small>{{ day.notes.length ? day.notes.join(' • ') : 'Sem lançamentos neste dia, apenas custos fixos.' }}</small>
             </div>
 
             <div class="projection-balance">
@@ -1133,32 +1133,32 @@
   </section>
 
   <div class="fab-menu" [class.fab-menu--open]="isFabMenuOpen" (mouseenter)="openFabMenu()" (mouseleave)="closeFabMenu()">
-    <div class="fab-menu-actions" aria-label="Acoes de adicao">
+    <div class="fab-menu-actions" aria-label="Ações de adição">
       <button class="fab-action-button" type="button" (click)="openLaunchForm()">
         <svg class="fab-action-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M6 7h8M6 10h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        Lancamento
+        Lançamento
       </button>
       <button class="fab-action-button" type="button" (click)="openDailyForm()">
         <svg class="fab-action-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 8h14" stroke="currentColor" stroke-width="1.6"/><path d="M7 2v3M13 2v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        Diario
+        Diário
       </button>
       <button class="fab-action-button" type="button" (click)="openCardLaunchForm()">
         <svg class="fab-action-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2 8h16" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="12" width="4" height="2" rx="0.5" fill="currentColor"/></svg>
-        Despesa cartao
+        Despesa cartão
       </button>
     </div>
 
-    <button class="fab-launch" type="button" aria-label="Abrir opcoes de adicao" (click)="toggleFabMenu()">+</button>
+    <button class="fab-launch" type="button" aria-label="Abrir opções de adição" (click)="toggleFabMenu()">+</button>
   </div>
 
-  <div class="series-action-modal" *ngIf="pendingEventAction" role="dialog" aria-modal="true" aria-label="Escolher escopo da acao">
+  <div class="series-action-modal" *ngIf="pendingEventAction" role="dialog" aria-modal="true" aria-label="Escolher escopo da ação">
     <div class="launch-backdrop" (click)="closeEventActionPrompt()"></div>
 
     <div
       class="series-action-card panel"
       [class.series-action-card--danger]="pendingEventAction.type === 'delete'"
     >
-      <span class="series-action-badge" *ngIf="pendingEventAction.type === 'delete'">Atencao</span>
+      <span class="series-action-badge" *ngIf="pendingEventAction.type === 'delete'">Atenção</span>
       <h3>{{ seriesActionTitle }}</h3>
       <p>{{ seriesActionDescription }}</p>
 
@@ -1188,15 +1188,15 @@
           class="series-action-option"
           (click)="confirmEventActionScope('single')"
         >
-          <strong>Apenas este {{ pendingEventAction.event.type === 'daily' ? 'diario' : 'lancamento' }}</strong>
-          <span>Nao afeta os demais itens da serie.</span>
+          <strong>Apenas este {{ pendingEventAction.event.type === 'daily' ? 'diário' : 'lançamento' }}</strong>
+          <span>Não afeta os demais itens da serie.</span>
         </button>
         <button
           type="button"
           class="series-action-option"
           (click)="confirmEventActionScope('forward')"
         >
-          <strong>Este e os proximos</strong>
+          <strong>Este e os próximos</strong>
           <span>Aplica a partir deste em diante na serie.</span>
         </button>
         <button
@@ -1215,11 +1215,11 @@
     </div>
   </div>
 
-  <div class="series-action-modal" *ngIf="pendingDeleteConfirmation" role="dialog" aria-modal="true" aria-label="Confirmar exclusao">
+  <div class="series-action-modal" *ngIf="pendingDeleteConfirmation" role="dialog" aria-modal="true" aria-label="Confirmar exclusão">
     <div class="launch-backdrop" (click)="closeDeleteConfirmation()"></div>
 
     <div class="series-action-card series-action-card--danger panel">
-      <span class="series-action-badge">Atencao</span>
+      <span class="series-action-badge">Atenção</span>
       <h3>{{ deleteConfirmationTitle }}</h3>
       <p>{{ deleteConfirmationDescription }}</p>
 
@@ -1248,7 +1248,7 @@
     </div>
   </div>
 
-  <div class="launch-modal" *ngIf="isLaunchFormOpen" role="dialog" aria-modal="true" aria-label="Formulario de lancamento">
+  <div class="launch-modal" *ngIf="isLaunchFormOpen" role="dialog" aria-modal="true" aria-label="Formulario de lançamento">
     <div class="launch-backdrop" (click)="closeLaunchForm()"></div>
 
     <form class="launch-card" (ngSubmit)="submitLaunchForm()">
@@ -1351,14 +1351,14 @@
       </div>
 
       <label *ngIf="supportsRecurrence && !isEditingSingleLaunch">
-        Tipo de recorrencia
+        Tipo de recorrência
         <select name="launchRecurrenceKind" [(ngModel)]="launchForm.recurrenceKind" (ngModelChange)="onRecurrenceKindChange($event)">
           <option *ngFor="let option of recurrenceKindOptions" [value]="option.value">{{ option.label }}</option>
         </select>
       </label>
 
       <label *ngIf="showRecurrenceFrequencyField && !isEditingSingleLaunch">
-        Frequencia
+        Frequência
         <select name="launchRepeatMode" [(ngModel)]="launchForm.repeatMode" (ngModelChange)="onRepeatModeChange($event)">
           <option *ngFor="let option of repeatModeOptions" [value]="option.value">{{ option.label }}</option>
         </select>
@@ -1379,7 +1379,7 @@
             <strong>{{ formatCurrency(advice.beforeBalance) }}</strong>
           </span>
           <span class="launch-advice-metric">
-            <small>{{ advice.launchLabel || 'Lancamento' }}</small>
+            <small>{{ advice.launchLabel || 'Lançamento' }}</small>
             <strong [ngClass]="advice.launchDelta >= 0 ? 'launch-advice-metric-value--positive' : 'launch-advice-metric-value--negative'">
               {{ advice.launchDelta >= 0 ? '+' : '' }}{{ formatCurrency(advice.launchDelta) }}
             </strong>
@@ -1391,7 +1391,7 @@
         </div>
         <small>{{ advice.detail }}</small>
       </div>
-      <p class="launch-help">Para tipo Diario, o valor atualiza o custo diario do mes selecionado pela data.</p>
+      <p class="launch-help">Para tipo Diário, o valor atualiza o custo diário do mês selecionado pela data.</p>
       <p class="launch-error" *ngIf="launchError">{{ launchError }}</p>
 
       </div><!-- /.launch-body -->
@@ -1404,27 +1404,27 @@
           type="button"
           (click)="submitLaunchFormAndAddAnother()"
           [disabled]="isSavingLaunch"
-          aria-label="Salvar e abrir novo lancamento"
+          aria-label="Salvar e abrir novo lançamento"
           title="Salvar e abrir novo"
         >+</button>
-        <button class="btn-primary" type="submit" [disabled]="isSavingLaunch">{{ isSavingLaunch ? 'Salvando...' : (isEditingLaunch ? 'Salvar alteracoes' : 'Salvar lancamento') }}</button>
+        <button class="btn-primary" type="submit" [disabled]="isSavingLaunch">{{ isSavingLaunch ? 'Salvando...' : (isEditingLaunch ? 'Salvar alteracoes' : 'Salvar lançamento') }}</button>
       </footer>
     </form>
   </div>
 
-  <div class="launch-modal" *ngIf="isDailyFormOpen" role="dialog" aria-modal="true" aria-label="Formulario de diario">
+  <div class="launch-modal" *ngIf="isDailyFormOpen" role="dialog" aria-modal="true" aria-label="Formulario de diário">
     <div class="launch-backdrop" (click)="closeDailyForm()"></div>
 
     <form class="launch-card daily-card" (ngSubmit)="submitDailyForm()">
       <header class="launch-head">
         <h3>{{ dailyModalTitle }}</h3>
-        <button class="close-launch" type="button" (click)="closeDailyForm()" aria-label="Fechar formulario de diario">×</button>
+        <button class="close-launch" type="button" (click)="closeDailyForm()" aria-label="Fechar formulario de diário">×</button>
       </header>
 
       <div class="launch-body">
 
       <label>
-        Valor do diario
+        Valor do diário
         <input type="text" name="dailyAmount" [ngModel]="dailyAmountInput" (ngModelChange)="onDailyAmountInputChange($event)" inputmode="numeric" autocomplete="off" placeholder="0,00" />
       </label>
 
@@ -1434,7 +1434,7 @@
       </label>
 
       <label *ngIf="!isEditingSingleLaunch">
-        Repeticao
+        Repetição
         <select name="dailyRepeatMode" [(ngModel)]="dailyForm.repeatMode" (ngModelChange)="onDailyRepeatModeChange($event)">
           <option *ngFor="let option of dailyRepeatModeOptions" [value]="option.value">{{ option.label }}</option>
         </select>
@@ -1453,14 +1453,14 @@
       </label>
 
       <p class="launch-preview" *ngIf="recurrencePreviewText">{{ recurrencePreviewText }}</p>
-      <p class="launch-help">O valor do diario passa a valer a partir da data escolhida. Se houver repeticao, cada ocorrencia cria um novo ponto de inicio para esse valor.</p>
+      <p class="launch-help">O valor do diário passa a valer a partir da data escolhida. Se houver repetição, cada ocorrencia cria um novo ponto de início para esse valor.</p>
       <p class="launch-error" *ngIf="dailyError">{{ dailyError }}</p>
 
       </div><!-- /.launch-body -->
 
       <footer class="launch-actions">
         <button class="btn-light" type="button" (click)="closeDailyForm()" [disabled]="isSavingLaunch">Cancelar</button>
-        <button class="btn-primary" type="submit" [disabled]="isSavingLaunch">{{ isSavingLaunch ? 'Salvando...' : (isEditingLaunch ? 'Salvar diario' : 'Criar diario') }}</button>
+        <button class="btn-primary" type="submit" [disabled]="isSavingLaunch">{{ isSavingLaunch ? 'Salvando...' : (isEditingLaunch ? 'Salvar diário' : 'Criar diário') }}</button>
       </footer>
     </form>
   </div>
@@ -1497,7 +1497,7 @@
           <span class="onboarding-counter">{{ onboardingStep + 1 }} de {{ onboardingSteps.length }}</span>
           <button class="btn-light" type="button" (click)="prevOnboardingStep()" [disabled]="onboardingStep === 0">← Voltar</button>
           <button class="btn-primary" type="button" (click)="nextOnboardingStep()">
-            {{ onboardingStep === onboardingSteps.length - 1 ? 'Vamos la! 🚀' : 'Proximo →' }}
+            {{ onboardingStep === onboardingSteps.length - 1 ? 'Vamos la! 🚀' : 'Próximo →' }}
           </button>
         </div>
       </div>

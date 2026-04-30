@@ -98,7 +98,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   private redirectToCurrentMonthAfterSave = false;
   private openLaunchAfterCardCreate = false;
 
-  readonly cardTypeOptions = ['Cartao de Credito'];
+  readonly cardTypeOptions = ['Cartão de Credito'];
   private readonly tagPalette = ['#1168d9', '#0f9f78', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#4d7c0f', '#be185d'];
   private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -372,7 +372,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       case 'danger':
         return 'No limite';
       case 'warn':
-        return 'Em atencao';
+        return 'Em atenção';
       default:
         return 'Confortavel';
     }
@@ -395,13 +395,13 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       return 'Salvando...';
     }
 
-    return this.isEditingLaunch ? 'Salvar alteracoes' : 'Salvar';
+    return this.isEditingLaunch ? 'Salvar alterações' : 'Salvar';
   }
 
   get launchPreviewText(): string {
     const selectedInvoiceMonth = this.parseInvoiceMonthRef(this.launchForm.invoiceMonthRef);
     if (!selectedInvoiceMonth) {
-      return 'Selecione o mes da fatura para ver onde o lancamento sera registrado.';
+      return 'Selecione o mês da fatura para ver onde o lançamento será registrado.';
     }
 
     const invoiceLabel = this.formatInvoiceMonthLabel(selectedInvoiceMonth);
@@ -409,7 +409,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     const amountLabel = this.formatCurrency(amount);
 
     if (!this.selectedCard) {
-      return `O lancamento sera registrado na fatura de ${invoiceLabel}.`;
+      return `O lançamento será registrado na fatura de ${invoiceLabel}.`;
     }
 
     const baseDate = this.launchForm.date || this.getTodayInputDate();
@@ -419,7 +419,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     const closingDate = this.formatDate(this.getClosingDateForInvoiceMonth(selectedInvoiceMonth, this.selectedCard));
     const dueDate = this.formatDate(this.getDueDateForInvoiceMonth(selectedInvoiceMonth, this.selectedCard));
     const adjustedText = dateAdjusted
-      ? ` A data base sera ajustada para ${normalizedDateLabel} para cair nesse ciclo.`
+      ? ` A data base será ajustada para ${normalizedDateLabel} para cair nesse ciclo.`
       : '';
 
     if (!this.isEditingLaunch && this.launchForm.repeatMode === 'installment') {
@@ -427,19 +427,19 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       const finalInvoiceMonth = this.shiftInvoiceMonth(selectedInvoiceMonth, installments - 1);
       const finalLabel = this.formatInvoiceMonthLabel(finalInvoiceMonth);
 
-      return `Vai criar ${installments} parcelas de ${amountLabel} cada, da fatura ${invoiceLabel} ate ${finalLabel}. O valor inserido ja e o valor de cada parcela. Primeira fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
+      return `Vai criar ${installments} parcelas de ${amountLabel} cada, da fatura ${invoiceLabel} até ${finalLabel}. O valor inserido já e o valor de cada parcela. Primeira fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
     }
 
     if (this.launchForm.repeatMode === 'fixed') {
-      return `Lancamento fixo de ${amountLabel}, iniciando na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
+      return `Lançamento fixo de ${amountLabel}, iniciando na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
     }
 
-    return `Vai criar 1 lancamento de ${amountLabel} na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
+    return `Vai criar 1 lançamento de ${amountLabel} na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
   }
 
   get editScopeTitle(): string {
     if (!this.pendingEditLaunch) {
-      return 'Editar lancamento';
+      return 'Editar lançamento';
     }
     return `Editar "${this.describeCardLaunch(this.pendingEditLaunch)}"`;
   }
@@ -448,12 +448,12 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     if (!this.pendingEditLaunch) {
       return '';
     }
-    return 'Esse lancamento faz parte de uma repeticao. Escolha quais deseja editar.';
+    return 'Esse lançamento faz parte de uma repetição. Escolha quais deseja editar.';
   }
 
   get deleteScopeTitle(): string {
     if (!this.pendingDeleteLaunch) {
-      return 'Excluir lancamento';
+      return 'Excluir lançamento';
     }
 
     return `Excluir "${this.describeCardLaunch(this.pendingDeleteLaunch)}"`;
@@ -465,10 +465,10 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     }
 
     if (!this.pendingDeleteHasRecurringOptions) {
-      return 'Essa acao nao pode ser desfeita.';
+      return 'Essa ação não pode ser desfeita.';
     }
 
-    return 'Esse lancamento faz parte de uma repeticao. Escolha o que deseja excluir.';
+    return 'Esse lançamento faz parte de uma repetição. Escolha o que deseja excluir.';
   }
 
   get showInstallmentCountField(): boolean {
@@ -476,12 +476,12 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   }
 
   get modalTitle(): string {
-    return this.isEditMode ? 'Editar cartao' : 'Novo cartao de credito';
+    return this.isEditMode ? 'Editar cartão' : 'Novo cartão de credito';
   }
 
   get deleteCardTitle(): string {
     if (!this.pendingDeleteCard) {
-      return 'Excluir cartao';
+      return 'Excluir cartão';
     }
 
     return `Excluir "${this.pendingDeleteCard.name}"`;
@@ -494,10 +494,10 @@ export class CardsTabComponent implements OnInit, OnDestroy {
 
     const relatedLaunches = this.launches.filter((launch) => String(launch.cardId) === String(this.pendingDeleteCard?.id)).length;
     if (!relatedLaunches) {
-      return 'Esse cartao sera removido permanentemente. Essa acao nao pode ser desfeita.';
+      return 'Esse cartão será removido permanentemente. Essa ação não pode ser desfeita.';
     }
 
-    return `Esse cartao sera removido junto com ${relatedLaunches} ${relatedLaunches === 1 ? 'lancamento relacionado' : 'lancamentos relacionados'}. Essa acao nao pode ser desfeita.`;
+    return `Esse cartão será removido junto com ${relatedLaunches} ${relatedLaunches === 1 ? 'lancamento relacionado' : 'lancamentos relacionados'}. Essa ação não pode ser desfeita.`;
   }
 
   get isCurrentInvoiceMonth(): boolean {
@@ -567,7 +567,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.isClosingInvoice = false;
-        this.launchError = 'Nao foi possivel fechar a fatura. Tente novamente.';
+        this.launchError = 'Não foi possivel fechar a fatura. Tente novamente.';
       }
     });
   }
@@ -613,7 +613,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   }
 
   describeCardLaunch(launch: CardLaunch): string {
-    return launch.description?.trim() || 'Despesa sem descricao';
+    return launch.description?.trim() || 'Despesa sem descrição';
   }
 
   getCardLaunchTags(launch: CardLaunch): string[] {
@@ -694,7 +694,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       },
       error: () => {
-        this.cardError = 'Nao foi possivel carregar os cartoes. Verifique o backend.';
+        this.cardError = 'Não foi possivel carregar os cartões. Verifique o backend.';
         this.isLoading = false;
       }
     });
@@ -711,7 +711,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
         this.scrollToFirstLaunchDay();
       },
       error: () => {
-        this.launchError = 'Nao foi possivel carregar os lancamentos do cartao.';
+        this.launchError = 'Não foi possivel carregar os lançamentos do cartão.';
       }
     });
   }
@@ -784,7 +784,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
 
     if (this.cards.length === 0) {
       this.openLaunchAfterCardCreate = true;
-      this.cardError = 'Cadastre um cartao antes de lancar uma despesa.';
+      this.cardError = 'Cadastre um cartão antes de lançar uma despesa.';
       this.openCardModal();
       return;
     }
@@ -861,7 +861,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
 
   submitLaunchForm(): void {
     if (!this.selectedCardId) {
-      this.launchError = 'Selecione um cartao para lancar a despesa.';
+      this.launchError = 'Selecione um cartão para lançar a despesa.';
       return;
     }
 
@@ -928,7 +928,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
           this.scrollToFirstLaunchDay();
         },
         error: () => {
-          this.launchError = 'Erro ao salvar lancamento. Tente novamente.';
+          this.launchError = 'Erro ao salvar lançamento. Tente novamente.';
           this.isSavingLaunch = false;
         }
       });
@@ -978,7 +978,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
           this.scrollToFirstLaunchDay();
         },
         error: () => {
-          this.launchError = 'Erro ao salvar lancamento. Tente novamente.';
+          this.launchError = 'Erro ao salvar lançamento. Tente novamente.';
           this.isSavingLaunch = false;
         }
       });
@@ -1011,7 +1011,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
         this.scrollToFirstLaunchDay();
       },
       error: () => {
-        this.launchError = 'Erro ao salvar lancamento. Tente novamente.';
+        this.launchError = 'Erro ao salvar lançamento. Tente novamente.';
         this.isSavingLaunch = false;
       }
     });
@@ -1142,13 +1142,13 @@ export class CardsTabComponent implements OnInit, OnDestroy {
           },
           error: () => {
             this.isDeletingCard = false;
-            this.cardError = 'Erro ao excluir cartao. Tente novamente.';
+            this.cardError = 'Erro ao excluir cartão. Tente novamente.';
           }
         });
       },
       error: () => {
         this.isDeletingCard = false;
-        this.cardError = 'Erro ao excluir lancamentos do cartao. Tente novamente.';
+        this.cardError = 'Erro ao excluir lançamentos do cartão. Tente novamente.';
       }
     });
   }
@@ -1526,7 +1526,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       },
       error: () => {
         targetIds.forEach((id) => this.deletingLaunchIds.delete(id));
-        this.launchError = 'Erro ao excluir lancamento. Tente novamente.';
+        this.launchError = 'Erro ao excluir lançamento. Tente novamente.';
       }
     });
   }

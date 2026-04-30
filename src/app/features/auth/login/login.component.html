@@ -16,7 +16,7 @@
           name="email"
           [(ngModel)]="email"
           autocomplete="email"
-          placeholder="voce@email.com"
+          placeholder="você@email.com"
           required
         />
       </div>
@@ -57,7 +57,7 @@
           </div>
         </label>
 
-        <span class="session-hint" *ngIf="!trustBrowser">A sessao sera encerrada ao fechar o navegador.</span>
+        <span class="session-hint" *ngIf="!trustBrowser">A sessao será encerrada ao fechar o navegador.</span>
       </div>
 
       <p class="login-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
