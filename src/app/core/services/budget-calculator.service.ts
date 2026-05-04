@@ -82,7 +82,7 @@ export class BudgetCalculatorService {
 
     const effectiveAmount = inWindow ? this.resolveAmountForPeriod(budget, period) : 0;
     const safeAmount = effectiveAmount > 0 ? effectiveAmount : 0;
-    const spent = inWindow ? this.computeSpent(budget, period, context) : 0;
+    const spent = inWindow ? this.computeSpent(budget, period, { ...context, now }) : 0;
     const remaining = safeAmount - spent;
     const percent = safeAmount > 0 ? spent / safeAmount : 0;
 
@@ -231,6 +231,7 @@ export class BudgetCalculatorService {
       months: ReadonlyArray<MonthDefinition>;
       cardLaunches: ReadonlyArray<CardLaunch>;
       cards: ReadonlyArray<CreditCard>;
+      now?: Date;
     }
   ): number {
     if (budget.scope === 'tag') {
@@ -249,12 +250,21 @@ export class BudgetCalculatorService {
       months: ReadonlyArray<MonthDefinition>;
       cardLaunches: ReadonlyArray<CardLaunch>;
       cards: ReadonlyArray<CreditCard>;
+      now?: Date;
     }
   ): number {
     const tagKey = normalizeTagName(budget.targetId || budget.targetName);
     if (!tagKey) {
       return 0;
     }
+
+    // Para a meta da tag "diário" (que agrega lançamentos do tipo daily), só
+    // contamos os dias já decorridos quando o período é o mês corrente — assim
+    // a barra começa em 0 e cresce com o passar dos dias, em vez de já estourar
+    // 100% logo no dia 1 com a soma do mês inteiro.
+    const isDailyBudget = tagKey === DAILY_IMPLICIT_TAG_KEY;
+    const now = context.now ?? new Date();
+    const dailyDayCap = this.resolveDailyDayCap(period, now);
 
     let total = 0;
 
@@ -277,6 +287,9 @@ export class BudgetCalculatorService {
             continue;
           }
           if (!this.eventMatchesTag(ev, tagKey)) {
+            continue;
+          }
+          if (isDailyBudget && ev.type === 'daily' && dailyDayCap !== null && ev.day > dailyDayCap) {
             continue;
           }
           if (ev.id) {
@@ -375,6 +388,37 @@ export class BudgetCalculatorService {
 
   private isExpenseEvent(ev: FinancialEvent): boolean {
     return (ev.type === 'expense' || ev.type === 'daily') && ev.suppressed !== true;
+  }
+
+  /**
+   * Para a meta da tag "diário" (que soma eventos do tipo `daily`), retornamos
+   * o último dia que já passou dentro do período. Assim eventos diários de dias
+   * futuros não entram no `spent`. Retorna `null` quando não há limite a aplicar
+   * (período passado por completo, ou inteiramente no futuro).
+   */
+  private resolveDailyDayCap(
+    period: { startDate: Date; endDate: Date; year?: number; month?: number },
+    now: Date
+  ): number | null {
+    if (period.year === undefined || period.month === undefined) {
+      return null;
+    }
+    // Usamos sempre a data real do sistema (não o `now` que pode ter sido
+    // sintetizado pela UI ao navegar para outro mês na tela de metas). Caso
+    // contrário, ao abrir junho a UI passaria now = "01/jun" e o cap virava
+    // dia 1, somando lançamentos diários do dia 1 mesmo sendo um mês futuro.
+    const today = new Date();
+    const periodIndex = period.year * 12 + (period.month - 1);
+    const todayIndex = today.getFullYear() * 12 + today.getMonth();
+    if (todayIndex < periodIndex) {
+      // período inteiramente no futuro: não conta nada.
+      return 0;
+    }
+    if (todayIndex > periodIndex) {
+      // período já encerrado: conta tudo.
+      return null;
+    }
+    return today.getDate();
   }
 
   private eventMatchesTag(ev: FinancialEvent, tagKey: string): boolean {

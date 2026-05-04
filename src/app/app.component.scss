@@ -2225,7 +2225,7 @@
 }
 
 .panel.ledger-card:has(.day-notes[open]) {
-	z-index: 12;
+	z-index: 50;
 }
 
 .panel::after {
