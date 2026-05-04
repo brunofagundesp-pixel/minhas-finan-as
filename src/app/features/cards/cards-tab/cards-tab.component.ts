@@ -764,7 +764,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     this.invoiceMonth = baseInvoiceMonth;
     this.editingLaunchId = null;
     this.launchForm = this.createEmptyLaunchForm(
-      this.getSuggestedLaunchDate(),
+      this.getTodayInputDate(),
       this.formatInvoiceMonthRef(baseInvoiceMonth)
     );
     this.selectedExistingTag = '';

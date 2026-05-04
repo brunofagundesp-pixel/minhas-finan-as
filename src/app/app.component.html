@@ -28,7 +28,7 @@
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'cards'" (click)="setActiveTab('cards')">
           Cartões
         </button>
-        <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
+        <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'goals'" (click)="setActiveTab('goals')">
           Metas
         </button>
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'simulator'" (click)="setActiveTab('simulator')">
@@ -696,8 +696,8 @@
     <app-cards-tab #cardsTab (faturaFechada)="onFaturaFechada($event)"></app-cards-tab>
   </section>
 
-  <section *ngIf="activeTab === 'settings'" class="settings-tab-view">
-    <app-settings-tab></app-settings-tab>
+  <section *ngIf="activeTab === 'goals'" class="goals-tab-view">
+    <app-goals-tab></app-goals-tab>
   </section>
 
   <section *ngIf="activeTab === 'simulator'" class="simulator-tab-view">

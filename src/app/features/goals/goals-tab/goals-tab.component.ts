@@ -41,11 +41,11 @@ interface BudgetFormState {
 }
 
 @Component({
-  selector: 'app-settings-tab',
-  templateUrl: './settings-tab.component.html',
-  styleUrls: ['./settings-tab.component.scss']
+  selector: 'app-goals-tab',
+  templateUrl: './goals-tab.component.html',
+  styleUrls: ['./goals-tab.component.scss']
 })
-export class SettingsTabComponent implements OnInit, OnDestroy {
+export class GoalsTabComponent implements OnInit, OnDestroy {
   budgets: Budget[] = [];
   progresses: BudgetProgress[] = [];
   tags: TagCatalogItem[] = [];
@@ -324,7 +324,7 @@ export class SettingsTabComponent implements OnInit, OnDestroy {
       this.form.targetId = finalName;
       this.cancelNewTag();
     } catch (error) {
-      console.error('[SettingsTab] Erro ao criar tag:', error);
+      console.error('[GoalsTab] Erro ao criar tag:', error);
       this.newTagError = 'Não foi possível criar a tag. Tente novamente.';
       this.creatingTag = false;
     }
@@ -411,7 +411,7 @@ export class SettingsTabComponent implements OnInit, OnDestroy {
       }
       this.closeForm();
     } catch (error) {
-      console.error('[SettingsTab] Erro ao salvar meta:', error);
+      console.error('[GoalsTab] Erro ao salvar meta:', error);
       this.errorMessage = 'Não foi possível salvar a meta. Tente novamente.';
     } finally {
       this.saving = false;
@@ -525,7 +525,7 @@ export class SettingsTabComponent implements OnInit, OnDestroy {
 
       this.closeForm();
     } catch (error) {
-      console.error('[SettingsTab] Erro ao salvar meta:', error);
+      console.error('[GoalsTab] Erro ao salvar meta:', error);
       this.errorMessage = 'Não foi possível salvar a meta. Tente novamente.';
     } finally {
       this.saving = false;
@@ -697,7 +697,7 @@ export class SettingsTabComponent implements OnInit, OnDestroy {
         endMonth: prevMonth
       });
     } catch (error) {
-      console.error('[SettingsTab] Erro ao remover meta:', error);
+      console.error('[GoalsTab] Erro ao remover meta:', error);
       this.errorMessage = 'Não foi possível remover a meta. Tente novamente.';
     }
   }
@@ -711,7 +711,7 @@ export class SettingsTabComponent implements OnInit, OnDestroy {
     try {
       await this.budgetsService.setActive(budget.id, !(budget.active !== false));
     } catch (error) {
-      console.error('[SettingsTab] Erro ao alternar meta:', error);
+      console.error('[GoalsTab] Erro ao alternar meta:', error);
       this.errorMessage = 'Não foi possível atualizar a meta.';
     }
   }

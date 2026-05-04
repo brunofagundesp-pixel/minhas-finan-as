@@ -7,6 +7,51 @@
 
   <p class="config-error" *ngIf="errorMessage">{{ errorMessage }}</p>
 
+  <article class="config-section config-export">
+    <header class="config-section-head">
+      <h3>Exportar lançamentos</h3>
+      <p class="config-section-hint">
+        Gera um arquivo estruturado com todos os lançamentos, diários e despesas de
+        cartão do mês selecionado. As despesas de cartão entram pela data da compra
+        (não pela fatura).
+      </p>
+    </header>
+
+    <div class="config-export-controls">
+      <label class="config-export-field">
+        <span>Mês</span>
+        <select [(ngModel)]="exportMonth" name="exportMonth">
+          <option *ngFor="let m of exportMonthOptions" [ngValue]="m.value">{{ m.label }}</option>
+        </select>
+      </label>
+      <label class="config-export-field">
+        <span>Ano</span>
+        <select [(ngModel)]="exportYear" name="exportYear">
+          <option *ngFor="let y of exportYearOptions" [ngValue]="y">{{ y }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="config-export-groups">
+      <div class="config-export-group">
+        <strong>Resumo diário</strong>
+        <span>Uma linha por dia, com colunas Entrada / Saída / Investidos / Diário / Cartão / Saldo. Mesmo formato do dashboard.</span>
+        <div class="config-export-actions">
+          <button type="button" class="ghost-button" (click)="exportDailyCsv()">CSV</button>
+          <button type="button" class="ghost-button" (click)="exportDailyPdf()">PDF</button>
+        </div>
+      </div>
+      <div class="config-export-group">
+        <strong>Detalhado</strong>
+        <span>Uma linha por lançamento, com descrição, tags, conta/cartão e notas.</span>
+        <div class="config-export-actions">
+          <button type="button" class="ghost-button" (click)="exportLaunchesCsv()">CSV</button>
+          <button type="button" class="ghost-button" (click)="exportLaunchesPdf()">PDF</button>
+        </div>
+      </div>
+    </div>
+  </article>
+
   <article class="config-section">
     <header class="config-section-head">
       <h3>Tags</h3>

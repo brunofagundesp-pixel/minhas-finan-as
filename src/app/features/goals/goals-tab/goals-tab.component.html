@@ -1,31 +1,31 @@
-<section class="settings-tab">
-  <header class="settings-header">
+<section class="goals-tab">
+  <header class="goals-header">
     <div>
       <p class="eyebrow">configurações</p>
       <h2>Metas de gastos</h2>
-      <p class="settings-subtitle">
+      <p class="goals-subtitle">
         Defina tetos por tag, cartão ou geral. As metas ativas alimentam os indicadores
         do dashboard e dos cartões para você acompanhar quanto já gastou.
       </p>
-      <div class="settings-month-nav" role="group" aria-label="Navegar mês das metas">
+      <div class="goals-month-nav" role="group" aria-label="Navegar mês das metas">
         <button
           type="button"
-          class="settings-month-btn"
+          class="goals-month-btn"
           (click)="goToPreviousMonth()"
           aria-label="Mês anterior"
           title="Mês anterior"
         >‹</button>
-        <span class="settings-month-label">{{ referenceMonthLabel }}</span>
+        <span class="goals-month-label">{{ referenceMonthLabel }}</span>
         <button
           type="button"
-          class="settings-month-btn"
+          class="goals-month-btn"
           (click)="goToNextMonth()"
           aria-label="Próximo mês"
           title="Próximo mês"
         >›</button>
         <button
           type="button"
-          class="settings-month-today"
+          class="goals-month-today"
           (click)="goToCurrentMonth()"
           [disabled]="isCurrentMonth()"
           title="Voltar ao mês atual"
@@ -42,12 +42,12 @@
     </button>
   </header>
 
-  <p class="settings-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+  <p class="goals-error" *ngIf="errorMessage">{{ errorMessage }}</p>
 
-  <div class="settings-loading" *ngIf="isLoading">Carregando metas…</div>
+  <div class="goals-loading" *ngIf="isLoading">Carregando metas…</div>
 
   <ng-container *ngIf="!isLoading">
-    <div class="settings-empty" *ngIf="progresses.length === 0">
+    <div class="goals-empty" *ngIf="progresses.length === 0">
       <h3>Você ainda não cadastrou nenhuma meta.</h3>
       <p>
         Que tal começar definindo um teto para sua tag mais usada
@@ -145,14 +145,14 @@
 </section>
 
 <!-- Modal de criação/edição -->
-<div class="settings-modal-backdrop" *ngIf="isFormOpen" (click)="closeForm()">
-  <div class="settings-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-    <header class="settings-modal-header">
+<div class="goals-modal-backdrop" *ngIf="isFormOpen" (click)="closeForm()">
+  <div class="goals-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="goals-modal-header">
       <h3>{{ editingBudgetId ? 'Editar meta' : 'Nova meta' }}</h3>
-      <button type="button" class="settings-modal-close" (click)="closeForm()" aria-label="Fechar">&times;</button>
+      <button type="button" class="goals-modal-close" (click)="closeForm()" aria-label="Fechar">&times;</button>
     </header>
 
-    <form class="settings-form" (ngSubmit)="saveBudget()" #budgetForm="ngForm">
+    <form class="goals-form" (ngSubmit)="saveBudget()" #budgetForm="ngForm">
       <div class="form-row">
         <label>Escopo</label>
         <div class="scope-picker" role="group" aria-label="Escopo da meta">
@@ -210,7 +210,7 @@
               Cancelar
             </button>
           </div>
-          <small *ngIf="newTagError" class="settings-error">{{ newTagError }}</small>
+          <small *ngIf="newTagError" class="goals-error">{{ newTagError }}</small>
         </ng-template>
       </div>
 
@@ -355,9 +355,9 @@
         ></textarea>
       </div>
 
-      <p class="settings-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+      <p class="goals-error" *ngIf="errorMessage">{{ errorMessage }}</p>
 
-      <footer class="settings-modal-actions">
+      <footer class="goals-modal-actions">
         <button type="button" class="ghost-button" (click)="closeForm()" [disabled]="saving">Cancelar</button>
         <button type="submit" class="primary-button" [disabled]="saving">
           {{ saving ? 'Salvando…' : (editingBudgetId ? 'Salvar alterações' : 'Criar meta') }}
@@ -368,41 +368,41 @@
 </div>
 
 <!-- Confirmação de exclusão -->
-<div class="settings-modal-backdrop" *ngIf="pendingDeleteId" (click)="cancelDelete()">
-  <div class="settings-modal settings-modal--small" (click)="$event.stopPropagation()" role="alertdialog">
-    <header class="settings-modal-header">
+<div class="goals-modal-backdrop" *ngIf="pendingDeleteId" (click)="cancelDelete()">
+  <div class="goals-modal goals-modal--small" (click)="$event.stopPropagation()" role="alertdialog">
+    <header class="goals-modal-header">
       <h3>Excluir meta?</h3>
     </header>
 
     <ng-container *ngIf="pendingDeleteHasRange; else deleteAllOnly">
-      <p class="settings-modal-text">
+      <p class="goals-modal-text">
         Esta meta vale para mais de um mês. Como deseja excluir?
         Os lançamentos relacionados não serão afetados.
       </p>
-      <div class="settings-delete-options">
-        <button type="button" class="ghost-button settings-delete-option" (click)="confirmDeleteScope('single')">
+      <div class="goals-delete-options">
+        <button type="button" class="ghost-button goals-delete-option" (click)="confirmDeleteScope('single')">
           <strong>Apenas {{ pendingDeleteMonthLabel }}</strong>
           <span>Mantém a meta nos demais meses.</span>
         </button>
-        <button type="button" class="ghost-button settings-delete-option" (click)="confirmDeleteScope('forward')">
+        <button type="button" class="ghost-button goals-delete-option" (click)="confirmDeleteScope('forward')">
           <strong>De {{ pendingDeleteMonthLabel }} em diante</strong>
           <span>Encerra a vigência da meta a partir deste mês.</span>
         </button>
-        <button type="button" class="primary-button primary-button--danger settings-delete-option" (click)="confirmDeleteScope('all')">
+        <button type="button" class="primary-button primary-button--danger goals-delete-option" (click)="confirmDeleteScope('all')">
           <strong>Excluir todos</strong>
           <span>Remove a meta de todos os meses (passados e futuros).</span>
         </button>
       </div>
-      <footer class="settings-modal-actions">
+      <footer class="goals-modal-actions">
         <button type="button" class="ghost-button" (click)="cancelDelete()">Cancelar</button>
       </footer>
     </ng-container>
 
     <ng-template #deleteAllOnly>
-      <p class="settings-modal-text">
+      <p class="goals-modal-text">
         Esta ação não pode ser desfeita. Os lançamentos relacionados não serão afetados.
       </p>
-      <footer class="settings-modal-actions">
+      <footer class="goals-modal-actions">
         <button type="button" class="ghost-button" (click)="cancelDelete()">Cancelar</button>
         <button type="button" class="primary-button primary-button--danger" (click)="confirmDeleteScope('all')">Excluir</button>
       </footer>
@@ -411,29 +411,29 @@
 </div>
 
 <!-- Escopo da edição (quando a meta tem janela maior que 1 mês) -->
-<div class="settings-modal-backdrop" *ngIf="pendingEditPayload" (click)="cancelEditScope()">
-  <div class="settings-modal settings-modal--small" (click)="$event.stopPropagation()" role="alertdialog">
-    <header class="settings-modal-header">
+<div class="goals-modal-backdrop" *ngIf="pendingEditPayload" (click)="cancelEditScope()">
+  <div class="goals-modal goals-modal--small" (click)="$event.stopPropagation()" role="alertdialog">
+    <header class="goals-modal-header">
       <h3>Salvar alterações?</h3>
     </header>
-    <p class="settings-modal-text">
+    <p class="goals-modal-text">
       Esta meta vale para mais de um mês. Como deseja aplicar as alterações?
     </p>
-    <div class="settings-delete-options">
-      <button type="button" class="ghost-button settings-delete-option" (click)="confirmEditScope('single')">
+    <div class="goals-delete-options">
+      <button type="button" class="ghost-button goals-delete-option" (click)="confirmEditScope('single')">
         <strong>Apenas {{ pendingEditMonthLabel }}</strong>
         <span>Aplica o novo valor só neste mês (como override). Demais campos não mudam.</span>
       </button>
-      <button type="button" class="ghost-button settings-delete-option" (click)="confirmEditScope('forward')">
+      <button type="button" class="ghost-button goals-delete-option" (click)="confirmEditScope('forward')">
         <strong>De {{ pendingEditMonthLabel }} em diante</strong>
         <span>Encerra a meta atual no mês anterior e cria uma nova com os novos valores a partir deste mês.</span>
       </button>
-      <button type="button" class="primary-button settings-delete-option" (click)="confirmEditScope('all')">
+      <button type="button" class="primary-button goals-delete-option" (click)="confirmEditScope('all')">
         <strong>Todos os meses</strong>
         <span>Aplica os novos valores em toda a janela da meta (passados e futuros).</span>
       </button>
     </div>
-    <footer class="settings-modal-actions">
+    <footer class="goals-modal-actions">
       <button type="button" class="ghost-button" (click)="cancelEditScope()">Cancelar</button>
     </footer>
   </div>

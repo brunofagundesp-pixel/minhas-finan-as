@@ -185,7 +185,7 @@ interface OnboardingStep {
   tip?: string;
 }
 
-type AppTab = 'entries' | 'dashboard' | 'cards' | 'settings' | 'config' | 'simulator';
+type AppTab = 'entries' | 'dashboard' | 'cards' | 'goals' | 'config' | 'simulator';
 
 @Component({
   selector: 'app-root',
@@ -3707,7 +3707,7 @@ export class AppComponent implements OnInit {
     return {
       type: 'expense',
       amount: null,
-      date: '',
+      date: this.getTodayInputDate(),
       label: '',
       recurrenceKind: 'single',
       repeatMode: 'monthly',
