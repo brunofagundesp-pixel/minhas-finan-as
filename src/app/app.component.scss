@@ -3087,7 +3087,7 @@
 	inset: 0;
 	display: grid;
 	place-items: center;
-	z-index: 40;
+	z-index: 230;
 	padding: 12px;
 	/* Push card above keyboard: --keyboard-h is set by JS via visualViewport API.
 	   This avoids the iOS Safari bug where height:X + bottom:0 conflict. */
@@ -3100,7 +3100,7 @@
 	inset: 0;
 	display: grid;
 	place-items: center;
-	z-index: 45;
+	z-index: 240;
 	padding: 12px;
 	padding-bottom: max(12px, calc(var(--keyboard-h, 0px) + 12px));
 	overflow: hidden;

@@ -4442,9 +4442,10 @@ export class AppComponent implements OnInit {
       (month) => month.year === now.getFullYear() && month.monthNumber === (now.getMonth() + 1)
     );
 
-    this.windowStartIndex = currentIndex >= 0 ? currentIndex : 0;
-    this.customStartIndex = this.windowStartIndex;
-    this.customEndIndex = Math.min(this.windowStartIndex + 2, Math.max(this.monthDefinitions.length - 1, 0));
+    const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+    this.windowStartIndex = Math.floor(safeIndex / this.windowSize) * this.windowSize;
+    this.customStartIndex = safeIndex;
+    this.customEndIndex = Math.min(safeIndex + 2, Math.max(this.monthDefinitions.length - 1, 0));
   }
 
   private getOnboardingStorageKey(uid = this.currentUserId ?? 'guest'): string {
