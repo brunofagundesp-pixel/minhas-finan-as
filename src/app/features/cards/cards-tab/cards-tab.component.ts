@@ -729,7 +729,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       brand: card.brand,
       limit: card.limit,
       dueDay: card.dueDay,
-      firstDueDate: card.firstDueDate,
+      firstDueDate: (card.firstDueDate || '').slice(0, 7),
       closeDaysBefore: card.closeDaysBefore,
       parentCardName: card.parentCardName,
     };
@@ -1048,7 +1048,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
         brand: this.cardForm.brand,
         limit: this.cardForm.limit ?? 0,
         dueDay: this.cardForm.dueDay,
-        firstDueDate: this.cardForm.firstDueDate,
+        firstDueDate: this.normalizeFirstDueDate(this.cardForm.firstDueDate),
         closeDaysBefore: this.cardForm.closeDaysBefore,
         parentCardName: this.cardForm.parentCardName,
       };
@@ -1072,7 +1072,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
         brand: this.cardForm.brand,
         limit: this.cardForm.limit ?? 0,
         dueDay: this.cardForm.dueDay,
-        firstDueDate: this.cardForm.firstDueDate,
+        firstDueDate: this.normalizeFirstDueDate(this.cardForm.firstDueDate),
         closeDaysBefore: this.cardForm.closeDaysBefore,
         parentCardName: this.cardForm.parentCardName,
         avatarColor: color,
@@ -1213,10 +1213,21 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       brand: this.cardTypeOptions[0],
       limit: null,
       dueDay: 20,
-      firstDueDate: this.getTodayInputDate(),
+      firstDueDate: this.getTodayInputDate().slice(0, 7),
       closeDaysBefore: 10,
       parentCardName: '',
     };
+  }
+
+  private normalizeFirstDueDate(value: string): string {
+    if (!value) {
+      return value;
+    }
+    // Form usa <input type="month"> que devolve YYYY-MM; persistimos como YYYY-MM-01.
+    if (/^\d{4}-\d{2}$/.test(value)) {
+      return `${value}-01`;
+    }
+    return value;
   }
 
   private createEmptyLaunchForm(
