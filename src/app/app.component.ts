@@ -172,6 +172,7 @@ interface LaunchDecisionAdvice {
 interface DailyFormState {
   amount: number | null;
   effectiveDate: string;
+  description: string;
   repeatMode: DailyRepeatSelection;
   recurrenceKind: RecurrenceKind;
   installments: number;
@@ -331,6 +332,7 @@ export class AppComponent implements OnInit {
   dailyForm: DailyFormState = {
     amount: null,
     effectiveDate: '',
+    description: '',
     repeatMode: 'none',
     recurrenceKind: 'fixed',
     installments: 1
@@ -2793,6 +2795,7 @@ export class AppComponent implements OnInit {
     this.dailyForm = {
       amount: event.amount,
       effectiveDate: this.toInputDate(month.year, month.monthNumber, event.day),
+      description: event.label ?? '',
       repeatMode: scope !== 'single' && (event.recurrenceKind ?? 'single') !== 'single' ? (event.repeatMode ?? 'monthly') : 'none',
       recurrenceKind: scope !== 'single' && (event.recurrenceKind ?? 'single') !== 'single' ? (event.recurrenceKind ?? 'fixed') : 'fixed',
       installments: scope !== 'single' && event.recurrenceKind === 'installment' ? (event.seriesOccurrences ?? 1) : 1
@@ -3106,11 +3109,12 @@ export class AppComponent implements OnInit {
     }
 
     this.isSavingLaunch = true;
+    const description = this.dailyForm.description?.trim() || 'diário manual';
     const touchedMonths = this.applyRecurringLaunches(
       parsedDate,
       'daily',
       amount,
-      'diário manual',
+      description,
       recurrenceKind,
       repeatMode ?? 'monthly',
       installments
@@ -3325,6 +3329,7 @@ export class AppComponent implements OnInit {
           ...event,
           amount,
           day: parsedDate.getDate(),
+          label: this.dailyForm.description?.trim() || event.label,
           suppressed: false,
           dailyOccurrenceAction: 'override'
         };
@@ -3343,7 +3348,8 @@ export class AppComponent implements OnInit {
       const updatedEvent: FinancialEvent = {
         ...originalEvent,
         day: parsedDate.getDate(),
-        amount
+        amount,
+        label: this.dailyForm.description?.trim() || originalEvent.label
       };
 
       targetMonth.events = [...targetMonth.events, updatedEvent];
@@ -3395,7 +3401,7 @@ export class AppComponent implements OnInit {
       parsedDate,
       'daily',
       amount,
-      referenceEvent.label,
+      this.dailyForm.description?.trim() || referenceEvent.label,
       recurrenceKind,
       repeatMode ?? 'monthly',
       recurrenceKind === 'installment' ? installments : 1,
@@ -3469,7 +3475,7 @@ export class AppComponent implements OnInit {
       parsedDate,
       'daily',
       amount,
-      referenceEvent.label,
+      this.dailyForm.description?.trim() || referenceEvent.label,
       recurrenceKind,
       repeatMode ?? 'monthly',
       recurrenceKind === 'installment' ? installments : 1,
@@ -3720,6 +3726,7 @@ export class AppComponent implements OnInit {
     return {
       amount: null,
       effectiveDate: this.getTodayInputDate(),
+      description: '',
       repeatMode: 'none',
       recurrenceKind: 'fixed',
       installments: 1

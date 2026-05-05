@@ -1442,6 +1442,11 @@
         <input type="date" name="dailyEffectiveDate" [(ngModel)]="dailyForm.effectiveDate" />
       </label>
 
+      <label>
+        Descrição
+        <input type="text" name="dailyDescription" [(ngModel)]="dailyForm.description" maxlength="40" placeholder="Ex: alimentação, transporte" />
+      </label>
+
       <label *ngIf="!isEditingSingleLaunch">
         Repetição
         <select name="dailyRepeatMode" [(ngModel)]="dailyForm.repeatMode" (ngModelChange)="onDailyRepeatModeChange($event)">
