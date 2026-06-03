@@ -413,6 +413,15 @@
 
     <footer class="launch-modal-actions">
       <button type="button" class="btn-light" (click)="closeLaunchModal()" [disabled]="isSavingLaunch">Cancelar</button>
+      <button
+        *ngIf="!isEditingLaunch"
+        type="button"
+        class="btn-primary launch-modal-add-button"
+        (click)="submitLaunchFormAndAddAnother()"
+        [disabled]="isSavingLaunch"
+        aria-label="Salvar e abrir nova despesa"
+        title="Salvar e abrir novo"
+      >+</button>
       <button type="submit" class="btn-primary" [disabled]="isSavingLaunch">{{ launchSubmitLabel }}</button>
     </footer>
   </form>

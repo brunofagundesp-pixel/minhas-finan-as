@@ -25,6 +25,9 @@
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'entries'" (click)="setActiveTab('entries')">
           Lançamentos
         </button>
+        <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'investment'" (click)="setActiveTab('investment')">
+          Investimentos
+        </button>
         <button class="tab-button" type="button" [class.tab-button--active]="activeTab === 'cards'" (click)="setActiveTab('cards')">
           Cartões
         </button>
@@ -704,6 +707,10 @@
     <app-simulator-tab></app-simulator-tab>
   </section>
 
+  <section *ngIf="activeTab === 'investment'" class="investment-tab-view">
+    <app-investment-tab></app-investment-tab>
+  </section>
+
   <section *ngIf="activeTab === 'config'" class="config-tab-view">
     <app-config-tab></app-config-tab>
   </section>
@@ -1290,6 +1297,18 @@
         <input type="text" name="launchLabel" [(ngModel)]="launchForm.label" maxlength="40" placeholder="Ex: mercado, aluguel, renda extra" />
       </label>
 
+      <label *ngIf="launchForm.type === 'investment'">
+        Objetivo de investimento
+        <select
+          name="launchInvestmentGoal"
+          [ngModel]="selectedInvestmentGoalName"
+          (ngModelChange)="onInvestmentGoalSelected($event)"
+        >
+          <option [ngValue]="''">Selecionar objetivo (opcional)</option>
+          <option *ngFor="let goal of investmentGoalOptions" [ngValue]="goal.name">{{ goal.name === 'Reserva de emergência' ? 'Reserva de emergência (padrão)' : goal.name }}</option>
+        </select>
+      </label>
+
       <div class="launch-tags-section">
         <label>
           Tags (categorias)
@@ -1474,6 +1493,15 @@
 
       <footer class="launch-actions">
         <button class="btn-light" type="button" (click)="closeDailyForm()" [disabled]="isSavingLaunch">Cancelar</button>
+        <button
+          *ngIf="!isEditingLaunch"
+          class="btn-primary btn-primary--icon"
+          type="button"
+          (click)="submitDailyFormAndAddAnother()"
+          [disabled]="isSavingLaunch"
+          aria-label="Salvar e abrir novo diário"
+          title="Salvar e abrir novo"
+        >+</button>
         <button class="btn-primary" type="submit" [disabled]="isSavingLaunch">{{ isSavingLaunch ? 'Salvando...' : (isEditingLaunch ? 'Salvar diário' : 'Criar diário') }}</button>
       </footer>
     </form>

@@ -5,6 +5,7 @@ import { AuthService } from './core/services/auth.service';
 import { TagsService } from './core/services/tags.service';
 import { DailyAutoSkipService } from './core/services/daily-auto-skip.service';
 import { AnnouncementsService } from './core/services/announcements.service';
+import { BudgetsService } from './core/services/budgets.service';
 import { forkJoin, Subscription } from 'rxjs';
 
 type LaunchType = EventType;
@@ -186,7 +187,7 @@ interface OnboardingStep {
   tip?: string;
 }
 
-type AppTab = 'entries' | 'dashboard' | 'cards' | 'goals' | 'config' | 'simulator';
+type AppTab = 'entries' | 'dashboard' | 'cards' | 'goals' | 'investment' | 'config' | 'simulator';
 
 @Component({
   selector: 'app-root',
@@ -212,6 +213,7 @@ export class AppComponent implements OnInit {
   payingEventIds = new Set<string>();
   payingInvoiceKeys = new Set<string>();
   private saveAndNewLaunchRequested = false;
+  private saveAndNewDailyRequested = false;
   private currentUserId: string | null = null;
   private seededMonthsUserId: string | null = null;
 
@@ -388,6 +390,15 @@ export class AppComponent implements OnInit {
   ];
 
   availableTags: LaunchTagCatalogItem[] = [];
+  investmentGoalOptions: Array<{ name: string; normalizedName: string }> = [];
+  private readonly defaultInvestmentGoalOption = {
+    name: 'Reserva de emergência',
+    normalizedName: this.normalizeTagName('Reserva de emergência')
+  };
+  private readonly defaultInvestmentGoalAliases = [
+    this.defaultInvestmentGoalOption.normalizedName,
+    this.normalizeTagName('Reserva de emergencia')
+  ];
   newTagInput = '';
   selectedExistingTag = '';
   isCreatingLaunchTag = false;
@@ -457,6 +468,7 @@ export class AppComponent implements OnInit {
     public readonly auth: AuthService,
     private cdr: ChangeDetectorRef,
     private readonly tagsService: TagsService,
+    private readonly budgetsService: BudgetsService,
     private readonly dailyAutoSkip: DailyAutoSkipService,
     private readonly announcementsService: AnnouncementsService
   ) {
@@ -570,6 +582,7 @@ export class AppComponent implements OnInit {
     this.loadMonths();
     this.loadCardForecastData();
     this.loadAvailableTags();
+    this.loadInvestmentGoals();
 
     // Auto-skip do diário quando o dia vira (00h00).
     this.dailyAutoSkip.start(() => this.monthDefinitions);
@@ -1070,6 +1083,22 @@ export class AppComponent implements OnInit {
     return this.availableTags.filter(
       (tag) => !this.launchForm.tags.some((selected) => this.normalizeTagName(selected) === this.normalizeTagName(tag.name))
     );
+  }
+
+  get selectedInvestmentGoalName(): string {
+    if (this.launchForm.type !== 'investment') {
+      return '';
+    }
+
+    for (const tag of this.launchForm.tags) {
+      const normalizedTag = this.normalizeTagName(tag);
+      const matchedOption = this.investmentGoalOptions.find((option) => option.normalizedName === normalizedTag);
+      if (matchedOption) {
+        return matchedOption.name;
+      }
+    }
+
+    return '';
   }
 
   get launchMonths(): MonthSummary[] {
@@ -2710,6 +2739,7 @@ export class AppComponent implements OnInit {
     this.editingScope = null;
     this.editingSourceMonthKey = null;
     this.editingAnchorDay = null;
+    this.saveAndNewDailyRequested = false;
     this.dailyForm = this.createEmptyDailyForm();
     this.syncDailyAmountInput();
     this.isDailyFormOpen = true;
@@ -2830,11 +2860,21 @@ export class AppComponent implements OnInit {
   closeDailyForm(): void {
     this.isDailyFormOpen = false;
     this.dailyError = '';
+    this.saveAndNewDailyRequested = false;
     this.editingEventId = null;
     this.editingSeriesId = null;
     this.editingScope = null;
     this.editingSourceMonthKey = null;
     this.editingAnchorDay = null;
+  }
+
+  submitDailyFormAndAddAnother(): void {
+    if (this.isSavingLaunch || this.isEditingLaunch) {
+      return;
+    }
+
+    this.saveAndNewDailyRequested = true;
+    this.submitDailyForm();
   }
 
   deleteEvent(monthKey: string, eventId?: string, scope: DeleteActionScope = 'single'): void {
@@ -3056,6 +3096,9 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    const keepOpenAfterSave = this.saveAndNewDailyRequested && !this.isEditingLaunch;
+    this.saveAndNewDailyRequested = false;
+
     this.dailyError = '';
 
     if (!this.dailyForm.effectiveDate) {
@@ -3130,6 +3173,15 @@ export class AppComponent implements OnInit {
       next: () => {
         this.isSavingLaunch = false;
         this.entriesFeedback = 'Diário criado.';
+
+        if (keepOpenAfterSave) {
+          const preferredEffectiveDate = this.dailyForm.effectiveDate || this.getTodayInputDate();
+          this.dailyError = '';
+          this.dailyForm = this.createEmptyDailyForm(preferredEffectiveDate);
+          this.syncDailyAmountInput();
+          return;
+        }
+
         this.closeDailyForm();
       },
       error: () => {
@@ -3141,6 +3193,10 @@ export class AppComponent implements OnInit {
 
   onLaunchTypeChange(type: LaunchType): void {
     this.launchForm.type = type;
+
+    if (type !== 'investment') {
+      this.clearInvestmentGoalTagFromLaunch();
+    }
 
     if (this.isEditingLaunch) {
       return;
@@ -3167,6 +3223,18 @@ export class AppComponent implements OnInit {
     }
 
     this.launchForm.repeatMode = mode;
+  }
+
+  onInvestmentGoalSelected(goalName: string): void {
+    this.clearInvestmentGoalTagFromLaunch();
+
+    if (!goalName) {
+      return;
+    }
+
+    const normalizedGoalName = this.normalizeTagName(goalName);
+    const selectedOption = this.investmentGoalOptions.find((option) => option.normalizedName === normalizedGoalName);
+    this.addTagToLaunch(selectedOption?.name ?? goalName);
   }
 
 
@@ -3722,10 +3790,10 @@ export class AppComponent implements OnInit {
     };
   }
 
-  private createEmptyDailyForm(): DailyFormState {
+  private createEmptyDailyForm(effectiveDate = this.getTodayInputDate()): DailyFormState {
     return {
       amount: null,
-      effectiveDate: this.getTodayInputDate(),
+      effectiveDate,
       description: '',
       repeatMode: 'none',
       recurrenceKind: 'fixed',
@@ -3783,6 +3851,7 @@ export class AppComponent implements OnInit {
   }
 
   private tagsSubscription?: Subscription;
+  private investmentGoalsSubscription?: Subscription;
 
   private loadAvailableTags(): void {
     this.tagsSubscription?.unsubscribe();
@@ -3797,6 +3866,58 @@ export class AppComponent implements OnInit {
 
   private persistAvailableTags(): void {
     void this.tagsService.upsertMany(this.availableTags);
+  }
+
+  private loadInvestmentGoals(): void {
+    this.investmentGoalsSubscription?.unsubscribe();
+    this.investmentGoalsSubscription = this.budgetsService.budgets$.subscribe((budgets) => {
+      const seen = new Set<string>(this.defaultInvestmentGoalAliases);
+      const options: Array<{ name: string; normalizedName: string }> = [
+        this.defaultInvestmentGoalOption
+      ];
+
+      for (const budget of budgets) {
+        if (budget.scope !== 'investment' || budget.active === false) {
+          continue;
+        }
+
+        const label = this.normalizeTagLabel(budget.targetName || budget.targetId);
+        if (!label) {
+          continue;
+        }
+
+        const normalizedName = this.normalizeTagName(label);
+        if (seen.has(normalizedName)) {
+          continue;
+        }
+
+        seen.add(normalizedName);
+        options.push({ name: label, normalizedName });
+      }
+
+      options.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+      this.investmentGoalOptions = options;
+      if (this.launchForm.type !== 'investment') {
+        return;
+      }
+
+      const selected = this.selectedInvestmentGoalName;
+      if (!selected) {
+        this.clearInvestmentGoalTagFromLaunch();
+      }
+    });
+  }
+
+  private clearInvestmentGoalTagFromLaunch(): void {
+    if (!this.launchForm.tags.length) {
+      return;
+    }
+
+    const goalNames = new Set([
+      ...this.defaultInvestmentGoalAliases,
+      ...this.investmentGoalOptions.map((option) => option.normalizedName)
+    ]);
+    this.launchForm.tags = this.launchForm.tags.filter((tag) => !goalNames.has(this.normalizeTagName(tag)));
   }
 
   private syncTagCatalogWithEvents(): void {

@@ -11,7 +11,9 @@
     "deploy:rules": "firebase deploy --only firestore:rules",
     "rules:emulator": "firebase emulators:start --only firestore",
     "rules:check": "firebase emulators:exec --only firestore \"node -e \\\"console.log('Firestore rules carregadas no emulador com sucesso.')\\\"\"",
-    "rules:deploy:safe": "npm run rules:check && npm run deploy:rules"
+    "rules:deploy:safe": "npm run rules:check && npm run deploy:rules",
+    "telegram:bot": "node scripts/telegram-bot.mjs",
+    "telegram:probe": "node scripts/telegram-probe.mjs"
   },
   "private": true,
   "dependencies": {

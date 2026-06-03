@@ -160,6 +160,8 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
         return 'Tag';
       case 'card':
         return 'Cartão';
+      case 'investment':
+        return 'Investimento';
       case 'global':
         return 'Geral';
     }
@@ -278,6 +280,14 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
   onScopeChange(scope: BudgetScope): void {
     this.form.scope = scope;
     this.form.targetId = '';
+
+    if (scope === 'investment') {
+      // Metas de investimento nao usam ciclo de fatura nem rollover de teto.
+      this.form.period = 'monthly';
+      this.form.rollover = false;
+      this.form.vigencia = 'forever';
+    }
+
     if (scope !== 'card' && this.form.period === 'invoice-cycle') {
       this.form.period = 'monthly';
     }
@@ -342,9 +352,12 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
 
     const startYear = this.form.startYear;
     const startMonth = this.form.startMonth;
+    const isInvestmentScope = this.form.scope === 'investment';
+    const effectivePeriod: BudgetPeriod = isInvestmentScope ? 'monthly' : this.form.period;
+    const effectiveRollover = isInvestmentScope ? false : !!this.form.rollover;
     let endYear: number | null;
     let endMonth: number | null;
-    if (this.form.vigencia === 'forever') {
+    if (isInvestmentScope || this.form.vigencia === 'forever') {
       endYear = null;
       endMonth = null;
     } else if (this.form.vigencia === 'single') {
@@ -373,8 +386,8 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
       targetId: this.form.scope === 'global' ? '' : this.form.targetId,
       targetName,
       amount,
-      period: this.form.period,
-      rollover: !!this.form.rollover,
+      period: effectivePeriod,
+      rollover: effectiveRollover,
       active: this.form.active !== false,
       notes: this.form.notes?.trim() ? this.form.notes.trim() : undefined,
       startYear,
@@ -649,6 +662,14 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
     return this.referenceMonthLabel;
   }
 
+  get pendingDeleteIsInvestment(): boolean {
+    return this.pendingDeleteBudget?.scope === 'investment';
+  }
+
+  get pendingEditIsInvestment(): boolean {
+    return this.pendingEditPayload?.existing.scope === 'investment';
+  }
+
   async confirmDeleteScope(scope: 'single' | 'forward' | 'all'): Promise<void> {
     const id = this.pendingDeleteId;
     const budget = this.pendingDeleteBudget;
@@ -778,10 +799,15 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
 
   private validateForm(): string | null {
     if (!this.form.amount || this.form.amount <= 0) {
-      return 'Informe um valor de teto maior que zero.';
+      return this.form.scope === 'investment'
+        ? 'Informe um valor de meta maior que zero.'
+        : 'Informe um valor de teto maior que zero.';
     }
     if (this.form.scope === 'tag' && !this.form.targetId) {
       return 'Selecione uma tag para a meta.';
+    }
+    if (this.form.scope === 'investment' && !this.form.targetId.trim()) {
+      return 'Informe um nome para a meta de investimento.';
     }
     if (this.form.scope === 'card' && !this.form.targetId) {
       return 'Selecione um cartão para a meta.';
@@ -803,6 +829,9 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
     if (scope === 'tag') {
       const found = this.tags.find((t) => normalizeTagName(t.name) === normalizeTagName(targetId));
       return found?.name ?? targetId;
+    }
+    if (scope === 'investment') {
+      return targetId.trim();
     }
     if (scope === 'card') {
       return this.getCardName(targetId);

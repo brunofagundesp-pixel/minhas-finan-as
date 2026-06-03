@@ -3,7 +3,7 @@
  * persistidos em `users/{uid}/budgets/{budgetId}`.
  */
 
-export type BudgetScope = 'tag' | 'card' | 'global';
+export type BudgetScope = 'tag' | 'card' | 'global' | 'investment';
 
 /**
  * - `monthly`: mês civil (ano + mês). Aplica-se a qualquer escopo.

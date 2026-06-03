@@ -1702,6 +1702,14 @@
   z-index: 2;
 }
 
+.launch-modal-add-button {
+  width: 38px;
+  min-width: 38px;
+  padding-inline: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
 .series-action-modal {
   position: fixed;
   inset: 0;

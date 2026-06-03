@@ -240,6 +240,9 @@ export class BudgetCalculatorService {
     if (budget.scope === 'card') {
       return this.computeCardSpent(budget, period, context);
     }
+    if (budget.scope === 'investment') {
+      return this.computeInvestmentSpent(budget, period, context);
+    }
     return this.computeGlobalSpent(period, context);
   }
 
@@ -350,6 +353,39 @@ export class BudgetCalculatorService {
         }
       }
     }
+    return total;
+  }
+
+  private computeInvestmentSpent(
+    budget: Budget,
+    period: { startDate: Date; endDate: Date; year?: number; month?: number },
+    context: { months: ReadonlyArray<MonthDefinition> }
+  ): number {
+    if (period.year === undefined || period.month === undefined) {
+      return 0;
+    }
+
+    const tagKey = normalizeTagName(budget.targetId || budget.targetName);
+    if (!tagKey) {
+      return 0;
+    }
+
+    const monthDef = context.months.find((m) => m.year === period.year && m.monthNumber === period.month);
+    if (!monthDef) {
+      return 0;
+    }
+
+    let total = 0;
+    for (const ev of monthDef.events ?? []) {
+      if (ev.type !== 'investment') {
+        continue;
+      }
+      if (!this.eventMatchesTag(ev, tagKey)) {
+        continue;
+      }
+      total += this.absAmount(ev.amount);
+    }
+
     return total;
   }
 

@@ -96,6 +96,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     result: LaunchTagCatalogItem[];
   } | null = null;
   private redirectToCurrentMonthAfterSave = false;
+  private saveAndNewLaunchRequested = false;
   private openLaunchAfterCardCreate = false;
 
   readonly cardTypeOptions = ['Cartão de Credito'];
@@ -758,6 +759,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
 
   openLaunchModal(options?: { redirectToCurrentMonthOnSave?: boolean }): void {
     this.redirectToCurrentMonthAfterSave = !!options?.redirectToCurrentMonthOnSave;
+    this.saveAndNewLaunchRequested = false;
     const baseInvoiceMonth = this.selectedCard
       ? this.clampInvoiceMonthToCard(this.invoiceMonth, this.selectedCard)
       : this.invoiceMonth;
@@ -857,9 +859,26 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     this.selectedExistingTag = '';
     this.newTagInput = '';
     this.redirectToCurrentMonthAfterSave = false;
+    this.saveAndNewLaunchRequested = false;
+  }
+
+  submitLaunchFormAndAddAnother(): void {
+    if (this.isSavingLaunch || this.isEditingLaunch) {
+      return;
+    }
+
+    this.saveAndNewLaunchRequested = true;
+    this.submitLaunchForm();
   }
 
   submitLaunchForm(): void {
+    if (this.isSavingLaunch) {
+      return;
+    }
+
+    const keepOpenAfterSave = this.saveAndNewLaunchRequested && !this.isEditingLaunch;
+    this.saveAndNewLaunchRequested = false;
+
     if (!this.selectedCardId) {
       this.launchError = 'Selecione um cartão para lançar a despesa.';
       return;
@@ -892,6 +911,8 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       ? this.ensureDateInsideInvoiceMonth(this.launchForm.date, selectedInvoiceMonth, this.selectedCard)
       : this.launchForm.date;
     const targetInvoiceMonth = selectedInvoiceMonth;
+    const preferredDate = this.launchForm.date || this.getTodayInputDate();
+    const preferredInvoiceMonthRef = this.formatInvoiceMonthRef(targetInvoiceMonth);
     const editingLaunch = this.isEditingLaunch
       ? this.launches.find((item) => String(item.id) === String(this.editingLaunchId))
       : null;
@@ -921,6 +942,17 @@ export class CardsTabComponent implements OnInit, OnDestroy {
           this.invoiceMonth = targetInvoiceMonth;
           this.launches = [...savedLaunches, ...this.launches];
           this.isSavingLaunch = false;
+
+          if (keepOpenAfterSave) {
+            this.launchError = null;
+            this.launchForm = this.createEmptyLaunchForm(preferredDate, preferredInvoiceMonthRef);
+            this.selectedExistingTag = '';
+            this.newTagInput = '';
+            this.syncLaunchAmountInput();
+            this.scrollToFirstLaunchDay();
+            return;
+          }
+
           this.closeLaunchModal();
           if (shouldRedirectToCurrentMonth) {
             this.invoiceMonth = this.currentYearMonth();
@@ -1004,6 +1036,17 @@ export class CardsTabComponent implements OnInit, OnDestroy {
         }
 
         this.isSavingLaunch = false;
+
+        if (keepOpenAfterSave) {
+          this.launchError = null;
+          this.launchForm = this.createEmptyLaunchForm(preferredDate, preferredInvoiceMonthRef);
+          this.selectedExistingTag = '';
+          this.newTagInput = '';
+          this.syncLaunchAmountInput();
+          this.scrollToFirstLaunchDay();
+          return;
+        }
+
         this.closeLaunchModal();
         if (shouldRedirectToCurrentMonth) {
           this.invoiceMonth = this.currentYearMonth();

@@ -1,0 +1,217 @@
+<section class="investment-tab">
+  <header class="investment-header">
+    <p class="eyebrow">investimentos</p>
+    <h2>Quanto a pessoa está guardando por mês</h2>
+    <p class="investment-subtitle">
+      Resumo simples da taxa de investimento: quanto entra no mês, quanto vai para economia e qual a porcentagem guardada.
+    </p>
+  </header>
+
+  <p class="investment-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+  <ng-container *ngIf="isLoading; else investmentsContent">
+    <article class="investment-empty panel">
+      <strong>Carregando dados…</strong>
+      <p>Aguarde um instante enquanto os meses são lidos.</p>
+    </article>
+  </ng-container>
+
+  <ng-template #investmentsContent>
+    <ng-container *ngIf="currentMonthSummary; else noInvestmentData">
+      <section class="investment-kpis-grid">
+        <article class="investment-card panel investment-card--accent">
+          <div class="investment-card__head">
+            <span class="investment-kicker">Patrimônio investido</span>
+          </div>
+          <strong class="investment-card__value">{{ formatCurrency(totalInvested) }}</strong>
+          <p class="investment-card__text">Soma dos lançamentos marcados como investimento em todos os meses registrados.</p>
+        </article>
+
+        <article class="investment-card panel">
+          <div class="investment-card__head">
+            <span class="investment-kicker">Aporte mensal</span>
+          </div>
+          <strong class="investment-card__value">{{ formatCurrency(currentMonthInvestment) }}</strong>
+          <p class="investment-card__text">{{ currentMonthSummary.label }}</p>
+        </article>
+
+        <article class="investment-card panel">
+          <div class="investment-card__head">
+            <span class="investment-kicker">Percentual guardado</span>
+          </div>
+          <strong class="investment-card__value">{{ formatPercent(currentMonthSavingsRate) }}</strong>
+          <p class="investment-card__text">{{ savingsTargetLabel(currentMonthSavingsRate) }}</p>
+        </article>
+
+        <article class="investment-card panel investment-card--hint">
+          <div class="investment-card__head">
+            <span class="investment-kicker">Rentabilidade</span>
+          </div>
+          <strong class="investment-card__value">Requer cotações</strong>
+          <p class="investment-card__text">{{ rentabilitySourceHint() }}</p>
+        </article>
+      </section>
+
+      <section class="investment-emergency panel">
+        <header class="investment-section-head">
+          <div>
+            <p class="eyebrow">reserva de emergência</p>
+            <h3>Meta padrão de previsibilidade</h3>
+          </div>
+          <p>Recomendação automática baseada nos seus gastos fixos médios mensais.</p>
+        </header>
+
+        <div class="investment-emergency-grid">
+          <article class="investment-emergency-main">
+            <div class="investment-emergency-main__metrics">
+              <div>
+                <small>Reserva atual (somente lançamentos da meta "Reserva de emergência")</small>
+                <strong>{{ formatCurrency(emergencyReserveAmount) }}</strong>
+              </div>
+              <div>
+                <small>Meta ideal ({{ emergencyTargetMonths }} meses)</small>
+                <strong>{{ formatCurrency(emergencyTargetAmount) }}</strong>
+              </div>
+              <div>
+                <small>Custo fixo mensal médio</small>
+                <strong>{{ formatCurrency(fixedMonthlyCostEstimate) }}</strong>
+              </div>
+            </div>
+
+            <div class="investment-emergency-progress">
+              <div class="investment-emergency-progress__track">
+                <div class="investment-emergency-progress__fill" [style.width]="getEmergencyProgressWidth()"></div>
+              </div>
+              <span>{{ (emergencyProgress * 100).toFixed(1).replace('.', ',') }}% da meta</span>
+            </div>
+          </article>
+
+          <article class="investment-emergency-insight" [class.investment-emergency-insight--good]="emergencySuggestionTone === 'good'" [class.investment-emergency-insight--warning]="emergencySuggestionTone === 'warning'" [class.investment-emergency-insight--risk]="emergencySuggestionTone === 'risk'">
+            <strong>Leitura de previsibilidade</strong>
+            <p>{{ emergencySuggestionMessage }}</p>
+            <p *ngIf="emergencyShortfall > 0" class="investment-emergency-insight__detail">
+              Faltam {{ formatCurrency(emergencyShortfall) }} para atingir a meta. Sugestão de aporte: {{ formatCurrency(suggestedEmergencyContribution) }}/mês.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="investment-goals panel">
+        <header class="investment-section-head">
+          <div>
+            <p class="eyebrow">metas de investimento</p>
+            <h3>Reserva, viagem e outros objetivos</h3>
+          </div>
+          <p>Crie metas com nome próprio e acompanhe o avanço pelos lançamentos de investimento com a mesma tag.</p>
+        </header>
+
+        <div class="investment-goals-grid" *ngIf="investmentGoalProgresses.length > 0; else noInvestmentGoals">
+          <article class="investment-goal-card" *ngFor="let goal of investmentGoalProgresses; trackBy: trackByGoal">
+            <div class="investment-goal-card__head">
+              <span class="investment-kicker">{{ goal.budget.targetName }}</span>
+              <span class="investment-goal-status" [class.investment-goal-status--warning]="goal.status === 'warning'" [class.investment-goal-status--over]="goal.status === 'over'">
+                {{ goal.status === 'over' ? 'estourada' : (goal.status === 'warning' ? 'atenção' : 'ok') }}
+              </span>
+            </div>
+
+            <strong class="investment-goal-card__value">{{ formatCurrency(goal.spent) }} / {{ formatCurrency(goal.budget.amount) }}</strong>
+            <div class="investment-goal-card__bar">
+              <div class="investment-goal-card__bar-fill" [style.width]="getGoalProgressWidth(goal)" [class.investment-goal-card__bar-fill--warning]="goal.status === 'warning'" [class.investment-goal-card__bar-fill--over]="goal.status === 'over'"></div>
+            </div>
+            <p class="investment-goal-card__text">
+              {{ formatPercent(goal.percent) }} usado em {{ goal.periodLabel }}
+            </p>
+          </article>
+        </div>
+
+        <ng-template #noInvestmentGoals>
+          <div class="investment-empty-inline">
+            Nenhuma meta de investimento criada ainda. Use a tela de metas e selecione “Investimento”.
+          </div>
+        </ng-template>
+      </section>
+
+      <section class="investment-highlight-grid">
+        <article class="investment-highlight panel">
+          <span class="investment-kicker">Mês atual</span>
+          <h3>{{ currentMonthSummary.label }}</h3>
+          <div class="investment-highlight-metrics">
+            <div>
+              <small>Receitas</small>
+              <strong>{{ formatCurrency(currentMonthSummary.income) }}</strong>
+            </div>
+            <div>
+              <small>Guardado</small>
+              <strong>{{ formatCurrency(currentMonthSummary.investment) }}</strong>
+            </div>
+            <div>
+              <small>Percentual</small>
+              <strong>{{ formatPercent(currentMonthSummary.savingsRate) }}</strong>
+            </div>
+          </div>
+          <p class="investment-highlight-note">{{ savingsTargetLabel(currentMonthSummary.savingsRate) }}</p>
+          <p class="investment-highlight-note investment-highlight-note--muted">
+            Meta de {{ savingsTargetPercent }}% do mês: {{ currentMonthSavingsGap === null ? 'sem receita suficiente para calcular' : (currentMonthSavingsGap <= 0 ? 'meta atingida' : ('faltam ' + formatCurrency(currentMonthSavingsGap))) }}
+          </p>
+        </article>
+
+        <article class="investment-side panel">
+          <span class="investment-kicker">Média dos meses exibidos</span>
+          <strong class="investment-side-value">{{ formatPercent(averageSavingsRate) }}</strong>
+          <p>
+            Percentual médio guardado considerando os meses mais recentes já registrados.
+          </p>
+        </article>
+      </section>
+
+      <section class="investment-list panel">
+        <header class="investment-section-head">
+          <div>
+            <p class="eyebrow">histórico</p>
+            <h3>{{ historyLabel }}</h3>
+          </div>
+          <div class="investment-year-nav">
+            <button type="button" class="year-nav-button" (click)="goToPreviousYear()" [disabled]="!canGoPreviousYear" aria-label="Ano anterior">←</button>
+            <strong>{{ selectedYear }}</strong>
+            <button type="button" class="year-nav-button" (click)="goToNextYear()" [disabled]="!canGoNextYear" aria-label="Próximo ano">→</button>
+          </div>
+        </header>
+
+        <p class="investment-section-description">Receita x investimento por mês, exibindo apenas os meses do ano selecionado.</p>
+
+        <div class="investment-table" *ngIf="monthSummaries.length > 0; else noSummariesYet">
+          <div class="investment-table-head">
+            <span>Mês</span>
+            <span>Receitas</span>
+            <span>Guardado</span>
+            <span>%</span>
+          </div>
+
+          <div class="investment-table-row" *ngFor="let month of monthSummaries; trackBy: trackByMonth">
+            <strong>{{ month.label }}</strong>
+            <span>{{ formatCurrency(month.income) }}</span>
+            <span>{{ formatCurrency(month.investment) }}</span>
+            <span [class.investment-rate--good]="month.savingsRate !== null && month.savingsRate >= 20"
+                  [class.investment-rate--warning]="month.savingsRate !== null && month.savingsRate >= 10 && month.savingsRate < 20"
+                  [class.investment-rate--low]="month.savingsRate !== null && month.savingsRate < 10">
+              {{ formatPercent(month.savingsRate) }}
+            </span>
+          </div>
+        </div>
+
+        <ng-template #noSummariesYet>
+          <div class="investment-empty-inline">
+            Nenhum mês disponível para {{ selectedYear }} ainda.
+          </div>
+        </ng-template>
+      </section>
+    </ng-container>
+
+    <ng-template #noInvestmentData>
+      <article class="investment-empty panel">
+        <strong>Sem dados suficientes ainda</strong>
+        <p>Quando houver lançamentos de receita e investimento, esta tela vai mostrar a porcentagem guardada por mês.</p>
+      </article>
+    </ng-template>
+  </ng-template>
+</section>

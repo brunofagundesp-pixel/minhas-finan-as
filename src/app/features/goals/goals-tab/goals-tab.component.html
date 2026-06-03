@@ -2,10 +2,10 @@
   <header class="goals-header">
     <div>
       <p class="eyebrow">configurações</p>
-      <h2>Metas de gastos</h2>
+      <h2>Metas financeiras</h2>
       <p class="goals-subtitle">
-        Defina tetos por tag, cartão ou geral. As metas ativas alimentam os indicadores
-        do dashboard e dos cartões para você acompanhar quanto já gastou.
+        Defina metas por tag, cartão ou investimento. As metas ativas alimentam os indicadores
+        para você acompanhar gastos e objetivos de aporte no mesmo fluxo.
       </p>
       <div class="goals-month-nav" role="group" aria-label="Navegar mês das metas">
         <button
@@ -148,7 +148,11 @@
 <div class="goals-modal-backdrop" *ngIf="isFormOpen" (click)="closeForm()">
   <div class="goals-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
     <header class="goals-modal-header">
-      <h3>{{ editingBudgetId ? 'Editar meta' : 'Nova meta' }}</h3>
+      <h3>
+        {{ form.scope === 'investment'
+          ? (editingBudgetId ? 'Editar objetivo de investimento' : 'Novo objetivo de investimento')
+          : (editingBudgetId ? 'Editar meta' : 'Nova meta') }}
+      </h3>
       <button type="button" class="goals-modal-close" (click)="closeForm()" aria-label="Fechar">&times;</button>
     </header>
 
@@ -158,7 +162,7 @@
         <div class="scope-picker" role="group" aria-label="Escopo da meta">
           <button type="button" class="scope-button" [class.scope-button--active]="form.scope === 'tag'" (click)="onScopeChange('tag')">Tag</button>
           <button type="button" class="scope-button" [class.scope-button--active]="form.scope === 'card'" (click)="onScopeChange('card')">Cartão</button>
-          <button type="button" class="scope-button" [class.scope-button--active]="form.scope === 'global'" (click)="onScopeChange('global')">Geral</button>
+          <button type="button" class="scope-button" [class.scope-button--active]="form.scope === 'investment'" (click)="onScopeChange('investment')">Investimento</button>
         </div>
       </div>
 
@@ -222,8 +226,24 @@
         </select>
       </div>
 
+      <div class="form-row" *ngIf="form.scope === 'investment'">
+        <label for="budget-investment">Meta de investimento</label>
+        <input
+          id="budget-investment"
+          name="investmentTarget"
+          type="text"
+          [(ngModel)]="form.targetId"
+          placeholder="Ex.: Reserva de emergência, viagem, carro"
+          maxlength="60"
+          required
+        />
+        <small class="form-hint">
+          Esse nome vai identificar a meta na tela de investimentos. Use a mesma tag nos lançamentos de investimento para acumular progresso.
+        </small>
+      </div>
+
       <div class="form-row">
-        <label for="budget-amount">Teto (R$)</label>
+        <label for="budget-amount">{{ form.scope === 'investment' ? 'Meta alvo (R$)' : 'Teto (R$)' }}</label>
         <input
           id="budget-amount"
           name="amount"
@@ -237,7 +257,7 @@
         />
       </div>
 
-      <div class="form-row">
+      <div class="form-row" *ngIf="form.scope !== 'investment'">
         <label>Período</label>
         <div class="period-picker" role="group" aria-label="Período da meta">
           <button
@@ -256,7 +276,7 @@
         </div>
       </div>
 
-      <div class="form-row">
+      <div class="form-row" *ngIf="form.scope !== 'investment'">
         <label>Vigência</label>
         <div class="vigencia-options" role="radiogroup" aria-label="Vigência da meta">
           <label class="vigencia-option" [class.vigencia-option--active]="form.vigencia === 'single'">
@@ -292,7 +312,7 @@
         </div>
       </div>
 
-      <div class="form-row form-row--inline">
+      <div class="form-row form-row--inline" *ngIf="form.scope !== 'investment'">
         <label class="form-row-label">Mês inicial</label>
         <div class="month-year-picker">
           <select name="startMonth" [(ngModel)]="form.startMonth" aria-label="Mês inicial">
@@ -304,7 +324,7 @@
         </div>
       </div>
 
-      <div class="form-row form-row--inline" *ngIf="form.vigencia === 'range'">
+      <div class="form-row form-row--inline" *ngIf="form.scope !== 'investment' && form.vigencia === 'range'">
         <label class="form-row-label">Mês final</label>
         <div class="month-year-picker">
           <select name="endMonth" [(ngModel)]="form.endMonth" aria-label="Mês final">
@@ -316,14 +336,14 @@
         </div>
       </div>
 
-      <div class="form-row form-row--inline" *ngIf="hasOverridesInWindow()">
+      <div class="form-row form-row--inline" *ngIf="form.scope !== 'investment' && hasOverridesInWindow()">
         <label class="checkbox-label">
           <input type="checkbox" name="overwriteExisting" [(ngModel)]="form.overwriteExisting" />
           Sobrescrever metas já definidas com os novos valores
         </label>
       </div>
 
-      <div class="form-row form-row--inline">
+      <div class="form-row form-row--inline" *ngIf="form.scope !== 'investment'">
         <label class="checkbox-label">
           <input type="checkbox" name="rollover" [(ngModel)]="form.rollover" />
           Acumular sobra para o próximo período
@@ -340,7 +360,7 @@
       <div class="form-row form-row--inline">
         <label class="checkbox-label">
           <input type="checkbox" name="active" [(ngModel)]="form.active" />
-          Meta ativa
+          {{ form.scope === 'investment' ? 'Objetivo ativo' : 'Meta ativa' }}
         </label>
       </div>
 
@@ -360,7 +380,11 @@
       <footer class="goals-modal-actions">
         <button type="button" class="ghost-button" (click)="closeForm()" [disabled]="saving">Cancelar</button>
         <button type="submit" class="primary-button" [disabled]="saving">
-          {{ saving ? 'Salvando…' : (editingBudgetId ? 'Salvar alterações' : 'Criar meta') }}
+          {{ saving
+            ? 'Salvando…'
+            : (form.scope === 'investment'
+              ? (editingBudgetId ? 'Salvar objetivo' : 'Criar objetivo')
+              : (editingBudgetId ? 'Salvar alterações' : 'Criar meta')) }}
         </button>
       </footer>
     </form>
@@ -371,26 +395,26 @@
 <div class="goals-modal-backdrop" *ngIf="pendingDeleteId" (click)="cancelDelete()">
   <div class="goals-modal goals-modal--small" (click)="$event.stopPropagation()" role="alertdialog">
     <header class="goals-modal-header">
-      <h3>Excluir meta?</h3>
+      <h3>{{ pendingDeleteIsInvestment ? 'Excluir objetivo de investimento?' : 'Excluir meta?' }}</h3>
     </header>
 
     <ng-container *ngIf="pendingDeleteHasRange; else deleteAllOnly">
       <p class="goals-modal-text">
-        Esta meta vale para mais de um mês. Como deseja excluir?
+        {{ pendingDeleteIsInvestment ? 'Este objetivo vale para mais de um mês. Como deseja excluir?' : 'Esta meta vale para mais de um mês. Como deseja excluir?' }}
         Os lançamentos relacionados não serão afetados.
       </p>
       <div class="goals-delete-options">
         <button type="button" class="ghost-button goals-delete-option" (click)="confirmDeleteScope('single')">
           <strong>Apenas {{ pendingDeleteMonthLabel }}</strong>
-          <span>Mantém a meta nos demais meses.</span>
+          <span>{{ pendingDeleteIsInvestment ? 'Mantém o objetivo nos demais meses.' : 'Mantém a meta nos demais meses.' }}</span>
         </button>
         <button type="button" class="ghost-button goals-delete-option" (click)="confirmDeleteScope('forward')">
           <strong>De {{ pendingDeleteMonthLabel }} em diante</strong>
-          <span>Encerra a vigência da meta a partir deste mês.</span>
+          <span>{{ pendingDeleteIsInvestment ? 'Encerra a vigência do objetivo a partir deste mês.' : 'Encerra a vigência da meta a partir deste mês.' }}</span>
         </button>
         <button type="button" class="primary-button primary-button--danger goals-delete-option" (click)="confirmDeleteScope('all')">
           <strong>Excluir todos</strong>
-          <span>Remove a meta de todos os meses (passados e futuros).</span>
+          <span>{{ pendingDeleteIsInvestment ? 'Remove o objetivo de todos os meses (passados e futuros).' : 'Remove a meta de todos os meses (passados e futuros).' }}</span>
         </button>
       </div>
       <footer class="goals-modal-actions">
@@ -414,10 +438,10 @@
 <div class="goals-modal-backdrop" *ngIf="pendingEditPayload" (click)="cancelEditScope()">
   <div class="goals-modal goals-modal--small" (click)="$event.stopPropagation()" role="alertdialog">
     <header class="goals-modal-header">
-      <h3>Salvar alterações?</h3>
+      <h3>{{ pendingEditIsInvestment ? 'Salvar alterações no objetivo?' : 'Salvar alterações?' }}</h3>
     </header>
     <p class="goals-modal-text">
-      Esta meta vale para mais de um mês. Como deseja aplicar as alterações?
+      {{ pendingEditIsInvestment ? 'Este objetivo vale para mais de um mês. Como deseja aplicar as alterações?' : 'Esta meta vale para mais de um mês. Como deseja aplicar as alterações?' }}
     </p>
     <div class="goals-delete-options">
       <button type="button" class="ghost-button goals-delete-option" (click)="confirmEditScope('single')">
@@ -426,11 +450,11 @@
       </button>
       <button type="button" class="ghost-button goals-delete-option" (click)="confirmEditScope('forward')">
         <strong>De {{ pendingEditMonthLabel }} em diante</strong>
-        <span>Encerra a meta atual no mês anterior e cria uma nova com os novos valores a partir deste mês.</span>
+        <span>{{ pendingEditIsInvestment ? 'Encerra o objetivo atual no mês anterior e cria um novo com os novos valores a partir deste mês.' : 'Encerra a meta atual no mês anterior e cria uma nova com os novos valores a partir deste mês.' }}</span>
       </button>
       <button type="button" class="primary-button goals-delete-option" (click)="confirmEditScope('all')">
         <strong>Todos os meses</strong>
-        <span>Aplica os novos valores em toda a janela da meta (passados e futuros).</span>
+        <span>{{ pendingEditIsInvestment ? 'Aplica os novos valores em toda a janela do objetivo (passados e futuros).' : 'Aplica os novos valores em toda a janela da meta (passados e futuros).' }}</span>
       </button>
     </div>
     <footer class="goals-modal-actions">

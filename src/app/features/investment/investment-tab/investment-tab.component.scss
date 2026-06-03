@@ -1,0 +1,557 @@
+.investment-tab {
+  display: grid;
+  gap: 16px;
+  padding: 24px 0;
+}
+
+.investment-header {
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin: 0 0 4px;
+  }
+
+  h2 {
+    margin: 0;
+    color: var(--ink-strong);
+  }
+
+  .investment-subtitle {
+    margin: 6px 0 0;
+    color: var(--ink-soft);
+    max-width: 760px;
+    line-height: 1.5;
+  }
+}
+
+.investment-error {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(227, 81, 110, 0.12);
+  color: var(--danger);
+  margin: 0;
+}
+
+.investment-empty {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+
+  strong {
+    color: var(--ink-strong);
+  }
+
+  p {
+    margin: 0;
+    color: var(--ink-soft);
+  }
+}
+
+.investment-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.investment-goals {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(39, 49, 66, 0.05);
+}
+
+.investment-emergency {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(39, 49, 66, 0.05);
+}
+
+.investment-emergency-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.investment-emergency-main,
+.investment-emergency-insight {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  padding: 16px;
+}
+
+.investment-emergency-main {
+  display: grid;
+  gap: 14px;
+}
+
+.investment-emergency-main__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+
+  div {
+    display: grid;
+    gap: 6px;
+  }
+
+  small {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+
+  strong {
+    color: var(--ink-strong);
+    font-size: 1.05rem;
+  }
+}
+
+.investment-emergency-progress {
+  display: grid;
+  gap: 6px;
+
+  span {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+  }
+}
+
+.investment-emergency-progress__track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(168, 180, 212, 0.25);
+  overflow: hidden;
+}
+
+.investment-emergency-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2d6cdf, #56b5ff);
+}
+
+.investment-emergency-insight {
+  display: grid;
+  gap: 8px;
+
+  strong {
+    color: var(--ink-strong);
+  }
+
+  p {
+    margin: 0;
+    color: var(--ink-soft);
+    line-height: 1.45;
+  }
+}
+
+.investment-emergency-insight__detail {
+  font-size: 0.92rem;
+}
+
+.investment-emergency-insight--good {
+  border-color: rgba(15, 159, 120, 0.4);
+  background: linear-gradient(180deg, rgba(15, 159, 120, 0.08), rgba(15, 159, 120, 0.02));
+}
+
+.investment-emergency-insight--warning {
+  border-color: rgba(217, 119, 6, 0.4);
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.09), rgba(217, 119, 6, 0.02));
+}
+
+.investment-emergency-insight--risk {
+  border-color: rgba(227, 81, 110, 0.38);
+  background: linear-gradient(180deg, rgba(227, 81, 110, 0.1), rgba(227, 81, 110, 0.02));
+}
+
+.investment-goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.investment-goal-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+.investment-goal-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.investment-goal-card__value {
+  color: var(--ink-strong);
+  font-size: 1.05rem;
+}
+
+.investment-goal-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0f9f78;
+
+  &--warning {
+    color: #d97706;
+  }
+
+  &--over {
+    color: var(--danger);
+  }
+}
+
+.investment-goal-card__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(168, 180, 212, 0.25);
+  overflow: hidden;
+}
+
+.investment-goal-card__bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), #56b5ff);
+
+  &--warning {
+    background: linear-gradient(90deg, #d97706, #f59e0b);
+  }
+
+  &--over {
+    background: linear-gradient(90deg, var(--danger), #ff7b91);
+  }
+}
+
+.investment-goal-card__text {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.investment-card {
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+  min-height: 154px;
+  align-content: start;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 249, 252, 0.98));
+  border: 1px solid rgba(168, 180, 212, 0.36);
+  box-shadow: 0 10px 24px rgba(39, 49, 66, 0.06);
+}
+
+.investment-card--accent {
+  background: linear-gradient(180deg, rgba(45, 108, 223, 0.08), rgba(255, 255, 255, 0.98));
+}
+
+.investment-card--hint {
+  background: linear-gradient(180deg, rgba(45, 108, 223, 0.10), rgba(248, 250, 254, 0.98));
+}
+
+.investment-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.investment-card__value {
+  color: var(--ink-strong);
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+.investment-card__text {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.investment-empty-inline {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  color: var(--ink-soft);
+  background: var(--surface-raised);
+}
+
+.investment-highlight-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.9fr);
+  gap: 16px;
+}
+
+.investment-highlight,
+.investment-side,
+.investment-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(39, 49, 66, 0.05);
+}
+
+.investment-highlight {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+
+  h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: var(--ink-strong);
+  }
+}
+
+.investment-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(45, 108, 223, 0.1);
+  color: var(--accent-deep);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.investment-highlight-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  div {
+    padding: 14px;
+    border-radius: 14px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    display: grid;
+    gap: 6px;
+  }
+
+  small {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+
+  strong {
+    color: var(--ink-strong);
+    font-size: 1.05rem;
+  }
+}
+
+.investment-highlight-note {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.investment-highlight-note--muted {
+  font-size: 0.92rem;
+}
+
+.investment-side {
+  padding: 20px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+
+  p {
+    margin: 0;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+}
+
+.investment-side-value {
+  font-size: 2rem;
+  color: var(--ink-strong);
+}
+
+.investment-list {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.investment-section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin: 0 0 4px;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--ink-strong);
+  }
+
+  p {
+    margin: 0;
+    color: var(--ink-soft);
+    line-height: 1.45;
+  }
+}
+
+.investment-section-description {
+  margin: -6px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.investment-year-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-raised);
+
+  strong {
+    min-width: 78px;
+    text-align: center;
+    color: var(--ink-strong);
+    font-size: 0.95rem;
+  }
+}
+
+.year-nav-button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink-strong);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(45, 108, 223, 0.1);
+    color: var(--accent-deep);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.investment-table {
+  display: grid;
+  gap: 8px;
+}
+
+.investment-table-head,
+.investment-table-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.3fr) repeat(3, minmax(110px, 0.8fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.investment-table-head {
+  padding: 0 8px 4px;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.investment-table-row {
+  padding: 12px 8px;
+  border-radius: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+
+  strong {
+    color: var(--ink-strong);
+  }
+
+  span {
+    color: var(--ink-soft);
+  }
+}
+
+.investment-rate--good {
+  color: #0f9f78 !important;
+  font-weight: 700;
+}
+
+.investment-rate--warning {
+  color: #d97706 !important;
+  font-weight: 700;
+}
+
+.investment-rate--low {
+  color: var(--danger) !important;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .investment-kpis-grid,
+  .investment-goals-grid,
+  .investment-highlight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .investment-emergency-grid,
+  .investment-emergency-main__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .investment-card {
+    min-height: unset;
+  }
+
+  .investment-highlight-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .investment-table-head,
+  .investment-table-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .investment-table-head span:nth-child(n + 3),
+  .investment-table-row span:nth-child(n + 3) {
+    text-align: right;
+  }
+
+  .investment-table-head span:first-child,
+  .investment-table-row strong {
+    grid-column: 1 / -1;
+  }
+}
