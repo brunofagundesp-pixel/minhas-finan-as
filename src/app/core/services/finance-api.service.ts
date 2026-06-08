@@ -55,6 +55,8 @@ export interface FinancialEvent {
   amount: number;
   type: EventType;
   tags?: string[];
+  investmentSourceEventId?: string;
+  investmentMovement?: 'withdrawal';
 }
 
 export interface MonthDefinition {

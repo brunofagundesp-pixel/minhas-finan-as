@@ -370,20 +370,42 @@ export class BudgetCalculatorService {
       return 0;
     }
 
-    const monthDef = context.months.find((m) => m.year === period.year && m.monthNumber === period.month);
-    if (!monthDef) {
+    const monthDefs = context.months.filter((m) => m.year === period.year && m.monthNumber === period.month);
+    if (!monthDefs.length) {
       return 0;
     }
 
+    const investmentEventById = new Map<string, FinancialEvent>();
+    for (const month of context.months) {
+      for (const ev of month.events ?? []) {
+        if (ev.type === 'investment' && ev.id && ev.suppressed !== true) {
+          investmentEventById.set(ev.id, ev);
+        }
+      }
+    }
+
     let total = 0;
-    for (const ev of monthDef.events ?? []) {
-      if (ev.type !== 'investment') {
-        continue;
+    for (const monthDef of monthDefs) {
+      for (const ev of monthDef.events ?? []) {
+        if (ev.type === 'investment') {
+          if (ev.suppressed === true || !this.eventMatchesTag(ev, tagKey)) {
+            continue;
+          }
+          total += this.absAmount(ev.amount);
+          continue;
+        }
+
+        if (!this.isInvestmentWithdrawalEvent(ev)) {
+          continue;
+        }
+
+        const sourceEvent = ev.investmentSourceEventId ? investmentEventById.get(ev.investmentSourceEventId) : undefined;
+        if (!sourceEvent || !this.eventMatchesTag(sourceEvent, tagKey)) {
+          continue;
+        }
+
+        total -= this.absAmount(ev.amount);
       }
-      if (!this.eventMatchesTag(ev, tagKey)) {
-        continue;
-      }
-      total += this.absAmount(ev.amount);
     }
 
     return total;
@@ -424,6 +446,10 @@ export class BudgetCalculatorService {
 
   private isExpenseEvent(ev: FinancialEvent): boolean {
     return (ev.type === 'expense' || ev.type === 'daily') && ev.suppressed !== true;
+  }
+
+  private isInvestmentWithdrawalEvent(ev: FinancialEvent): boolean {
+    return ev.type === 'income' && !!ev.investmentSourceEventId && ev.suppressed !== true;
   }
 
   /**

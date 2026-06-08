@@ -246,20 +246,45 @@
     <section class="ledger-grid" [class.ledger-grid--multi]="viewMode === '12month' || (viewMode === 'custom' && launchMonths.length > 3)" [class.ledger-grid--single]="viewMode === '1month'">
       <article class="panel ledger-card" *ngFor="let month of launchMonths; trackBy: trackMonthBy" [class.ledger-card--current]="isCurrentMonth(month)" [class.ledger-card--single]="viewMode === '1month'">
         <div class="ledger-header" [class.ledger-header--simplified]="viewMode === '1month'">
-          <div>
+          <div class="ledger-header-main">
             <p class="eyebrow">
               {{ month.title }} {{ month.year }}
               <span *ngIf="isCurrentMonth(month)" class="current-chip">mês atual</span>
             </p>
-            <strong *ngIf="viewMode !== '1month'">{{ formatCurrency(month.closingBalance) }}</strong>
             <small *ngIf="viewMode !== '1month' && hasLaunchFilters" class="ledger-filter-summary">
               {{ getFilteredMonthResultCount(month) }} {{ getFilteredMonthResultCount(month) === 1 ? 'resultado' : 'resultados' }}
             </small>
           </div>
 
-          <div class="ledger-header-meta" *ngIf="viewMode !== '1month'">
-            <span>receitas {{ formatCurrency(month.totalIncome) }}</span>
-            <span>despesas {{ formatCurrency(month.totalExpenses + month.totalInvestments + month.totalFixedCosts) }}</span>
+          <div *ngIf="viewMode !== '1month'" class="ledger-balance-compact">
+            <div class="ledger-balance-row">
+              <span class="ledger-balance-label">
+                <span class="ledger-balance-icon ledger-balance-icon--initial" aria-hidden="true"></span>
+                Saldo inicial
+              </span>
+              <strong class="ledger-balance-value">{{ formatCurrency(month.openingBalance) }}</strong>
+            </div>
+            <div class="ledger-balance-row">
+              <span class="ledger-balance-label">
+                <span class="ledger-balance-icon ledger-balance-icon--result" aria-hidden="true"></span>
+                Resultado mês
+              </span>
+              <strong
+                class="ledger-balance-value"
+                [class.ledger-balance-value--up]="getMonthPerformance(month) > 0"
+                [class.ledger-balance-value--down]="getMonthPerformance(month) < 0"
+                [class.ledger-balance-value--neutral]="getMonthPerformance(month) === 0"
+              >
+                {{ formatSignedCurrency(getMonthPerformance(month)) }}
+              </strong>
+            </div>
+            <div class="ledger-balance-row">
+              <span class="ledger-balance-label">
+                <span class="ledger-balance-icon ledger-balance-icon--final" aria-hidden="true"></span>
+                Saldo final
+              </span>
+              <strong class="ledger-balance-value">{{ formatCurrency(month.closingBalance) }}</strong>
+            </div>
           </div>
         </div>
 
@@ -273,7 +298,19 @@
               <div class="simplified-summary-top">
                 <div>
                   <p class="eyebrow">Resumo</p>
+                  <small class="ledger-balance-caption">
+                    Saldo projetado em {{ getMonthProjectedDateLabel(month) }}
+                  </small>
                   <strong>{{ formatCurrency(month.closingBalance) }}</strong>
+                  <small
+                    *ngIf="getMonthDeltaVsPrevious(month) !== null"
+                    class="ledger-balance-delta"
+                    [class.ledger-balance-delta--up]="(getMonthDeltaVsPrevious(month) ?? 0) > 0"
+                    [class.ledger-balance-delta--down]="(getMonthDeltaVsPrevious(month) ?? 0) < 0"
+                    [class.ledger-balance-delta--neutral]="(getMonthDeltaVsPrevious(month) ?? 0) === 0"
+                  >
+                    {{ formatSignedCurrency(getMonthDeltaVsPrevious(month) ?? 0) }} em relação ao saldo final de {{ getPreviousMonthProjectedDateLabel(month) }}
+                  </small>
                 </div>
 
                 <button
@@ -383,6 +420,18 @@
                         </button>
 
                         <button
+                          *ngIf="entry.kind === 'event' && entry.event && canWithdrawInvestment(entry.event)"
+                          type="button"
+                          class="simplified-entry-icon-action simplified-entry-icon-action--withdraw"
+                          (click)="openSimplifiedEntryWithdrawal(entry); $event.stopPropagation()"
+                          [disabled]="!entry.event || isDeletingEvent(entry.event.id) || getInvestmentAvailableAmount(entry.event) <= 0"
+                          aria-label="Registrar resgate"
+                          [title]="'Resgatar (disponível ' + formatCurrency(getInvestmentAvailableAmount(entry.event!)) + ')'"
+                        >
+                          ↩
+                        </button>
+
+                        <button
                           *ngIf="entry.kind === 'event'"
                           type="button"
                           class="simplified-entry-icon-action"
@@ -442,6 +491,15 @@
                           </button>
 
                           <ng-container *ngIf="entry.kind === 'event'">
+                            <button
+                              *ngIf="entry.event && canWithdrawInvestment(entry.event)"
+                              type="button"
+                              class="simplified-entry-menu-item"
+                              (click)="openSimplifiedEntryWithdrawal(entry); closeSimplifiedEntryMenus()"
+                              [disabled]="!entry.event || isDeletingEvent(entry.event.id) || getInvestmentAvailableAmount(entry.event) <= 0"
+                            >
+                              Resgatar
+                            </button>
                             <button
                               type="button"
                               class="simplified-entry-menu-item"
@@ -573,6 +631,18 @@
                           [title]="isEventPaid(event) ? 'Pago' : 'Marcar pago'"
                         >
                           {{ isPayingEvent(event.id) ? '...' : (isEventPaid(event) ? '✓' : '○') }}
+                        </button>
+
+                        <button
+                          *ngIf="canWithdrawInvestment(event)"
+                          type="button"
+                          class="day-event-quick-action day-event-quick-action--withdraw"
+                          (click)="openInvestmentWithdrawal(month.key, event)"
+                          [disabled]="isDeletingEvent(event.id) || getInvestmentAvailableAmount(event) <= 0"
+                          [attr.aria-label]="'Registrar resgate (disponível ' + formatCurrency(getInvestmentAvailableAmount(event)) + ')'"
+                          [title]="'Resgatar (disponível ' + formatCurrency(getInvestmentAvailableAmount(event)) + ')'"
+                        >
+                          ↩
                         </button>
 
                         <button
@@ -961,19 +1031,16 @@
             </span>
           </div>
 
-          <div class="month-bars" [style.--month-zero-line.%]="month.chartZeroLine">
-            <div class="month-bar-item" *ngFor="let point of month.chartPoints; trackBy: trackByChartDay">
-              <div
-                class="month-bar"
-                [class.month-bar--warning]="point.tone === 'warning'"
-                [class.month-bar--negative]="point.tone === 'negative'"
-                [style.height.%]="point.height"
-                [attr.title]="'Dia ' + point.day + ': ' + formatCurrency(point.balance)"
-              ></div>
-              <span class="month-bar-day">{{ point.day }}</span>
-            </div>
+          <div class="month-balance-chart-wrap">
+            <canvas
+              #monthBalanceChart
+              class="month-balance-chart"
+              [attr.data-month-key]="month.key"
+              [attr.aria-label]="'Evolucao de saldo em dias-chave de ' + month.title + ' de ' + month.year"
+              role="img"
+            ></canvas>
           </div>
-          <small class="month-chart-caption">Saldo projetado em dias-chave do mês</small>
+          <small class="month-chart-caption">Saldo projetado ao longo do mês</small>
 
           <div class="month-stats">
             <div>
@@ -1245,6 +1312,7 @@
         [class.series-action-preview--expense]="pendingDeleteConfirmation.event.type === 'expense'"
         [class.series-action-preview--investment]="pendingDeleteConfirmation.event.type === 'investment'"
         [class.series-action-preview--daily]="pendingDeleteConfirmation.event.type === 'daily'"
+        [class.series-action-preview--withdrawal]="isRecordedInvestmentWithdrawal(pendingDeleteConfirmation.event)"
       >
         <div class="series-action-preview-head">
           <span class="series-action-preview-type">{{ pendingDeleteTypeLabel }}</span>
@@ -1255,6 +1323,9 @@
           <span>{{ pendingDeleteDateLabel }}</span>
           <span class="series-action-preview-recurrence">· Escopo: {{ pendingDeleteScopeLabel }}</span>
         </div>
+        <p *ngIf="isRecordedInvestmentWithdrawal(pendingDeleteConfirmation.event)" class="series-action-preview-note">
+          Excluir este resgate devolve o valor para o saldo investido disponível.
+        </p>
       </div>
 
       <div class="series-action-buttons">
@@ -1262,6 +1333,56 @@
         <button type="button" class="btn-danger" (click)="confirmDeleteEvent()">Excluir</button>
       </div>
     </div>
+  </div>
+
+  <div class="series-action-modal" *ngIf="pendingInvestmentWithdrawal" role="dialog" aria-modal="true" aria-label="Registrar resgate de investimento">
+    <div class="launch-backdrop" (click)="closeInvestmentWithdrawal()"></div>
+
+    <form class="series-action-card panel investment-withdrawal-card" (ngSubmit)="submitInvestmentWithdrawal()">
+      <h3>Resgatar investimento</h3>
+      <p>Informe o valor que saiu do investimento para voltar ao caixa sem recalcular o lançamento original.</p>
+
+      <div class="series-action-preview series-action-preview--investment">
+        <div class="series-action-preview-head">
+          <span class="series-action-preview-type">Investimento</span>
+          <span class="series-action-preview-amount">{{ formatCurrency(pendingInvestmentWithdrawal.event.amount) }}</span>
+        </div>
+        <div class="series-action-preview-label">{{ pendingInvestmentWithdrawal.event.label }}</div>
+        <div class="series-action-preview-meta">
+          <span>Já resgatado: {{ formatCurrency(pendingInvestmentWithdrawal.withdrawnAmount) }}</span>
+          <span class="series-action-preview-recurrence">· Disponível: {{ formatCurrency(pendingInvestmentWithdrawal.availableAmount) }}</span>
+        </div>
+      </div>
+
+      <div class="investment-withdrawal-fields">
+        <label>
+          Valor do resgate
+          <input
+            type="text"
+            name="investmentWithdrawalAmount"
+            [ngModel]="investmentWithdrawalAmountInput"
+            (ngModelChange)="onInvestmentWithdrawalAmountInputChange($event)"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="0,00"
+          />
+        </label>
+
+        <label>
+          Data do resgate
+          <input type="date" name="investmentWithdrawalDate" [(ngModel)]="investmentWithdrawalDate" />
+        </label>
+      </div>
+
+      <p class="launch-error" *ngIf="investmentWithdrawalError">{{ investmentWithdrawalError }}</p>
+
+      <div class="series-action-buttons">
+        <button type="button" class="btn-light" (click)="closeInvestmentWithdrawal()" [disabled]="isSavingInvestmentWithdrawal">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="isSavingInvestmentWithdrawal">
+          {{ isSavingInvestmentWithdrawal ? 'Salvando...' : 'Registrar resgate' }}
+        </button>
+      </div>
+    </form>
   </div>
 
   <div class="launch-modal" *ngIf="isLaunchFormOpen" role="dialog" aria-modal="true" aria-label="Formulario de lançamento">

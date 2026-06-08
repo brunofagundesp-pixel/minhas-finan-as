@@ -303,12 +303,21 @@ export class InvestmentTabComponent implements OnInit, OnDestroy {
   }
 
   private buildMonthSummaries(months: MonthDefinition[]): InvestmentMonthSummary[] {
+    const investmentEventById = new Map<string, FinancialEvent>();
+    for (const month of months) {
+      for (const event of month.events ?? []) {
+        if (event.type === 'investment' && event.id && event.suppressed !== true) {
+          investmentEventById.set(event.id, event);
+        }
+      }
+    }
+
     return [...months]
       .sort((a, b) => b.year - a.year || b.monthNumber - a.monthNumber)
       .map((month) => {
-        const income = this.sumEvents(month.events, 'income');
-        const investment = this.sumEvents(month.events, 'investment');
-        const emergencyReserveInvestment = this.sumEmergencyReserveInvestments(month.events);
+        const income = this.sumIncomeExcludingWithdrawals(month.events);
+        const investment = this.sumNetInvestments(month.events, investmentEventById);
+        const emergencyReserveInvestment = this.sumEmergencyReserveNetInvestments(month.events, investmentEventById);
         const fixedCosts = this.computeFixedCosts(month);
         const remainingBalance = income - investment - this.sumEvents(month.events, 'expense') - this.sumEvents(month.events, 'daily');
 
@@ -362,6 +371,22 @@ export class InvestmentTabComponent implements OnInit, OnDestroy {
       .reduce((sum, event) => sum + this.safeNumber(event.amount), 0);
   }
 
+  private sumEmergencyReserveNetInvestments(events: FinancialEvent[], investmentEventById: Map<string, FinancialEvent>): number {
+    const gross = this.sumEmergencyReserveInvestments(events);
+    const withdrawals = (events ?? [])
+      .filter((event) => this.isInvestmentWithdrawal(event))
+      .reduce((sum, event) => {
+        const sourceEvent = event.investmentSourceEventId ? investmentEventById.get(event.investmentSourceEventId) : undefined;
+        if (!sourceEvent || !this.isEmergencyReserveEvent(sourceEvent)) {
+          return sum;
+        }
+
+        return sum + this.safeNumber(event.amount);
+      }, 0);
+
+    return Number((gross - withdrawals).toFixed(2));
+  }
+
   private isEmergencyReserveEvent(event: FinancialEvent): boolean {
     const tags = event.tags ?? [];
     if (!tags.length || !this.emergencyReserveGoalTagKeys.size) {
@@ -411,8 +436,30 @@ export class InvestmentTabComponent implements OnInit, OnDestroy {
 
   private sumEvents(events: FinancialEvent[], type: FinancialEvent['type']): number {
     return events
-      .filter((event) => event.type === type)
+      .filter((event) => event.type === type && event.suppressed !== true)
       .reduce((sum, event) => sum + this.safeNumber(event.amount), 0);
+  }
+
+  private sumIncomeExcludingWithdrawals(events: FinancialEvent[]): number {
+    return (events ?? [])
+      .filter((event) => event.type === 'income' && !this.isInvestmentWithdrawal(event) && event.suppressed !== true)
+      .reduce((sum, event) => sum + this.safeNumber(event.amount), 0);
+  }
+
+  private sumNetInvestments(events: FinancialEvent[], _investmentEventById: Map<string, FinancialEvent>): number {
+    const gross = (events ?? [])
+      .filter((event) => event.type === 'investment' && event.suppressed !== true)
+      .reduce((sum, event) => sum + this.safeNumber(event.amount), 0);
+
+    const withdrawals = (events ?? [])
+      .filter((event) => this.isInvestmentWithdrawal(event))
+      .reduce((sum, event) => sum + this.safeNumber(event.amount), 0);
+
+    return Number((gross - withdrawals).toFixed(2));
+  }
+
+  private isInvestmentWithdrawal(event: FinancialEvent): boolean {
+    return event.type === 'income' && !!event.investmentSourceEventId && event.suppressed !== true;
   }
 
   private safeNumber(value: number): number {

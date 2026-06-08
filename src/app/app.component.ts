@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, MonthDefinition, RecurrenceKind, RepeatMode } from './core/services/finance-api.service';
 import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.component';
 import { AuthService } from './core/services/auth.service';
@@ -7,6 +7,20 @@ import { DailyAutoSkipService } from './core/services/daily-auto-skip.service';
 import { AnnouncementsService } from './core/services/announcements.service';
 import { BudgetsService } from './core/services/budgets.service';
 import { forkJoin, Subscription } from 'rxjs';
+import {
+  CategoryScale,
+  Chart,
+  ChartConfiguration,
+  Filler,
+  Legend,
+  LineController,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Tooltip
+} from 'chart.js';
+
+Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Filler, Tooltip, Legend);
 
 type LaunchType = EventType;
 type EventActionScope = 'single' | 'series' | 'forward';
@@ -24,6 +38,13 @@ interface PendingDeleteConfirmation {
   eventId: string;
   scope: DeleteActionScope;
   event: FinancialEvent;
+}
+
+interface PendingInvestmentWithdrawal {
+  monthKey: string;
+  event: FinancialEvent;
+  availableAmount: number;
+  withdrawnAmount: number;
 }
 
 interface RecurrencePreview {
@@ -194,7 +215,7 @@ type AppTab = 'entries' | 'dashboard' | 'cards' | 'goals' | 'investment' | 'conf
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   readonly title = 'previsa';
   private readonly windowSize = 3;
   private readonly planningHorizonMonths = 24;
@@ -317,8 +338,11 @@ export class AppComponent implements OnInit {
   editingAnchorDay: number | null = null;
   pendingEventAction: PendingEventAction | null = null;
   pendingDeleteConfirmation: PendingDeleteConfirmation | null = null;
+  pendingInvestmentWithdrawal: PendingInvestmentWithdrawal | null = null;
   launchError = '';
   dailyError = '';
+  investmentWithdrawalError = '';
+  isSavingInvestmentWithdrawal = false;
   launchForm: LaunchFormState = {
     type: 'expense',
     amount: null,
@@ -340,6 +364,9 @@ export class AppComponent implements OnInit {
     installments: 1
   };
   dailyAmountInput = '';
+  investmentWithdrawalAmountInput = '';
+  investmentWithdrawalAmount: number | null = null;
+  investmentWithdrawalDate = '';
 
   @ViewChild('cardsTab', { static: false }) cardsTab?: CardsTabComponent;
 
@@ -434,6 +461,8 @@ export class AppComponent implements OnInit {
   // entrada (definicoes, cards, lancamentos).
   private summariesCache: MonthSummary[] | null = null;
   private summariesCacheSignature = '';
+  private investmentWithdrawnCache: Map<string, number> | null = null;
+  private investmentWithdrawnCacheSignature = '';
 
   // Caches do dashboard. Os getters abaixo sao consultados varias vezes por ciclo
   // (1x para *ngIf, 1x para *ngFor, 1x para cada [style.X] etc.). Cada chamada
@@ -443,6 +472,11 @@ export class AppComponent implements OnInit {
   private dashboardExpenseSlicesSignature = '';
   private dashboardCardSummariesCache: DashboardCardSummary[] | null = null;
   private dashboardCardSummariesSignature = '';
+  private readonly monthCharts = new Map<string, Chart<'line'>>();
+  private monthChartsRenderSignature = '';
+
+  @ViewChildren('monthBalanceChart')
+  private monthBalanceChartRefs?: QueryList<ElementRef<HTMLCanvasElement>>;
 
   private readonly emptyMonthSummary: MonthSummary = {
     key: 'empty',
@@ -586,6 +620,14 @@ export class AppComponent implements OnInit {
 
     // Auto-skip do diário quando o dia vira (00h00).
     this.dailyAutoSkip.start(() => this.monthDefinitions);
+  }
+
+  ngAfterViewChecked(): void {
+    this.syncMonthCharts();
+  }
+
+  ngOnDestroy(): void {
+    this.destroyMonthCharts();
   }
 
   toggleUserMenu(): void {
@@ -1671,6 +1713,36 @@ export class AppComponent implements OnInit {
     return this.currencyFormatter.format(value);
   }
 
+  formatSignedCurrency(value: number): string {
+    const signal = value >= 0 ? '+' : '-';
+    return `${signal}${this.currencyFormatter.format(Math.abs(value))}`;
+  }
+
+  getMonthProjectedDateLabel(month: MonthSummary): string {
+    const lastDay = new Date(month.year, month.monthNumber, 0).getDate();
+    return `${String(lastDay).padStart(2, '0')}/${String(month.monthNumber).padStart(2, '0')}`;
+  }
+
+  getMonthDeltaVsPrevious(month: MonthSummary): number | null {
+    const monthIndex = this.monthSummaries.findIndex((summary) => summary.key === month.key);
+    if (monthIndex <= 0) {
+      return null;
+    }
+
+    const previousMonth = this.monthSummaries[monthIndex - 1];
+    return Number((month.closingBalance - previousMonth.closingBalance).toFixed(2));
+  }
+
+  getPreviousMonthProjectedDateLabel(month: MonthSummary): string | null {
+    const monthIndex = this.monthSummaries.findIndex((summary) => summary.key === month.key);
+    if (monthIndex <= 0) {
+      return null;
+    }
+
+    const previousMonth = this.monthSummaries[monthIndex - 1];
+    return this.getMonthProjectedDateLabel(previousMonth);
+  }
+
   getMonthPerformance(month: MonthSummary): number {
     return Number((month.closingBalance - month.openingBalance).toFixed(2));
   }
@@ -1761,6 +1833,196 @@ export class AppComponent implements OnInit {
   trackByChartDay(_index: number, point: { day: number }): number {
     return point.day;
   }
+
+  private syncMonthCharts(): void {
+    if (this.activeTab !== 'dashboard') {
+      if (this.monthCharts.size > 0) {
+        this.destroyMonthCharts();
+      }
+      this.monthChartsRenderSignature = '';
+      return;
+    }
+
+    const refs = this.monthBalanceChartRefs?.toArray() ?? [];
+    const months = this.visibleMonths;
+    const nextSignature = `${months.map((month) => `${month.key}:${month.chartPoints.map((point) => point.balance).join(',')}`).join('|')}|${refs.length}`;
+
+    if (!months.length || !refs.length) {
+      if (this.monthCharts.size > 0) {
+        this.destroyMonthCharts();
+      }
+      this.monthChartsRenderSignature = nextSignature;
+      return;
+    }
+
+    if (this.monthChartsRenderSignature === nextSignature) {
+      return;
+    }
+
+    const refsByMonthKey = new Map<string, HTMLCanvasElement>();
+    for (const ref of refs) {
+      const canvas = ref.nativeElement;
+      const key = canvas.dataset['monthKey'];
+      if (key) {
+        refsByMonthKey.set(key, canvas);
+      }
+    }
+
+    const activeKeys = new Set(months.map((month) => month.key));
+    for (const [key, chart] of this.monthCharts) {
+      if (!activeKeys.has(key)) {
+        chart.destroy();
+        this.monthCharts.delete(key);
+      }
+    }
+
+    for (const month of months) {
+      const canvas = refsByMonthKey.get(month.key);
+      if (!canvas) {
+        continue;
+      }
+
+      const labels = month.chartPoints.map((point) => String(point.day));
+      const balances = month.chartPoints.map((point) => point.balance);
+      const pointColors = month.chartPoints.map((point) => this.getMonthChartToneColor(point.tone));
+      const zeroLine = balances.map(() => 0);
+      const xLabelStep = Math.max(2, Math.ceil(labels.length / 8));
+
+      const existing = this.monthCharts.get(month.key);
+      if (existing) {
+        existing.data.labels = labels;
+        existing.data.datasets[0].data = balances;
+        existing.data.datasets[0].pointBackgroundColor = pointColors;
+        existing.data.datasets[1].data = zeroLine;
+        existing.update('none');
+        continue;
+      }
+
+      const config: ChartConfiguration<'line'> = {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Saldo projetado',
+              data: balances,
+              borderColor: '#3f78c9',
+              borderWidth: 2,
+              tension: 0.35,
+              fill: true,
+              pointRadius: 3,
+              pointHoverRadius: 4,
+              pointBorderWidth: 1,
+              pointBorderColor: '#ffffff',
+              pointBackgroundColor: pointColors,
+              backgroundColor: (ctx) => {
+                const chart = ctx.chart;
+                const area = chart.chartArea;
+                if (!area) {
+                  return 'rgba(63, 120, 201, 0.16)';
+                }
+                const gradient = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+                gradient.addColorStop(0, 'rgba(63, 120, 201, 0.28)');
+                gradient.addColorStop(1, 'rgba(63, 120, 201, 0.03)');
+                return gradient;
+              }
+            },
+            {
+              label: 'Zero',
+              data: zeroLine,
+              borderColor: '#cfd9e8',
+              borderWidth: 1,
+              borderDash: [5, 4],
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 240
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              intersect: false,
+              mode: 'index',
+              callbacks: {
+                title: (context) => `Dia ${context[0]?.label ?? ''}`,
+                label: (context) => `Saldo: ${this.formatCurrency(Number(context.parsed.y ?? 0))}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: '#74869f',
+                autoSkip: false,
+                maxRotation: 0,
+                callback: (_value, index) => {
+                  const isFirst = index === 0;
+                  const isLast = index === labels.length - 1;
+                  return isFirst || isLast || index % xLabelStep === 0 ? String(labels[index]) : '';
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: '#e8eef7',
+                drawTicks: false
+              },
+              ticks: {
+                maxTicksLimit: 4,
+                color: '#74869f',
+                callback: (value) => this.formatAbbreviatedCurrency(Number(value))
+              }
+            }
+          }
+        }
+      };
+
+      this.monthCharts.set(month.key, new Chart(canvas, config));
+    }
+
+    this.monthChartsRenderSignature = nextSignature;
+  }
+
+  private destroyMonthCharts(): void {
+    for (const chart of this.monthCharts.values()) {
+      chart.destroy();
+    }
+    this.monthCharts.clear();
+  }
+
+  private getMonthChartToneColor(tone: 'healthy' | 'warning' | 'negative'): string {
+    if (tone === 'negative') {
+      return '#d95873';
+    }
+
+    if (tone === 'warning') {
+      return '#d9952d';
+    }
+
+    return '#2f9a7a';
+  }
+
+  private formatAbbreviatedCurrency(value: number): string {
+    const abs = Math.abs(value);
+    if (abs >= 1000) {
+      return `${value < 0 ? '-' : ''}${(abs / 1000).toFixed(1)}k`;
+    }
+
+    return `${value < 0 ? '-' : ''}${abs.toFixed(0)}`;
+  }
+
   get visibleLaunchFilterTags(): LaunchTagCatalogItem[] {
     const availableTags = this.availableTags;
     const cache = this.visibleLaunchFilterTagsCache;
@@ -1979,6 +2241,14 @@ export class AppComponent implements OnInit {
     this.openEventActionPrompt('delete', entry.monthKey, entry.event);
   }
 
+  openSimplifiedEntryWithdrawal(entry: SimplifiedMonthEntry): void {
+    if (!entry.event || this.isDeletingEvent(entry.event.id)) {
+      return;
+    }
+
+    this.openInvestmentWithdrawal(entry.monthKey, entry.event);
+  }
+
   openCardForecastMonth(entry: SimplifiedMonthEntry): void {
     const forecast = entry.forecast;
     if (!forecast) {
@@ -2161,6 +2431,9 @@ export class AppComponent implements OnInit {
   get pendingDeleteTypeLabel(): string {
     const ev = this.pendingDeleteConfirmation?.event;
     if (!ev) return '';
+    if (this.isInvestmentWithdrawalEvent(ev)) {
+      return 'Resgate de investimento';
+    }
     switch (ev.type) {
       case 'income': return 'Entrada';
       case 'investment': return 'Investimento';
@@ -2170,7 +2443,16 @@ export class AppComponent implements OnInit {
   }
 
   get pendingDeleteLabel(): string {
-    return this.pendingDeleteConfirmation?.event.label?.trim() || 'Sem descrição';
+    const ev = this.pendingDeleteConfirmation?.event;
+    if (!ev) {
+      return 'Sem descrição';
+    }
+
+    if (this.isInvestmentWithdrawalEvent(ev)) {
+      return `Resgate de ${ev.label?.trim() || 'investimento'}`;
+    }
+
+    return ev.label?.trim() || 'Sem descrição';
   }
 
   get pendingDeleteAmountLabel(): string {
@@ -2207,6 +2489,10 @@ export class AppComponent implements OnInit {
       return 'Confirmar exclusão';
     }
 
+    if (this.isInvestmentWithdrawalEvent(this.pendingDeleteConfirmation.event)) {
+      return 'Excluir resgate';
+    }
+
     const isDaily = this.pendingDeleteConfirmation.event.type === 'daily';
     const isSeries = this.pendingDeleteConfirmation.scope === 'series';
     const isForward = this.pendingDeleteConfirmation.scope === 'forward';
@@ -2233,6 +2519,10 @@ export class AppComponent implements OnInit {
   get deleteConfirmationDescription(): string {
     if (!this.pendingDeleteConfirmation) {
       return 'Confirme a exclusão.';
+    }
+
+    if (this.isInvestmentWithdrawalEvent(this.pendingDeleteConfirmation.event)) {
+      return 'Você vai excluir este resgate. O valor retornará ao saldo investido disponível do lançamento original.';
     }
 
     const { event, scope } = this.pendingDeleteConfirmation;
@@ -2280,6 +2570,146 @@ export class AppComponent implements OnInit {
 
   canTogglePaid(event: FinancialEvent): boolean {
     return event.type === 'expense';
+  }
+
+  canWithdrawInvestment(event: FinancialEvent): boolean {
+    return event.type === 'investment' && !!event.id;
+  }
+
+  private isInvestmentWithdrawalEvent(event: FinancialEvent): boolean {
+    return event.type === 'income' && !!event.investmentSourceEventId && event.suppressed !== true;
+  }
+
+  isRecordedInvestmentWithdrawal(event?: FinancialEvent): boolean {
+    return !!event && this.isInvestmentWithdrawalEvent(event);
+  }
+
+  getInvestmentAvailableAmount(event: FinancialEvent): number {
+    if (!event.id) {
+      return 0;
+    }
+
+    const withdrawn = this.getInvestmentWithdrawnAmount(event.id);
+    return Number(Math.max(0, event.amount - withdrawn).toFixed(2));
+  }
+
+  openInvestmentWithdrawal(monthKey: string, event: FinancialEvent): void {
+    if (!this.canWithdrawInvestment(event) || !event.id) {
+      return;
+    }
+
+    const availableAmount = this.getInvestmentAvailableAmount(event);
+    if (availableAmount <= 0) {
+      this.entriesFeedback = 'Esse investimento já foi totalmente resgatado.';
+      return;
+    }
+
+    this.pendingInvestmentWithdrawal = {
+      monthKey,
+      event,
+      availableAmount,
+      withdrawnAmount: Number((event.amount - availableAmount).toFixed(2))
+    };
+    this.investmentWithdrawalDate = this.getTodayInputDate();
+    this.investmentWithdrawalAmount = null;
+    this.investmentWithdrawalAmountInput = '';
+    this.investmentWithdrawalError = '';
+  }
+
+  closeInvestmentWithdrawal(): void {
+    this.pendingInvestmentWithdrawal = null;
+    this.investmentWithdrawalError = '';
+    this.investmentWithdrawalAmount = null;
+    this.investmentWithdrawalAmountInput = '';
+    this.investmentWithdrawalDate = '';
+    this.isSavingInvestmentWithdrawal = false;
+  }
+
+  onInvestmentWithdrawalAmountInputChange(rawValue: string): void {
+    const masked = this.maskCurrencyFromDigits(rawValue);
+    this.investmentWithdrawalAmountInput = masked.display;
+    this.investmentWithdrawalAmount = masked.amount;
+    this.cdr.markForCheck();
+  }
+
+  submitInvestmentWithdrawal(): void {
+    if (!this.pendingInvestmentWithdrawal || this.isSavingInvestmentWithdrawal) {
+      return;
+    }
+
+    this.investmentWithdrawalError = '';
+    const sourceEvent = this.pendingInvestmentWithdrawal.event;
+    if (!sourceEvent.id) {
+      this.investmentWithdrawalError = 'Não foi possivel identificar o investimento original.';
+      return;
+    }
+
+    const amount = this.investmentWithdrawalAmount;
+    if (amount === null || Number.isNaN(amount) || amount <= 0) {
+      this.investmentWithdrawalError = 'Informe um valor valido para o resgate.';
+      return;
+    }
+
+    if (amount > this.pendingInvestmentWithdrawal.availableAmount) {
+      this.investmentWithdrawalError = `O valor máximo disponível para resgate é ${this.formatCurrency(this.pendingInvestmentWithdrawal.availableAmount)}.`;
+      return;
+    }
+
+    if (!this.investmentWithdrawalDate) {
+      this.investmentWithdrawalError = 'Informe a data do resgate.';
+      return;
+    }
+
+    const parsedDate = new Date(`${this.investmentWithdrawalDate}T00:00:00`);
+    if (Number.isNaN(parsedDate.getTime())) {
+      this.investmentWithdrawalError = 'Data invalida para o resgate.';
+      return;
+    }
+
+    this.ensureMonthsForDateRangeInMemory(parsedDate, parsedDate);
+    const targetMonth = this.monthDefinitions.find(
+      (month) => month.year === parsedDate.getFullYear() && month.monthNumber === parsedDate.getMonth() + 1
+    );
+
+    if (!targetMonth) {
+      this.investmentWithdrawalError = 'Não foi possivel encontrar o mês da data escolhida.';
+      return;
+    }
+
+    const amountRounded = Number(amount.toFixed(2));
+    const baseLabel = this.normalizeText(sourceEvent.label).trim() || 'investimento';
+    const withdrawalEvent = this.createEvent(
+      parsedDate.getDate(),
+      `Resgate de ${baseLabel}`,
+      amountRounded,
+      'income',
+      undefined,
+      'single',
+      undefined,
+      undefined,
+      sourceEvent.tags
+    );
+    withdrawalEvent.investmentSourceEventId = sourceEvent.id;
+    withdrawalEvent.investmentMovement = 'withdrawal';
+
+    const previousEvents = [...targetMonth.events];
+    targetMonth.events = [...targetMonth.events, withdrawalEvent];
+
+    this.isSavingInvestmentWithdrawal = true;
+    this.entriesFeedback = '';
+
+    this.financeApi.updateMonth(targetMonth).subscribe({
+      next: () => {
+        this.isSavingInvestmentWithdrawal = false;
+        this.entriesFeedback = `Resgate registrado: ${this.formatCurrency(amountRounded)} em ${this.formatDateLabel(parsedDate)}.`;
+        this.closeInvestmentWithdrawal();
+      },
+      error: () => {
+        targetMonth.events = previousEvents;
+        this.isSavingInvestmentWithdrawal = false;
+        this.investmentWithdrawalError = 'Não foi possivel registrar o resgate no backend.';
+      }
+    });
   }
 
   isEventPaid(event: FinancialEvent): boolean {
@@ -4664,6 +5094,33 @@ export class AppComponent implements OnInit {
     return undefined;
   }
 
+  private getInvestmentWithdrawnAmount(investmentEventId: string): number {
+    return this.getInvestmentWithdrawnMap().get(investmentEventId) ?? 0;
+  }
+
+  private getInvestmentWithdrawnMap(): Map<string, number> {
+    const signature = this.summariesCacheSignature || this.computeSummariesSignature();
+    if (this.investmentWithdrawnCache && signature === this.investmentWithdrawnCacheSignature) {
+      return this.investmentWithdrawnCache;
+    }
+
+    const totals = new Map<string, number>();
+    for (const month of this.monthDefinitions) {
+      for (const event of month.events) {
+        if (event.type !== 'income' || !event.investmentSourceEventId || event.suppressed) {
+          continue;
+        }
+
+        const previous = totals.get(event.investmentSourceEventId) ?? 0;
+        totals.set(event.investmentSourceEventId, Number((previous + event.amount).toFixed(2)));
+      }
+    }
+
+    this.investmentWithdrawnCacheSignature = signature;
+    this.investmentWithdrawnCache = totals;
+    return totals;
+  }
+
   private pushEventToMonth(month: MonthDefinition, event: FinancialEvent, touched: Map<string, MonthDefinition>): void {
     month.events = [...month.events, event];
     touched.set(month.id, month);
@@ -4882,7 +5339,7 @@ export class AppComponent implements OnInit {
     }
 
     const income = Number(matchingEvents
-      .filter((event) => event.type === 'income')
+      .filter((event) => event.type === 'income' && !this.isInvestmentWithdrawalEvent(event))
       .reduce((sum, event) => sum + event.amount, 0)
       .toFixed(2));
     const expense = Number((matchingEvents
@@ -4890,8 +5347,17 @@ export class AppComponent implements OnInit {
       .reduce((sum, event) => sum + event.amount, 0) + matchingForecasts.reduce((sum, forecast) => sum + forecast.amount, 0))
       .toFixed(2));
     const investment = Number(matchingEvents
-      .filter((event) => event.type === 'investment')
-      .reduce((sum, event) => sum + event.amount, 0)
+      .reduce((sum, event) => {
+        if (event.type === 'investment') {
+          return sum + event.amount;
+        }
+
+        if (this.isInvestmentWithdrawalEvent(event)) {
+          return sum - event.amount;
+        }
+
+        return sum;
+      }, 0)
       .toFixed(2));
     const fixedCost = Number(matchingEvents
       .filter((event) => event.type === 'daily')
@@ -5238,8 +5704,12 @@ export class AppComponent implements OnInit {
       const seriesOverrides = new Map<string, number>();
 
       for (const event of events) {
-        if (event.type === 'income') {
+        if (event.type === 'income' && !this.isInvestmentWithdrawalEvent(event)) {
           income += event.amount;
+        }
+
+        if (this.isInvestmentWithdrawalEvent(event)) {
+          investment -= event.amount;
         }
 
         if (event.type === 'expense') {
@@ -5300,9 +5770,7 @@ export class AppComponent implements OnInit {
     const minBalance = Math.min(...balances);
     const maxBalance = Math.max(...balances);
     const amplitude = maxBalance - minBalance || 1;
-    const checkpoints = [1, 5, 10, 15, 20, 25, 31]
-      .map((day) => projection.find((entry) => entry.day === day)?.closingBalance ?? minBalance)
-      .map((balance) => 26 + ((balance - minBalance) / amplitude) * 74);
+    const checkpoints = projection.map((entry) => 26 + ((entry.closingBalance - minBalance) / amplitude) * 74);
 
     // Precomputa pontos do mini-grafico do dashboard. Antes era calculado por
     // getMonthChartPoints(month) dentro de *ngFor, alocando arrays a cada CD.
@@ -5310,13 +5778,11 @@ export class AppComponent implements OnInit {
     const dashMin = Math.min(0, definition.openingBalance, ...balances);
     const dashMax = Math.max(0, definition.openingBalance, ...balances);
     const dashAmp = (dashMax - dashMin) || 1;
-    const chartPoints = [1, 5, 10, 15, 20, 25, 31].map((checkpointDay) => {
-      const day = Math.min(checkpointDay, daysInMonth);
-      const entry = projection.find((p) => p.day === day);
-      const balance = entry?.closingBalance ?? closingFinal;
+    const chartPoints = projection.map((entry) => {
+      const balance = entry.closingBalance;
       const height = 24 + ((balance - dashMin) / dashAmp) * 76;
-      const tone: 'healthy' | 'warning' | 'negative' = entry?.status ?? (balance < 0 ? 'negative' : 'healthy');
-      return { day, balance, height, tone };
+      const tone: 'healthy' | 'warning' | 'negative' = entry.status ?? (balance < 0 ? 'negative' : 'healthy');
+      return { day: entry.day, balance, height, tone };
     });
     const chartZeroLine = dashMax <= 0
       ? 100

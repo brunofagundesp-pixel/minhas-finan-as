@@ -1011,6 +1011,12 @@
 	color: #ba3a55;
 }
 
+.simplified-entry-icon-action--withdraw {
+	border-color: #d3dcfb;
+	background: #eef2ff;
+	color: #4057b7;
+}
+
 .simplified-entry-date,
 .simplified-entry-meta {
 	font-size: 0.69rem;
@@ -1477,11 +1483,116 @@
 	padding-bottom: 14px;
 }
 
+.ledger-header-main {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
 .ledger-header strong {
 	display: block;
 	font-size: 1.5rem;
 	line-height: 1;
 	color: var(--ink-strong);
+}
+
+.ledger-balance-compact {
+	display: grid;
+	gap: 3px;
+	margin-top: 0;
+	max-width: 240px;
+	justify-self: end;
+	align-self: flex-start;
+}
+
+.ledger-balance-row {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: baseline;
+	gap: 12px;
+}
+
+.ledger-balance-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.7rem;
+	letter-spacing: 0.02em;
+	color: #6d7d92;
+}
+
+.ledger-balance-icon {
+	width: 11px;
+	height: 11px;
+	border-radius: 999px;
+	border: 1px solid transparent;
+	flex-shrink: 0;
+}
+
+.ledger-balance-icon--initial {
+	background: #eef2f7;
+	border-color: #d6dfe9;
+}
+
+.ledger-balance-icon--result {
+	background: #fff3df;
+	border-color: #f3d6a8;
+}
+
+.ledger-balance-icon--final {
+	background: #e9f8f3;
+	border-color: #bfe8d9;
+}
+
+
+.ledger-header .ledger-balance-value {
+	font-size: 0.82rem;
+	line-height: 1.1;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	color: var(--ink-strong);
+
+	&.ledger-balance-value--up {
+		color: #0f7f63;
+	}
+
+	&.ledger-balance-value--down {
+		color: #ba3a55;
+	}
+
+	&.ledger-balance-value--neutral {
+		color: #6d7d92;
+	}
+}
+
+.ledger-balance-caption {
+	display: inline-flex;
+	margin-top: 2px;
+	margin-bottom: 4px;
+	font-size: 0.68rem;
+	line-height: 1.2;
+	letter-spacing: 0.02em;
+	color: #6d7d92;
+}
+
+.ledger-balance-delta {
+	display: inline-flex;
+	margin-top: 6px;
+	font-size: 0.74rem;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+
+	&.ledger-balance-delta--up {
+		color: #0f7f63;
+	}
+
+	&.ledger-balance-delta--down {
+		color: #ba3a55;
+	}
+
+	&.ledger-balance-delta--neutral {
+		color: #6d7d92;
+	}
 }
 
 .current-chip {
@@ -1497,17 +1608,6 @@
 	color: #2a5fb7;
 	background: #eaf1ff;
 	border: 1px solid #d4e2fb;
-}
-
-.ledger-header-meta {
-	display: grid;
-	gap: 6px;
-	justify-items: end;
-	padding-top: 4px;
-	font-size: 0.76rem;
-	text-transform: uppercase;
-	letter-spacing: 0.08em;
-	color: var(--ink-soft);
 }
 
 .ledger-table {
@@ -2100,6 +2200,12 @@
 	border-color: #f1c7cf;
 }
 
+.day-event-quick-action--withdraw {
+	color: #4057b7;
+	background: #eef2ff;
+	border-color: #d3dcfb;
+}
+
 .day-event-quick-action:disabled {
 	opacity: 0.6;
 	cursor: default;
@@ -2610,57 +2716,19 @@
 	color: var(--danger);
 }
 
-.month-bars {
-	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 10px;
-	align-items: end;
-	height: 126px;
-	padding: 14px 0 4px;
+.month-balance-chart-wrap {
 	position: relative;
+	height: 138px;
+	padding: 4px 0;
+	border-radius: 12px;
+	background: linear-gradient(180deg, #f9fbff 0%, #f3f7fd 100%);
+	border: 1px solid #e4eaf3;
 }
 
-.month-bars::before {
-	content: '';
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: var(--month-zero-line, 0%);
-	border-top: 1px dashed #cfd9e8;
-	opacity: 0.8;
-}
-
-.month-bar {
+.month-balance-chart {
 	width: 100%;
-	border-radius: 999px 999px 18px 18px;
-	background: linear-gradient(180deg, #8eb4eb 0%, #4f87d4 100%);
-	box-shadow: inset 0 -4px 9px rgba(45, 92, 164, 0.24);
-}
-
-.month-bar-item {
-	display: grid;
-	grid-template-rows: minmax(0, 1fr) auto;
-	gap: 6px;
-	justify-items: center;
-	align-items: end;
-	height: 108px;
-}
-
-.month-bar--warning {
-	background: linear-gradient(180deg, #f6c26d 0%, #d98e2a 100%);
-	box-shadow: inset 0 -4px 9px rgba(138, 90, 22, 0.22);
-}
-
-.month-bar--negative {
-	background: linear-gradient(180deg, #f2a0ac 0%, #d65b74 100%);
-	box-shadow: inset 0 -4px 9px rgba(140, 44, 68, 0.24);
-}
-
-.month-bar-day {
-	font-size: 0.62rem;
-	font-weight: 700;
-	letter-spacing: 0.06em;
-	color: #7c8ca2;
+	height: 100%;
+	display: block;
 }
 
 .month-chart-caption {
@@ -3222,6 +3290,7 @@
 	&--expense { border-left-color: #d3294a; }
 	&--investment { border-left-color: #2d6cdf; }
 	&--daily { border-left-color: #d97706; }
+	&--withdrawal { border-left-color: #7c3aed; }
 }
 
 .series-action-preview-head {
@@ -3265,6 +3334,13 @@
 	font-weight: 600;
 }
 
+.series-action-preview-note {
+	margin: 2px 0 0;
+	font-size: 0.74rem;
+	line-height: 1.35;
+	color: #6b7280;
+}
+
 .series-action-option {
 	display: flex;
 	flex-direction: column;
@@ -3298,6 +3374,39 @@
 	&:focus-visible {
 		outline: 2px solid var(--accent, #2d6cdf);
 		outline-offset: 2px;
+	}
+}
+
+.investment-withdrawal-card {
+	display: grid;
+	gap: 10px;
+}
+
+.investment-withdrawal-fields {
+	display: grid;
+	gap: 10px;
+
+	label {
+		display: grid;
+		gap: 6px;
+		font-size: 0.82rem;
+		color: var(--ink-soft);
+	}
+
+	input {
+		height: 40px;
+		border: 1px solid #d4dae5;
+		border-radius: 10px;
+		padding: 0 12px;
+		font: inherit;
+		color: var(--ink-strong);
+		background: #f8fafd;
+
+		&:focus {
+			outline: none;
+			border-color: #b8c8e6;
+			background: #ffffff;
+		}
 	}
 }
 
