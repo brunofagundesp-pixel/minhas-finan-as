@@ -107,6 +107,7 @@
             <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '1month'" (click)="setViewMode('1month')">simplificado</button>
             <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '3month'" (click)="setViewMode('3month')">3 meses</button>
             <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === '12month'" (click)="setViewMode('12month')">12 meses</button>
+            <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === 'balance'" (click)="setViewMode('balance')">evolução</button>
             <button class="view-mode-button" type="button" [class.view-mode-button--active]="viewMode === 'custom'" (click)="setViewMode('custom')">personalizado</button>
           </div>
 
@@ -154,6 +155,15 @@
             <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver próximo ano">→</button>
           </div>
           <small class="month-progress">12 meses de {{ twelveMonthWindowLabel }}</small>
+        </ng-container>
+
+        <ng-container *ngIf="viewMode === 'balance'">
+          <div class="month-switch" aria-label="Navegacao anual de saldos">
+            <button class="mini-nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver saldos do ano anterior">â†</button>
+            <strong>{{ twelveMonthWindowLabel }}</strong>
+            <button class="mini-nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver saldos do proximo ano">â†’</button>
+          </div>
+          <small class="month-progress">saldos diarios em {{ twelveMonthWindowLabel }}</small>
         </ng-container>
         </div>
       </div>
@@ -243,8 +253,8 @@
       <p>{{ entriesFeedback }}</p>
     </div>
 
-    <section class="ledger-grid" [class.ledger-grid--multi]="viewMode === '12month' || (viewMode === 'custom' && launchMonths.length > 3)" [class.ledger-grid--single]="viewMode === '1month'">
-      <article class="panel ledger-card" *ngFor="let month of launchMonths; trackBy: trackMonthBy" [class.ledger-card--current]="isCurrentMonth(month)" [class.ledger-card--single]="viewMode === '1month'">
+    <section class="ledger-grid" [class.ledger-grid--multi]="viewMode === '12month' || (viewMode === 'custom' && launchMonths.length > 3)" [class.ledger-grid--single]="viewMode === '1month'" [class.ledger-grid--balance]="viewMode === 'balance'">
+      <article class="panel ledger-card" *ngFor="let month of launchMonths; trackBy: trackMonthBy" [class.ledger-card--current]="isCurrentMonth(month)" [class.ledger-card--single]="viewMode === '1month'" [class.ledger-card--balance]="viewMode === 'balance'">
         <div class="ledger-header" [class.ledger-header--simplified]="viewMode === '1month'">
           <div class="ledger-header-main">
             <p class="eyebrow">
@@ -544,6 +554,7 @@
         </ng-container>
 
         <ng-template #detailedMonthView>
+        <ng-container *ngIf="viewMode !== 'balance'; else balanceMonthView">
         <ng-container *ngIf="getFilteredMonthProjection(month) as filteredProjection">
         <div class="ledger-table" *ngIf="filteredProjection.length; else detailedMonthEmpty">
           <div class="ledger-row ledger-row--head">
@@ -703,6 +714,44 @@
           </div>
         </div>
         </ng-container>
+        </ng-container>
+
+        <ng-template #balanceMonthView>
+        <ng-container *ngIf="getFilteredMonthProjection(month) as filteredProjection">
+        <div class="ledger-table ledger-table--balance-only" *ngIf="filteredProjection.length; else detailedMonthEmpty">
+          <div
+            class="ledger-row ledger-row--balance-only"
+            *ngFor="let day of filteredProjection; trackBy: trackDayBy"
+            [class.ledger-row--warning]="day.status === 'warning'"
+            [class.ledger-row--negative]="day.status === 'negative'"
+            [class.ledger-row--today]="isCurrentDay(month, day.day)"
+            [class.ledger-row--with-notes]="getDayDetailCount(day) > 0"
+            [attr.aria-label]="'Dia ' + day.day + ': ' + formatCurrency(day.closingBalance)"
+          >
+            <span class="ledger-balance-day-wrap">
+              <span class="ledger-day" [class.ledger-day--today]="isCurrentDay(month, day.day)">{{ day.day }}</span>
+              <button
+                *ngIf="getDayDetailCount(day) > 0"
+                type="button"
+                class="balance-day-notes-trigger"
+                (click)="openDayDetails(month, day)"
+                [attr.aria-label]="'Ver ' + getDayDetailCount(day) + ' itens do dia ' + day.day + ' de ' + month.title + ' de ' + month.year"
+              >
+                <span class="ledger-note-count" [class.ledger-note-count--paid]="isDayFullyPaid(day)">
+                  <ng-container *ngIf="isDayFullyPaid(day) && day.cardInvoiceForecasts.length === 0; else balanceCountValue">
+                    <svg class="ledger-note-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  </ng-container>
+                  <ng-template #balanceCountValue>{{ getDayDetailCount(day) }}</ng-template>
+                </span>
+              </button>
+            </span>
+            <span class="ledger-balance" [ngClass]="getBalanceClass(day.closingBalance)">{{ formatCurrency(day.closingBalance) }}</span>
+          </div>
+        </div>
+        </ng-container>
+        </ng-template>
 
         <ng-template #detailedMonthEmpty>
           <div class="ledger-filter-empty" *ngIf="hasLaunchFilters">
@@ -712,7 +761,7 @@
         </ng-template>
         </ng-template>
 
-        <div class="ledger-footer" aria-label="Resumo do mês" *ngIf="viewMode !== '1month'">
+        <div class="ledger-footer" aria-label="Resumo do mês" *ngIf="viewMode !== '1month' && viewMode !== 'balance'">
           <article class="ledger-footer-item">
             <span
               class="ledger-footer-label"
@@ -1019,78 +1068,14 @@
       </div>
 
       <div class="month-grid month-grid--window">
-        <article class="month-card" *ngFor="let month of visibleMonths; trackBy: trackByMonthKey">
-          <div class="month-top">
+        <article class="month-card month-card--compact" *ngFor="let month of visibleMonths; trackBy: trackByMonthKey">
+          <div class="month-top month-top--compact">
             <div>
               <p>{{ month.title }} {{ month.year }}</p>
-              <strong>{{ formatCurrency(month.closingBalance) }}</strong>
+              <small class="month-card-caption">Saldo acumulado</small>
             </div>
 
-            <span class="month-flag" [class.month-flag--alert]="month.negativeDays > 0">
-              {{ month.negativeDays > 0 ? month.negativeDays + ' dias apertados' : 'caixa folgado' }}
-            </span>
-          </div>
-
-          <div class="month-balance-chart-wrap">
-            <canvas
-              #monthBalanceChart
-              class="month-balance-chart"
-              [attr.data-month-key]="month.key"
-              [attr.aria-label]="'Evolucao de saldo em dias-chave de ' + month.title + ' de ' + month.year"
-              role="img"
-            ></canvas>
-          </div>
-          <small class="month-chart-caption">Saldo projetado ao longo do mês</small>
-
-          <div class="month-stats">
-            <div>
-              <span
-                class="dashboard-field-label"
-                tabindex="0"
-                data-tooltip="Saldo no início deste mês."
-              >Saldo inicial</span>
-              <strong>{{ formatCurrency(month.openingBalance) }}</strong>
-            </div>
-            <div>
-              <span
-                class="dashboard-field-label"
-                tabindex="0"
-                data-tooltip="Total de entradas deste mês."
-              >Entrada</span>
-              <strong>{{ formatCurrency(month.totalIncome) }}</strong>
-            </div>
-            <div>
-              <span
-                class="dashboard-field-label"
-                tabindex="0"
-                data-tooltip="Total de despesas deste mês."
-              >Saída</span>
-              <strong>{{ formatCurrency(month.totalExpenses) }}</strong>
-            </div>
-            <div>
-              <span
-                class="dashboard-field-label"
-                tabindex="0"
-                data-tooltip="Total investido neste mês."
-              >Investimentos</span>
-              <strong>{{ formatCurrency(month.totalInvestments) }}</strong>
-            </div>
-            <div>
-              <span
-                class="dashboard-field-label"
-                tabindex="0"
-                data-tooltip="Custo diário recorrente acumulado no mês (lançamentos do tipo diário)."
-              >Custos fixos</span>
-              <strong>{{ formatCurrency(month.totalFixedCosts) }}</strong>
-            </div>
-            <div>
-              <span
-                class="dashboard-field-label"
-                tabindex="0"
-                data-tooltip="Menor saldo projetado atingido durante este mês."
-              >Piso do mês</span>
-              <strong>{{ formatCurrency(month.minBalance) }}</strong>
-            </div>
+            <strong class="month-card-balance" [ngClass]="getBalanceClass(month.closingBalance)">{{ formatCurrency(month.closingBalance) }}</strong>
           </div>
         </article>
       </div>

@@ -187,6 +187,10 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
     return `${pct.toFixed(1)}%`;
   }
 
+  getRemainingToSpend(progress: BudgetProgress): number {
+    return Math.max(0, progress.budget.amount - progress.spent);
+  }
+
   getProjectionMarker(progress: BudgetProgress): string | null {
     if (progress.budget.amount <= 0) {
       return null;

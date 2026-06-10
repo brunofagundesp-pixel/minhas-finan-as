@@ -221,6 +221,16 @@
   gap: 4px;
 }
 
+.budget-remaining {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+
+  strong {
+    color: var(--ink-strong);
+  }
+}
+
 .budget-progress-track {
   position: relative;
   background: var(--surface-raised);

@@ -323,7 +323,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   ];
 
-  viewMode: 'custom' | '1month' | '3month' | '12month' = '3month';
+  viewMode: 'custom' | '1month' | '3month' | '12month' | 'balance' = '3month';
   twelveMonthYear = new Date().getFullYear();
   customStartIndex = 0;
   customEndIndex = 2;
@@ -1144,6 +1144,9 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   get launchMonths(): MonthSummary[] {
+    if (this.viewMode === 'balance') {
+      return this.monthSummaries.filter((month) => month.year === this.twelveMonthYear);
+    }
     if (this.viewMode === '12month') {
       return this.monthSummaries.filter((month) => month.year === this.twelveMonthYear);
     }
@@ -1157,6 +1160,9 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   get entriesTitle(): string {
+    if (this.viewMode === 'balance') {
+      return `Evolucao de saldo de ${this.twelveMonthYear}`;
+    }
     if (this.viewMode === '1month') {
       const month = this.launchMonths[0];
       return month ? `${month.title} de ${month.year}` : 'Lancamentos';
@@ -1184,7 +1190,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   get canGoPrevious(): boolean {
-    if (this.viewMode === '12month') {
+    if (this.viewMode === '12month' || this.viewMode === 'balance') {
       return this.monthSummaries.length > 0;
     }
 
@@ -2938,13 +2944,15 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.deleteEvent(monthKey, event.id, scope);
   }
 
-  setViewMode(mode: 'custom' | '1month' | '3month' | '12month'): void {
+  setViewMode(mode: 'custom' | '1month' | '3month' | '12month' | 'balance'): void {
     this.viewMode = mode;
     this.mobileEntriesControlsOpen = false;
     this.mobileSimplifiedSummaryOpen = false;
 
-    if (mode === '12month') {
-      const anchor = this.visibleMonths[0] ?? this.monthSummaries[0];
+    if (mode === '12month' || mode === 'balance') {
+      const anchor = mode === 'balance'
+        ? this.monthSummaries.find((month) => month.year === this.twelveMonthYear) ?? this.visibleMonths[0] ?? this.monthSummaries[0]
+        : this.visibleMonths[0] ?? this.monthSummaries[0];
       this.twelveMonthYear = anchor?.year ?? new Date().getFullYear();
       this.ensureYearMonths(this.twelveMonthYear);
     }
@@ -3056,7 +3064,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
-    if (this.viewMode === '12month') {
+    if (this.viewMode === '12month' || this.viewMode === 'balance') {
       this.twelveMonthYear = today.getFullYear();
       this.ensureYearMonths(this.twelveMonthYear);
       return;
@@ -3108,7 +3116,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.mobileSimplifiedSummaryOpen = false;
     }
 
-    if (this.viewMode === '12month') {
+    if (this.viewMode === '12month' || this.viewMode === 'balance') {
       this.twelveMonthYear -= 1;
       this.ensureYearMonths(this.twelveMonthYear);
       return;
@@ -3127,7 +3135,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.mobileSimplifiedSummaryOpen = false;
     }
 
-    if (this.viewMode === '12month') {
+    if (this.viewMode === '12month' || this.viewMode === 'balance') {
       this.twelveMonthYear += 1;
       this.ensureYearMonths(this.twelveMonthYear);
       return;

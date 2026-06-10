@@ -90,6 +90,15 @@
             <span class="budget-of">de {{ formatCurrency(progress.budget.amount) }}</span>
           </div>
 
+          <p class="budget-remaining" *ngIf="progress.budget.amount > 0">
+            <ng-container *ngIf="progress.spent <= progress.budget.amount; else overLimitValue">
+              Ainda pode gastar <strong>{{ formatCurrency(getRemainingToSpend(progress)) }}</strong> sem ultrapassar a meta.
+            </ng-container>
+            <ng-template #overLimitValue>
+              Você ultrapassou a meta em <strong>{{ formatCurrency(progress.spent - progress.budget.amount) }}</strong>.
+            </ng-template>
+          </p>
+
           <div class="budget-progress">
             <div class="budget-progress-track">
               <div
