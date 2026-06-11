@@ -1683,12 +1683,41 @@
 
 .launch-preview {
   margin: 0;
-  padding: 9px 10px;
-  border-radius: 8px;
-  font-size: 0.78rem;
+  padding: 12px;
+  border-radius: 10px;
+  display: grid;
+  gap: 6px;
   color: #1b4f99;
   background: #eef4ff;
   border: 1px solid #d9e7ff;
+}
+
+.launch-preview-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #1a478d;
+}
+
+.launch-preview-period {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #2a5ea8;
+}
+
+.launch-preview-details {
+  display: grid;
+  gap: 3px;
+
+  p {
+    margin: 0;
+    font-size: 0.76rem;
+    line-height: 1.3;
+    color: #355983;
+  }
 }
 
 .launch-modal-actions {

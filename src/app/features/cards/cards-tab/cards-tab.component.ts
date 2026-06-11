@@ -45,6 +45,12 @@ interface CardInvoiceDay {
   status: 'negative' | 'warning' | 'healthy';
 }
 
+interface LaunchPreviewData {
+  title: string;
+  period?: string;
+  details: string[];
+}
+
 const AVATAR_COLORS = [
   '#e85d26', '#1f5cc2', '#0b9e6e', '#9c3fa6',
   '#c9820a', '#2478b5', '#b03060', '#4a6741'
@@ -399,39 +405,67 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     return this.isEditingLaunch ? 'Salvar alterações' : 'Salvar';
   }
 
-  get launchPreviewText(): string {
+  get launchPreviewData(): LaunchPreviewData | null {
     const selectedInvoiceMonth = this.parseInvoiceMonthRef(this.launchForm.invoiceMonthRef);
     if (!selectedInvoiceMonth) {
-      return 'Selecione o mês da fatura para ver onde o lançamento será registrado.';
+      return {
+        title: 'Selecione o mês da fatura',
+        details: ['Escolha o mês para ver o resumo do lançamento.']
+      };
     }
 
     const invoiceLabel = this.formatInvoiceMonthLabel(selectedInvoiceMonth);
+    const invoiceShortLabel = this.formatInvoiceMonthShortLabel(selectedInvoiceMonth);
     const amount = this.launchForm.amount || 0;
     const amountLabel = this.formatCurrency(amount);
 
     if (!this.selectedCard) {
-      return `O lançamento será registrado na fatura de ${invoiceLabel}.`;
+      return {
+        title: `Lançamento de ${amountLabel}`,
+        period: invoiceShortLabel,
+        details: [`Fatura de ${invoiceLabel}.`]
+      };
     }
 
     const baseDate = this.launchForm.date || this.getTodayInputDate();
     const baseDateLabel = this.formatDate(new Date(`${baseDate}T00:00:00`));
     const closingDate = this.formatDate(this.getClosingDateForInvoiceMonth(selectedInvoiceMonth, this.selectedCard));
     const dueDate = this.formatDate(this.getDueDateForInvoiceMonth(selectedInvoiceMonth, this.selectedCard));
-    const dateText = ` Data da compra: ${baseDateLabel}.`;
 
     if (!this.isEditingLaunch && this.launchForm.repeatMode === 'installment') {
       const installments = Math.max(2, Number(this.launchForm.installmentCount || 2));
       const finalInvoiceMonth = this.shiftInvoiceMonth(selectedInvoiceMonth, installments - 1);
-      const finalLabel = this.formatInvoiceMonthLabel(finalInvoiceMonth);
+      const finalShortLabel = this.formatInvoiceMonthShortLabel(finalInvoiceMonth);
 
-      return `Vai criar ${installments} parcelas de ${amountLabel} cada, da fatura ${invoiceLabel} até ${finalLabel}. O valor inserido já e o valor de cada parcela. Primeira fatura fecha em ${closingDate} e vence em ${dueDate}.${dateText}`;
+      return {
+        title: `${installments} ${installments === 1 ? 'parcela' : 'parcelas'} de ${amountLabel}`,
+        period: `${invoiceShortLabel} a ${finalShortLabel}`,
+        details: [
+          `1a fatura: fecha ${closingDate} e vence ${dueDate}.`,
+          `Data da compra: ${baseDateLabel}.`
+        ]
+      };
     }
 
     if (this.launchForm.repeatMode === 'fixed') {
-      return `Lançamento fixo de ${amountLabel}, iniciando na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${dateText}`;
+      return {
+        title: `Fixo de ${amountLabel}`,
+        period: `A partir de ${invoiceShortLabel}`,
+        details: [
+          `Fatura atual: fecha ${closingDate} e vence ${dueDate}.`,
+          `Data da compra: ${baseDateLabel}.`
+        ]
+      };
     }
 
-    return `Vai criar 1 lançamento de ${amountLabel} na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${dateText}`;
+    return {
+      title: `1 lançamento de ${amountLabel}`,
+      period: invoiceShortLabel,
+      details: [
+        `Fatura: fecha ${closingDate} e vence ${dueDate}.`,
+        `Data da compra: ${baseDateLabel}.`
+      ]
+    };
   }
 
   get editScopeTitle(): string {
@@ -1661,6 +1695,14 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
     ];
     return `${months[invoiceMonth.month - 1]} de ${invoiceMonth.year}`;
+  }
+
+  private formatInvoiceMonthShortLabel(invoiceMonth: InvoiceMonth): string {
+    const months = [
+      'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    return `${months[invoiceMonth.month - 1]}/${invoiceMonth.year}`;
   }
 
   private shiftInvoiceMonth(invoiceMonth: InvoiceMonth, monthsToAdd: number): InvoiceMonth {

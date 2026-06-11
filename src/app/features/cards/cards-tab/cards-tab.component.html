@@ -405,7 +405,13 @@
       </label>
     </div>
 
-    <p class="launch-preview" *ngIf="launchPreviewText">{{ launchPreviewText }}</p>
+    <div class="launch-preview" *ngIf="launchPreviewData as preview">
+      <p class="launch-preview-title">{{ preview.title }}</p>
+      <p class="launch-preview-period" *ngIf="preview.period">{{ preview.period }}</p>
+      <div class="launch-preview-details" *ngIf="preview.details.length > 0">
+        <p *ngFor="let detail of preview.details">{{ detail }}</p>
+      </div>
+    </div>
 
     <p *ngIf="launchError" class="card-form-error">{{ launchError }}</p>
 
