@@ -414,28 +414,24 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     }
 
     const baseDate = this.launchForm.date || this.getTodayInputDate();
-    const normalizedDate = this.ensureDateInsideInvoiceMonth(baseDate, selectedInvoiceMonth, this.selectedCard);
-    const normalizedDateLabel = this.formatDate(new Date(`${normalizedDate}T00:00:00`));
-    const dateAdjusted = normalizedDate !== baseDate;
+    const baseDateLabel = this.formatDate(new Date(`${baseDate}T00:00:00`));
     const closingDate = this.formatDate(this.getClosingDateForInvoiceMonth(selectedInvoiceMonth, this.selectedCard));
     const dueDate = this.formatDate(this.getDueDateForInvoiceMonth(selectedInvoiceMonth, this.selectedCard));
-    const adjustedText = dateAdjusted
-      ? ` A data base será ajustada para ${normalizedDateLabel} para cair nesse ciclo.`
-      : '';
+    const dateText = ` Data da compra: ${baseDateLabel}.`;
 
     if (!this.isEditingLaunch && this.launchForm.repeatMode === 'installment') {
       const installments = Math.max(2, Number(this.launchForm.installmentCount || 2));
       const finalInvoiceMonth = this.shiftInvoiceMonth(selectedInvoiceMonth, installments - 1);
       const finalLabel = this.formatInvoiceMonthLabel(finalInvoiceMonth);
 
-      return `Vai criar ${installments} parcelas de ${amountLabel} cada, da fatura ${invoiceLabel} até ${finalLabel}. O valor inserido já e o valor de cada parcela. Primeira fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
+      return `Vai criar ${installments} parcelas de ${amountLabel} cada, da fatura ${invoiceLabel} até ${finalLabel}. O valor inserido já e o valor de cada parcela. Primeira fatura fecha em ${closingDate} e vence em ${dueDate}.${dateText}`;
     }
 
     if (this.launchForm.repeatMode === 'fixed') {
-      return `Lançamento fixo de ${amountLabel}, iniciando na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
+      return `Lançamento fixo de ${amountLabel}, iniciando na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${dateText}`;
     }
 
-    return `Vai criar 1 lançamento de ${amountLabel} na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${adjustedText}`;
+    return `Vai criar 1 lançamento de ${amountLabel} na fatura de ${invoiceLabel}. Esta fatura fecha em ${closingDate} e vence em ${dueDate}.${dateText}`;
   }
 
   get editScopeTitle(): string {
@@ -907,9 +903,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     const selectedInvoiceMonth = this.selectedCard
       ? this.clampInvoiceMonthToCard(parsedInvoiceMonth, this.selectedCard)
       : parsedInvoiceMonth;
-    const normalizedDate = this.selectedCard
-      ? this.ensureDateInsideInvoiceMonth(this.launchForm.date, selectedInvoiceMonth, this.selectedCard)
-      : this.launchForm.date;
+    const normalizedDate = this.launchForm.date;
     const targetInvoiceMonth = selectedInvoiceMonth;
     const preferredDate = this.launchForm.date || this.getTodayInputDate();
     const preferredInvoiceMonthRef = this.formatInvoiceMonthRef(targetInvoiceMonth);
@@ -1679,15 +1673,6 @@ export class CardsTabComponent implements OnInit, OnDestroy {
 
   private formatCurrency(value: number): string {
     return this.currencyFormatter.format(Number.isFinite(value) ? value : 0);
-  }
-
-  private ensureDateInsideInvoiceMonth(dateInput: string, targetInvoiceMonth: InvoiceMonth, card: CreditCard): string {
-    const originalMonth = this.getInvoiceMonthForDate(dateInput, card);
-    if (originalMonth.year === targetInvoiceMonth.year && originalMonth.month === targetInvoiceMonth.month) {
-      return dateInput;
-    }
-
-    return this.toInputDate(this.getClosingDateForInvoiceMonth(targetInvoiceMonth, card));
   }
 
   private buildInstallmentLaunches(baseLaunch: Omit<CardLaunch, 'id'>, installmentCount: number): CardLaunch[] {
