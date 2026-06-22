@@ -7,6 +7,7 @@ import { DailyAutoSkipService } from './core/services/daily-auto-skip.service';
 import { AnnouncementsService } from './core/services/announcements.service';
 import { BudgetsService } from './core/services/budgets.service';
 import { forkJoin, Subscription } from 'rxjs';
+import { getInvoiceMonthForDate, getDueDateForInvoiceMonth, getClosingDateForInvoiceMonth, InvoiceMonth } from './core/utils/card-cycle.util';
 import {
   CategoryScale,
   Chart,
@@ -6031,55 +6032,18 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private getCardInvoiceMonthForDate(dateInput: string, card: CreditCard): { year: number; month: number } {
-    const transactionDate = new Date(`${dateInput}T00:00:00`);
-    if (Number.isNaN(transactionDate.getTime())) {
-      const today = new Date();
-      return { year: today.getFullYear(), month: today.getMonth() + 1 };
-    }
-
-    const dueDaySameMonth = this.getSafeDayForMonth(
-      transactionDate.getFullYear(),
-      transactionDate.getMonth() + 1,
-      card.dueDay
-    );
-    const dueDateSameMonth = new Date(
-      transactionDate.getFullYear(),
-      transactionDate.getMonth(),
-      dueDaySameMonth
-    );
-    const closeDateSameMonth = new Date(dueDateSameMonth);
-    closeDateSameMonth.setDate(closeDateSameMonth.getDate() - card.closeDaysBefore);
-
-    if (transactionDate <= closeDateSameMonth) {
-      return {
-        year: dueDateSameMonth.getFullYear(),
-        month: dueDateSameMonth.getMonth() + 1
-      };
-    }
-
-    const nextMonthRef = new Date(transactionDate.getFullYear(), transactionDate.getMonth() + 1, 1);
-    return {
-      year: nextMonthRef.getFullYear(),
-      month: nextMonthRef.getMonth() + 1
-    };
-  }
-
-  private getSafeDayForMonth(year: number, monthNumber: number, day: number): number {
-    const maxDay = new Date(year, monthNumber, 0).getDate();
-    return Math.min(Math.max(1, day), maxDay);
+    const result = getInvoiceMonthForDate(dateInput, card);
+    if (result) return result;
+    const today = new Date();
+    return { year: today.getFullYear(), month: today.getMonth() + 1 };
   }
 
   private getDueDateForInvoiceMonth(invoiceMonth: { year: number; month: number }, card: CreditCard): Date {
-    const dueRef = new Date(invoiceMonth.year, invoiceMonth.month, 1);
-    const dueDay = this.getSafeDayForMonth(dueRef.getFullYear(), dueRef.getMonth() + 1, card.dueDay);
-    return new Date(dueRef.getFullYear(), dueRef.getMonth(), dueDay);
+    return getDueDateForInvoiceMonth(invoiceMonth, card);
   }
 
   private getClosingDateForInvoiceMonth(invoiceMonth: { year: number; month: number }, card: CreditCard): Date {
-    const closingDay = this.getSafeDayForMonth(invoiceMonth.year, invoiceMonth.month, card.dueDay);
-    const closingDate = new Date(invoiceMonth.year, invoiceMonth.month - 1, closingDay);
-    closingDate.setDate(closingDate.getDate() - card.closeDaysBefore);
-    return closingDate;
+    return getClosingDateForInvoiceMonth(invoiceMonth, card);
   }
 
   private formatDateLabel(date: Date): string {

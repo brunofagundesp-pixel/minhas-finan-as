@@ -13,6 +13,8 @@ export interface CreditCard {
   dueDay: number;
   firstDueDate: string;
   closeDaysBefore: number;
+  closeDay?: number;
+  dueMonthOffset?: number;
   parentCardName: string;
   avatarColor: string;
 }

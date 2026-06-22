@@ -6,45 +6,76 @@ export interface InvoiceMonth {
   month: number;
 }
 
-/**
- * Calcula a fatura (ano + mês de vencimento) à qual uma data de lançamento pertence,
- * dado o cartão. Replica a lógica usada em `CardsTabComponent`.
- */
+function getSafeDayForMonth(year: number, monthNumber: number, day: number): number {
+  const maxDay = new Date(year, monthNumber, 0).getDate();
+  return Math.min(Math.max(1, day), maxDay);
+}
+
+function getCloseDay(card: CreditCard): number {
+  return card.closeDay ?? (card.dueDay - card.closeDaysBefore);
+}
+
+function getOldDueMonthOffset(card: CreditCard): number {
+  if (card.dueMonthOffset != null) return card.dueMonthOffset;
+  const closeDay = getCloseDay(card);
+  return closeDay > card.dueDay ? 1 : 0;
+}
+
+function getDueMonthOffset(card: CreditCard): number {
+  return getOldDueMonthOffset(card) + 1;
+}
+
+function shiftMonth(year: number, month: number, delta: number): { year: number; month: number } {
+  let m = month + delta;
+  let y = year;
+  while (m < 1) { m += 12; y -= 1; }
+  while (m > 12) { m -= 12; y += 1; }
+  return { year: y, month: m };
+}
+
 export function getInvoiceMonthForDate(dateInput: string, card: CreditCard): InvoiceMonth | null {
   const transactionDate = new Date(`${dateInput}T00:00:00`);
-  if (Number.isNaN(transactionDate.getTime())) {
-    return null;
+  if (Number.isNaN(transactionDate.getTime())) return null;
+
+  const closeDay = getCloseDay(card);
+  const purchaseDay = transactionDate.getDate();
+  const purchaseMonth = transactionDate.getMonth() + 1;
+  const purchaseYear = transactionDate.getFullYear();
+
+  let refMonth: number;
+  let refYear: number;
+
+  if (purchaseDay <= closeDay) {
+    // Compra antes/dia do fechamento → pertence à fatura do mês anterior
+    const shifted = shiftMonth(purchaseYear, purchaseMonth, -1);
+    refMonth = shifted.month;
+    refYear = shifted.year;
+  } else {
+    // Compra após o fechamento → pertence à fatura deste mês
+    refMonth = purchaseMonth;
+    refYear = purchaseYear;
   }
 
-  const dueDateSameMonth = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), card.dueDay);
-  const closeDateSameMonth = new Date(dueDateSameMonth);
-  closeDateSameMonth.setDate(closeDateSameMonth.getDate() - card.closeDaysBefore);
-
-  const invoiceDueDate = transactionDate <= closeDateSameMonth
-    ? dueDateSameMonth
-    : new Date(transactionDate.getFullYear(), transactionDate.getMonth() + 1, card.dueDay);
-
-  return {
-    year: invoiceDueDate.getFullYear(),
-    month: invoiceDueDate.getMonth() + 1
-  };
+  return { year: refYear, month: refMonth };
 }
 
-/** Data de fechamento (último dia em que lançamentos entram nesta fatura). */
 export function getClosingDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
-  const anchorDay = new Date(invoiceMonth.year, invoiceMonth.month, 0).getDate();
-  const closingDate = new Date(invoiceMonth.year, invoiceMonth.month - 1, Math.min(card.dueDay, anchorDay));
-  closingDate.setDate(closingDate.getDate() - card.closeDaysBefore);
-  return closingDate;
+  const closeDay = getCloseDay(card);
+  const closeMonth = shiftMonth(invoiceMonth.year, invoiceMonth.month, 1);
+  const safeDay = getSafeDayForMonth(closeMonth.year, closeMonth.month, closeDay);
+  return new Date(closeMonth.year, closeMonth.month - 1, safeDay);
 }
 
-/** Primeiro dia do ciclo da fatura (dia seguinte ao fechamento da fatura anterior). */
 export function getCycleStartDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
-  const previousInvoice: InvoiceMonth = {
-    year: invoiceMonth.month === 1 ? invoiceMonth.year - 1 : invoiceMonth.year,
-    month: invoiceMonth.month === 1 ? 12 : invoiceMonth.month - 1
-  };
-  const previousClose = getClosingDateForInvoiceMonth(previousInvoice, card);
+  const prev = shiftMonth(invoiceMonth.year, invoiceMonth.month, -1);
+  const previousClose = getClosingDateForInvoiceMonth(prev, card);
   previousClose.setDate(previousClose.getDate() + 1);
   return previousClose;
+}
+
+export function getDueDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
+  const offset = getDueMonthOffset(card);
+  const due = shiftMonth(invoiceMonth.year, invoiceMonth.month, offset);
+  const dueDay = getSafeDayForMonth(due.year, due.month, card.dueDay);
+  return new Date(due.year, due.month - 1, dueDay);
 }

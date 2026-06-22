@@ -217,7 +217,7 @@
 
       <label>
         Data *
-        <input type="date" name="launchDate" [(ngModel)]="launchForm.date" required />
+        <input type="date" name="launchDate" [(ngModel)]="launchForm.date" (ngModelChange)="onLaunchDateChange()" required />
       </label>
     </div>
 
@@ -443,10 +443,14 @@
       </label>
     </div>
 
-    <div class="card-grid one-col">
+    <div class="card-grid two-cols">
       <label>
-        Fechamento da fatura (dias antes)
-        <input type="number" name="closeDaysBefore" [(ngModel)]="cardForm.closeDaysBefore" min="0" max="31" step="1" />
+        Dia fechamento
+        <input type="number" name="closeDay" [(ngModel)]="cardForm.closeDay" min="1" max="31" step="1" />
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" [checked]="cardForm.dueMonthOffset === 1" (change)="onDueMonthToggle($event)" />
+        Vencimento no mês seguinte
       </label>
     </div>
 

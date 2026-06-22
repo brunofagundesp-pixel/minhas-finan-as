@@ -7,6 +7,7 @@ import {
   FinancialEvent,
   MonthDefinition
 } from './finance-api.service';
+import { getInvoiceMonthForDate, getDueDateForInvoiceMonth } from '../utils/card-cycle.util';
 
 export interface ExportRow {
   date: string;          // ISO yyyy-mm-dd
@@ -176,44 +177,9 @@ export class ExportService {
   }
 
   private computeDueDateForLaunch(dateInput: string, card: CreditCard): Date | null {
-    // Replica EXATAMENTE a lógica do dashboard (`app.component.ts`:
-    // `getCardInvoiceMonthForDate` + `getDueDateForInvoiceMonth`). É
-    // importante manter o mesmo cálculo, mesmo que o casamento dos
-    // índices de mês entre os dois métodos pareça inconsistente — a
-    // base de dados do usuário foi configurada com esse comportamento.
-    const tx = new Date(`${dateInput}T00:00:00`);
-    if (Number.isNaN(tx.getTime())) return null;
-
-    // Etapa 1: descobrir invoiceMonth (1-indexed) — espelha
-    // getCardInvoiceMonthForDate.
-    const dueDaySame = this.clampDay(tx.getFullYear(), tx.getMonth() + 1, card.dueDay);
-    const dueSame = new Date(tx.getFullYear(), tx.getMonth(), dueDaySame);
-    const closeSame = new Date(dueSame);
-    closeSame.setDate(closeSame.getDate() - (card.closeDaysBefore ?? 0));
-
-    let invoiceYear: number;
-    let invoiceMonth: number; // 1-indexed
-    if (tx <= closeSame) {
-      invoiceYear = dueSame.getFullYear();
-      invoiceMonth = dueSame.getMonth() + 1;
-    } else {
-      const nextRef = new Date(tx.getFullYear(), tx.getMonth() + 1, 1);
-      invoiceYear = nextRef.getFullYear();
-      invoiceMonth = nextRef.getMonth() + 1;
-    }
-
-    // Etapa 2: getDueDateForInvoiceMonth — observe que o app usa
-    // `new Date(invoiceMonth.year, invoiceMonth.month, 1)` (tratando
-    // month como 0-indexed apesar de ser 1-indexed na origem). Mantemos
-    // o mesmo comportamento aqui.
-    const dueRef = new Date(invoiceYear, invoiceMonth, 1);
-    const dueDay = this.clampDay(dueRef.getFullYear(), dueRef.getMonth() + 1, card.dueDay);
-    return new Date(dueRef.getFullYear(), dueRef.getMonth(), dueDay);
-  }
-
-  private clampDay(year: number, monthNumber: number, day: number): number {
-    const maxDay = new Date(year, monthNumber, 0).getDate();
-    return Math.min(Math.max(1, day), maxDay);
+    const invoiceMonth = getInvoiceMonthForDate(dateInput, card);
+    if (!invoiceMonth) return null;
+    return getDueDateForInvoiceMonth(invoiceMonth, card);
   }
 
   /**
