@@ -235,6 +235,19 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   /** Data alvo (YYYY-MM-DD) consultada no card de previsão de saldo. */
   forecastDateInput = '';
   entriesFeedback = '';
+  private feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  setFeedback(msg: string): void {
+    if (this.feedbackTimeout) {
+      clearTimeout(this.feedbackTimeout);
+    }
+    this.entriesFeedback = msg;
+    this.feedbackTimeout = setTimeout(() => {
+      this.entriesFeedback = '';
+      this.feedbackTimeout = null;
+    }, 3000);
+  }
+
   activeDayDetails: ActiveDayDetails | null = null;
   activeContextMenuEvent: FinancialEvent | null = null;
   sortMode: 'recent' | 'highest' | 'lowest' = 'recent';
