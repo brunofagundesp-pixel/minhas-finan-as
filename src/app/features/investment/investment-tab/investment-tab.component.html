@@ -1,22 +1,32 @@
 <section class="investment-tab">
-  <header class="investment-header">
-    <p class="eyebrow">investimentos</p>
-    <h2>Quanto a pessoa está guardando por mês</h2>
-    <p class="investment-subtitle">
-      Resumo simples da taxa de investimento: quanto entra no mês, quanto vai para economia e qual a porcentagem guardada.
-    </p>
-  </header>
+  <div class="investment-toolbar">
+    <h2>Investimentos</h2>
+    <div class="investment-toolbar-right">
+      <div class="investment-year-nav">
+        <button type="button" class="investment-nav-arrow" (click)="goToPreviousYear()" [disabled]="!canGoPreviousYear" aria-label="Ano anterior">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="investment-year-label">{{ selectedYear }}</span>
+        <button type="button" class="investment-nav-arrow" (click)="goToNextYear()" [disabled]="!canGoNextYear" aria-label="Próximo ano">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <p class="investment-error" *ngIf="errorMessage">{{ errorMessage }}</p>
 
   <ng-container *ngIf="isLoading; else investmentsContent">
-    <article class="investment-empty panel">
-      <strong>Carregando dados…</strong>
-      <p>Aguarde um instante enquanto os meses são lidos.</p>
-    </article>
+    <div class="investment-content">
+      <article class="investment-empty panel">
+        <strong>Carregando dados…</strong>
+        <p>Aguarde um instante enquanto os meses são lidos.</p>
+      </article>
+    </div>
   </ng-container>
 
   <ng-template #investmentsContent>
+    <div class="investment-content">
     <ng-container *ngIf="currentMonthSummary; else noInvestmentData">
       <section class="investment-kpis-grid">
         <article class="investment-card panel investment-card--accent">
@@ -170,11 +180,6 @@
             <p class="eyebrow">histórico</p>
             <h3>{{ historyLabel }}</h3>
           </div>
-          <div class="investment-year-nav">
-            <button type="button" class="year-nav-button" (click)="goToPreviousYear()" [disabled]="!canGoPreviousYear" aria-label="Ano anterior">←</button>
-            <strong>{{ selectedYear }}</strong>
-            <button type="button" class="year-nav-button" (click)="goToNextYear()" [disabled]="!canGoNextYear" aria-label="Próximo ano">→</button>
-          </div>
         </header>
 
         <p class="investment-section-description">Receita x investimento por mês, exibindo apenas os meses do ano selecionado.</p>
@@ -213,5 +218,6 @@
         <p>Quando houver lançamentos de receita e investimento, esta tela vai mostrar a porcentagem guardada por mês.</p>
       </article>
     </ng-template>
+    </div><!-- /.investment-content -->
   </ng-template>
 </section>

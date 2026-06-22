@@ -28,8 +28,22 @@ interface InvestmentMonthSummary {
 export class InvestmentTabComponent implements OnInit, OnDestroy {
   isLoading = true;
   errorMessage = '';
-  monthSummaries: InvestmentMonthSummary[] = [];
   investmentGoalProgresses: BudgetProgress[] = [];
+
+  get monthSummaries(): InvestmentMonthSummary[] {
+    const seen = new Map<string, InvestmentMonthSummary>();
+    for (const s of this.allMonthSummaries) {
+      if (s.year === this.selectedYear) {
+        const existing = seen.get(s.key);
+        if (!existing || (!existing.income && !existing.investment && (s.income || s.investment))) {
+          seen.set(s.key, s);
+        }
+      }
+    }
+    return [...seen.values()]
+      .filter((s) => s.income || s.investment)
+      .sort((a, b) => b.monthNumber - a.monthNumber);
+  }
   readonly savingsTargetPercent = 20;
   readonly emergencyTargetMonths = 6;
 
@@ -72,7 +86,6 @@ export class InvestmentTabComponent implements OnInit, OnDestroy {
           if (!this.availableYears.includes(this.selectedYear) && this.selectedYear !== this.currentYear) {
             this.selectedYear = this.currentYear;
           }
-          this.monthSummaries = this.getSummariesForYear(this.selectedYear);
           this.investmentGoalProgresses = this.calculator.computeAll(investmentBudgets as Budget[], {
             months: months ?? [],
             cardLaunches: cardLaunches ?? [],
@@ -283,7 +296,6 @@ export class InvestmentTabComponent implements OnInit, OnDestroy {
     }
 
     this.selectedYear = year;
-    this.monthSummaries = this.getSummariesForYear(year);
   }
 
   goToPreviousYear(): void {
@@ -312,7 +324,7 @@ export class InvestmentTabComponent implements OnInit, OnDestroy {
       }
     }
 
-    return [...months]
+    const summaries = [...months]
       .sort((a, b) => b.year - a.year || b.monthNumber - a.monthNumber)
       .map((month) => {
         const income = this.sumIncomeExcludingWithdrawals(month.events);
@@ -334,6 +346,16 @@ export class InvestmentTabComponent implements OnInit, OnDestroy {
           remainingBalance
         };
       });
+
+    // Deduplicar por key (ano-mês) para evitar duplicatas do Firestore
+    const seen = new Map<string, InvestmentMonthSummary>();
+    for (const s of summaries) {
+      const existing = seen.get(s.key);
+      if (!existing || (!existing.income && !existing.investment && (s.income || s.investment))) {
+        seen.set(s.key, s);
+      }
+    }
+    return [...seen.values()].filter((s) => s.income || s.investment);
   }
 
   private buildAvailableYears(monthSummaries: InvestmentMonthSummary[]): number[] {
@@ -343,9 +365,11 @@ export class InvestmentTabComponent implements OnInit, OnDestroy {
   }
 
   private getSummariesForYear(year: number): InvestmentMonthSummary[] {
-    return this.allMonthSummaries
-      .filter((summary) => summary.year === year)
-      .sort((a, b) => b.monthNumber - a.monthNumber);
+    const seen = new Map<string, InvestmentMonthSummary>();
+    for (const s of this.allMonthSummaries) {
+      if (s.year === year && !seen.has(s.key)) seen.set(s.key, s);
+    }
+    return [...seen.values()].sort((a, b) => b.monthNumber - a.monthNumber);
   }
 
   private buildCurrentMonthFallback(year: number, monthNumber: number): InvestmentMonthSummary {

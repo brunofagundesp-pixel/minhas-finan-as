@@ -17,281 +17,182 @@
 </div>
 
 <!-- ── CARD DETAIL VIEW ─────────────────────────────────────────────── -->
-<section *ngIf="!isLoading && cards.length > 0" class="cards-detail-layout">
+<section *ngIf="!isLoading && cards.length > 0" class="cards-container">
 
-  <!-- LEFT SIDEBAR -->
-  <aside class="card-sidebar panel">
-
-    <!-- Card selector -->
-    <div class="card-selector-head">
-      <div class="card-avatar" [style.background]="selectedCard?.avatarColor">
-        {{ cardInitial }}
-      </div>
-      <div class="card-selector-info">
-        <div class="card-select-shell">
-          <select class="card-select" (change)="selectCard($any($event.target).value)" [value]="selectedCardId">
-            <option *ngFor="let c of cards" [value]="c.id">{{ c.name }}</option>
-          </select>
-          <span class="card-select-icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </span>
-        </div>
-        <span class="card-brand-label">{{ selectedCard?.brand }}</span>
-      </div>
-      <div class="card-selector-actions">
-        <button type="button" class="card-icon-btn" (click)="openEditModal(selectedCard!)" title="Editar cartão" aria-label="Editar cartão">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-        </button>
-        <button type="button" class="card-icon-btn card-icon-btn--danger" (click)="requestDeleteCard(selectedCard!)" title="Excluir cartão" aria-label="Excluir cartão" [disabled]="isDeletingCard">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-            <line x1="10" y1="11" x2="10" y2="17"/>
-            <line x1="14" y1="11" x2="14" y2="17"/>
-          </svg>
-        </button>
+  <!-- TOOLBAR -->
+  <div class="cards-toolbar">
+    <div class="cards-card-select">
+      <div class="cards-card-avatar" [style.background]="selectedCard?.avatarColor">{{ cardInitial }}</div>
+      <div class="cards-card-select-shell">
+        <select (change)="selectCard($any($event.target).value)" [value]="selectedCardId">
+          <option *ngFor="let c of cards" [value]="c.id">{{ c.name }}</option>
+        </select>
+        <span class="cards-card-select-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
       </div>
     </div>
-
-
-    <!-- Month navigation -->
-    <div class="invoice-nav">
-      <button type="button" class="nav-arrow-btn" (click)="prevMonth()" aria-label="Mês anterior" [disabled]="isAtFirstControlledInvoiceMonth">&#8249;</button>
-      <span class="invoice-month-label">{{ invoiceMonthLabel }}</span>
-      <button type="button" class="nav-arrow-btn" (click)="nextMonth()" aria-label="Próximo mês">&#8250;</button>
-      <button type="button" class="card-icon-btn nav-today-btn" [class.nav-today-btn--hidden]="isCurrentInvoiceMonth" (click)="goToCurrentMonth()" title="Voltar ao mês atual" aria-label="Voltar ao mês atual">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="8"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="12" x2="15" y2="15"/>
-        </svg>
+    <div class="cards-toolbar-nav">
+      <button type="button" class="cards-nav-arrow" (click)="prevMonth()" aria-label="Mês anterior" [disabled]="isAtFirstControlledInvoiceMonth">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="cards-nav-label">{{ invoiceMonthLabel }}</span>
+      <button type="button" class="cards-nav-arrow" (click)="nextMonth()" aria-label="Próximo mês">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button type="button" class="cards-nav-today" [class.cards-nav-today--hidden]="isCurrentInvoiceMonth" (click)="goToCurrentMonth()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Mês atual
       </button>
     </div>
-
-    <div class="sidebar-section sidebar-section--invoice" [ngClass]="'sidebar-section--' + invoiceHealthTone">
-      <p class="sidebar-section-label sidebar-section-label--with-badge">
-        <span>Fatura atual (R$)</span>
-        <span class="invoice-health-badge" [ngClass]="'invoice-health-badge--' + invoiceHealthTone">
-          {{ invoiceHealthLabel }} • {{ limitUsagePercent }}%
-        </span>
-      </p>
-      <div class="summary-rows">
-        <div class="summary-row">
-          <span>Fechamento</span>
-          <span>{{ invoiceClosingDate }}</span>
-        </div>
-        <div class="summary-row">
-          <span>Vencimento</span>
-          <span>{{ invoiceDueDate }}</span>
-        </div>
-        <div class="summary-row">
-          <span>Total pago</span>
-          <span>{{ paidTotal | number:'1.2-2' }}</span>
-        </div>
-        <div class="summary-row summary-row--total">
-          <span>Total</span>
-          <span>{{ launchTotal | number:'1.2-2' }}</span>
-        </div>
-        <div class="summary-row summary-row--highlight" [ngClass]="'summary-row--highlight-' + invoiceHealthTone">
-          <span>Valor a pagar</span>
-          <span>{{ pendingTotal | number:'1.2-2' }}</span>
-        </div>
-      </div>
-
-      <div class="invoice-actions">
-        <button
-          *ngIf="isInvoicePastClosingDate && launchTotal > 0"
-          type="button"
-          class="btn-primary invoice-btn-primary"
-          [disabled]="isClosingInvoice"
-          (click)="fecharFatura()"
-        >{{ isClosingInvoice ? 'Fechando...' : 'Fechar fatura' }}</button>
-      </div>
+    <div class="cards-toolbar-actions">
+      <button type="button" class="cards-toolbar-btn cards-toolbar-btn--close" *ngIf="isInvoicePastClosingDate && launchTotal > 0" [disabled]="isClosingInvoice" (click)="fecharFatura()">
+        {{ isClosingInvoice ? 'Fechando...' : 'Fechar fatura' }}
+      </button>
+      <button type="button" class="cards-toolbar-btn cards-toolbar-btn--add" (click)="openLaunchModal()">+ Nova despesa</button>
     </div>
+  </div>
 
-    <div class="sidebar-section">
-      <p class="sidebar-section-label">Detalhamento</p>
-      <div class="summary-rows">
-        <div class="summary-row">
-          <span>Despesas</span>
-          <span>{{ launchTotal | number:'1.2-2' }}</span>
+  <!-- SCROLLABLE CONTENT -->
+  <div class="cards-content">
+    <div class="cards-body">
+      <!-- Sidebar: summary cards -->
+      <aside class="cards-sidebar">
+        <div class="cards-summary-card cards-summary-card--total">
+          <span class="cards-summary-card-label">Total</span>
+          <strong>{{ formatCurrency(launchTotal) }}</strong>
         </div>
-        <div class="summary-row">
-          <span>Despesas fixas</span>
-          <span>{{ fixedLaunchesTotal | number:'1.2-2' }}</span>
+        <div class="cards-summary-card cards-summary-card--paid">
+          <span class="cards-summary-card-label">Pago</span>
+          <strong>{{ formatCurrency(paidTotal) }}</strong>
         </div>
-        <div class="summary-row">
-          <span>Parcelas futuras</span>
-          <span>{{ futureParcelsTotal | number:'1.2-2' }}</span>
+        <div class="cards-summary-card cards-summary-card--pending">
+          <span class="cards-summary-card-label">Pendente</span>
+          <strong>{{ formatCurrency(pendingTotal) }}</strong>
         </div>
-      </div>
-    </div>
-
-    <div class="sidebar-section">
-      <p class="sidebar-section-label">Limite</p>
-      <div class="summary-rows">
-        <div class="summary-row">
-          <span>Limite da conta</span>
-          <span>{{ (selectedCard?.limit ?? 0) | number:'1.2-2' }}</span>
+        <div class="cards-summary-card cards-summary-card--available">
+          <span class="cards-summary-card-label">Disponível</span>
+          <strong>{{ formatCurrency(availableLimit) }}</strong>
         </div>
-        <div class="summary-row summary-row--negative">
-          <span>Utilizado</span>
-          <span>{{ utilizedAmount | number:'1.2-2' }}</span>
+        <div class="cards-summary-card cards-summary-card--dates">
+          <span class="cards-summary-card-label">Fechamento <b>{{ invoiceClosingDate }}</b></span>
+          <span class="cards-summary-card-label">Vencimento <b>{{ invoiceDueDate }}</b></span>
         </div>
-        <div class="summary-row summary-row--positive">
-          <span class="fw-bold">Disponivel</span>
-          <span>{{ availableLimit | number:'1.2-2' }}</span>
+
+        <!-- Card actions -->
+        <div class="cards-sidebar-actions">
+          <button type="button" class="cards-sidebar-action" (click)="openCardModal()" title="Adicionar cartão">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Adicionar cartão
+          </button>
+          <button type="button" class="cards-sidebar-action" (click)="openEditModal(selectedCard!)" title="Editar cartão">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar cartão
+          </button>
+          <button type="button" class="cards-sidebar-action cards-sidebar-action--danger" (click)="requestDeleteCard(selectedCard!)" title="Excluir cartão" [disabled]="isDeletingCard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Excluir cartão
+          </button>
         </div>
-      </div>
-    </div>
+      </aside>
 
-    <!-- Add card shortcut -->
-    <button type="button" class="add-card-link" (click)="openCardModal()">+ Adicionar cartão</button>
-  </aside>
-
-  <!-- RIGHT: LAUNCHES AREA -->
-  <div class="card-launches-area">
-    <section class="panel launches-filter-panel">
-      <p class="sidebar-section-label">Filtros de lançamentos</p>
-      <div class="launch-filters">
-        <label class="launch-filter-field launch-filter-field--search">
-          Buscar despesa
-          <input
-            type="text"
-            name="launchSearch"
-            [(ngModel)]="launchSearchTerm"
-            placeholder="Ex: mercado, uber, farmacia"
-          />
-        </label>
-
-        <label class="launch-filter-field launch-filter-field--repeat">
-          Tipo de repetição
-          <select name="launchRepeatFilter" [(ngModel)]="launchRepeatFilter">
-            <option value="all">Todos</option>
-            <option value="single">Única</option>
-            <option value="installment">Parcelada</option>
-            <option value="fixed">Fixa</option>
-          </select>
-        </label>
-
-        <div class="launch-filter-field launch-filter-field--tags">
-          <span>Tags</span>
-
-          <details class="card-launch-tag-filter" [class.card-launch-tag-filter--active]="selectedLaunchFilterTags.length > 0">
+      <!-- Main: filters + launches -->
+      <div class="cards-main">
+        <!-- Filters -->
+        <div class="cards-filters">
+          <div class="cards-filter-field cards-filter-field--search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" [(ngModel)]="launchSearchTerm" placeholder="Buscar despesa..." />
+          </div>
+          <div class="cards-filter-divider"></div>
+          <div class="cards-filter-field">
+            <select [(ngModel)]="launchRepeatFilter">
+              <option value="all">Todos</option>
+              <option value="single">Única</option>
+              <option value="installment">Parcelada</option>
+              <option value="fixed">Fixa</option>
+            </select>
+          </div>
+          <div class="cards-filter-divider"></div>
+          <details class="cards-filter-tags" [class.cards-filter-tags--active]="selectedLaunchFilterTags.length > 0">
             <summary>
-              <span class="card-launch-tag-filter-summary-text">
-                {{ selectedLaunchFilterTags.length > 0 ? (selectedLaunchFilterTags.length + ' ' + (selectedLaunchFilterTags.length === 1 ? 'tag selecionada' : 'tags selecionadas')) : 'Todas as tags' }}
-              </span>
-              <span class="card-launch-tag-filter-summary-icon" aria-hidden="true">▾</span>
+              <span>{{ selectedLaunchFilterTags.length > 0 ? (selectedLaunchFilterTags.length + ' tags') : 'Todas as tags' }}</span>
+              <span aria-hidden="true">▾</span>
             </summary>
-
-            <div class="card-launch-tag-filter-panel" *ngIf="launchFilterTags.length > 0; else noCardFilterTags">
-              <button
-                *ngFor="let tag of launchFilterTags"
-                type="button"
-                class="card-launch-tag-filter-option"
-                [class.card-launch-tag-filter-option--active]="isLaunchFilterTagActive(tag.name)"
-                (click)="toggleLaunchFilterTag(tag.name); $event.stopPropagation()"
-              >
-                <span class="card-launch-tag-filter-check" aria-hidden="true">{{ isLaunchFilterTagActive(tag.name) ? '✓' : '+' }}</span>
-                <span class="card-launch-tag-filter-option-name" [ngStyle]="getTagBadgeStyle(tag.name)">{{ tag.name }}</span>
+            <div class="cards-filter-tags-panel" *ngIf="launchFilterTags.length > 0; else noFilterTags">
+              <button *ngFor="let tag of launchFilterTags" type="button"
+                class="cards-filter-tag-option"
+                [class.cards-filter-tag-option--active]="isLaunchFilterTagActive(tag.name)"
+                (click)="toggleLaunchFilterTag(tag.name); $event.stopPropagation()">
+                <span aria-hidden="true">{{ isLaunchFilterTagActive(tag.name) ? '✓' : '+' }}</span>
+                <span [ngStyle]="getTagBadgeStyle(tag.name)">{{ tag.name }}</span>
               </button>
             </div>
-
-            <ng-template #noCardFilterTags>
-              <div class="card-launch-tag-filter-empty">Nenhuma tag cadastrada ainda.</div>
-            </ng-template>
+            <ng-template #noFilterTags><div class="cards-filter-tags-empty">Nenhuma tag cadastrada.</div></ng-template>
           </details>
+          <button type="button" class="cards-filter-clear" (click)="clearLaunchFilters()" [disabled]="!hasActiveFilters">Limpar</button>
         </div>
 
-        <button type="button" class="btn-light launch-filter-clear" (click)="clearLaunchFilters()" [disabled]="!hasActiveFilters">
-          Limpar filtros
-        </button>
-      </div>
-    </section>
+        <!-- Budget summary -->
+        <div class="cards-budget-bar" *ngIf="selectedCardId">
+          <app-budgets-summary
+            title="Metas deste cartão"
+            scopeFilter="card"
+            [targetIdFilter]="selectedCardId === null ? '' : selectedCardId.toString()"
+            emptyStateMessage="Sem metas para este cartão. Defina em Configurações."
+            [compact]="true"
+            [referenceDate]="invoiceMonthDate"
+          ></app-budgets-summary>
+        </div>
 
-    <section class="panel cards-budget-panel" *ngIf="selectedCardId">
-      <app-budgets-summary
-        title="Metas deste cartão"
-        scopeFilter="card"
-        [targetIdFilter]="selectedCardId === null ? '' : selectedCardId.toString()"
-        emptyStateMessage="Sem metas para este cartão. Defina em Configurações."
-        [compact]="true"
-        [referenceDate]="invoiceMonthDate"
-      ></app-budgets-summary>
-    </section>
-
-    <section class="launches-list panel" *ngIf="hasLaunches">
-      <header class="launches-list-head">
+        <!-- Launch list -->
+        <div class="cards-launch-section" *ngIf="hasLaunches">
+      <div class="cards-launch-section-head">
         <h3>Lançamentos</h3>
-        <span class="launches-list-count">{{ filteredSelectedCardLaunches.length }} {{ filteredSelectedCardLaunches.length === 1 ? 'item' : 'itens' }}</span>
-      </header>
-
+        <span class="cards-launch-count">{{ filteredSelectedCardLaunches.length }} {{ filteredSelectedCardLaunches.length === 1 ? 'item' : 'itens' }}</span>
+      </div>
       <div class="cards-launch-list">
-        <article
-          class="cards-launch-row"
-          *ngFor="let launch of filteredSelectedCardLaunches"
-          [class.cards-launch-row--paid]="launch.paid"
-        >
-          <span class="cards-launch-dot" [class.cards-launch-dot--paid]="launch.paid" aria-hidden="true"></span>
-
-          <span class="cards-launch-date">{{ launch.date | date:'dd/MM/yyyy' }}</span>
-
-          <span class="cards-launch-main">
-            <span class="cards-launch-title-row">
-              <strong>{{ describeCardLaunch(launch) }}</strong>
-            </span>
-
-            <span
-              class="cards-launch-status"
-              [class.cards-launch-status--paid]="launch.paid"
-              [class.cards-launch-status--pending]="!launch.paid"
-            >{{ launch.paid ? 'Pago' : 'Em aberto' }}</span>
-
-            <span class="cards-launch-meta-row">
-              <small class="cards-launch-meta">{{ describeRepeatMode(launch) }}</small>
-              <span class="cards-launch-tags" *ngIf="getCardLaunchTags(launch).length > 0">
-                <span class="cards-launch-tag" *ngFor="let tag of getCardLaunchTags(launch)" [ngStyle]="getTagBadgeStyle(tag)">{{ tag }}</span>
-              </span>
-            </span>
-          </span>
-
-          <strong class="cards-launch-value">R$ {{ launch.amount | number:'1.2-2' }}</strong>
-
-          <div class="cards-launch-actions">
-            <button
-              type="button"
-              class="cards-launch-icon-action"
-              (click)="openEditLaunchModal(launch)"
-              title="Editar"
-              aria-label="Editar lançamento"
-            >✎</button>
-            <button
-              type="button"
-              class="cards-launch-icon-action cards-launch-icon-action--danger"
-              (click)="deleteLaunch(launch)"
-              [disabled]="isDeletingLaunch(launch.id)"
-              title="Excluir"
-              aria-label="Excluir lançamento"
-            >{{ isDeletingLaunch(launch.id) ? '...' : '×' }}</button>
+        <div class="cards-launch-row" *ngFor="let launch of filteredSelectedCardLaunches" [class.cards-launch-row--paid]="launch.paid">
+          <span class="cards-launch-date">{{ launch.date | date:'dd/MM' }}</span>
+          <div class="cards-launch-main">
+            <strong>{{ describeCardLaunch(launch) }}</strong>
+            <div class="cards-launch-meta-row">
+              <span class="cards-launch-status" [class.cards-launch-status--paid]="launch.paid">{{ launch.paid ? 'Pago' : 'Em aberto' }}</span>
+              <span class="cards-launch-meta" *ngIf="launch.repeatMode !== 'single'">{{ describeRepeatMode(launch) }}</span>
+              <span class="cards-launch-tag" *ngFor="let tag of getCardLaunchTags(launch)" [ngStyle]="getTagBadgeStyle(tag)">{{ tag }}</span>
+            </div>
           </div>
-        </article>
+          <span class="cards-launch-value">{{ formatCurrency(launch.amount) }}</span>
+          <div class="cards-launch-actions">
+            <div class="cards-launch-context-wrap">
+              <button type="button" class="cards-launch-menu-btn" (click)="toggleLaunchMenu($event, launch)" aria-label="Mais opções">⋮</button>
+              <div class="cards-launch-context-menu" *ngIf="activeLaunchMenuId === (launch.id ?? null)">
+                <button type="button" (click)="openEditLaunchModal(launch); closeLaunchMenu()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Editar
+                </button>
+                <button type="button" class="cards-launch-context-danger" (click)="deleteLaunch(launch); closeLaunchMenu()" [disabled]="isDeletingLaunch(launch.id)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  {{ isDeletingLaunch(launch.id) ? '...' : 'Excluir' }}
+                </button>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
       </div>
-    </section>
 
-    <div class="card-launches-empty" *ngIf="!hasLaunches">
-      <div class="card-launches-empty-icon">
-        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#9aacbf" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
+        <!-- Empty state -->
+        <div class="cards-launch-empty" *ngIf="!hasLaunches">
+          <div class="cards-launch-empty-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9aacbf" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <p>Sem lançamentos na fatura selecionada</p>
+          <button type="button" class="btn-light" (click)="openLaunchModal()">Adicionar primeiro lançamento</button>
+        </div>
       </div>
-      <p>Sem lançamentos na fatura selecionada</p>
-      <button type="button" class="btn-light" (click)="openLaunchModal()">Adicionar primeiro lançamento</button>
     </div>
+
   </div>
 
 </section>

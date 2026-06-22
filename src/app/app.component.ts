@@ -67,6 +67,8 @@ interface DayProjection {
   day: number;
   income: number;
   expense: number;
+  otherExpense: number;
+  cardExpense: number;
   investment: number;
   fixedCost: number;
   closingBalance: number;
@@ -91,6 +93,8 @@ interface MonthSummary {
   minBalance: number;
   totalIncome: number;
   totalExpenses: number;
+  totalOtherExpenses: number;
+  totalCardExpenses: number;
   totalInvestments: number;
   totalFixedCosts: number;
   negativeDays: number;
@@ -125,6 +129,8 @@ interface WindowSummary {
   months: MonthSummary[];
   totalIncome: number;
   totalExpenses: number;
+  totalOtherExpenses: number;
+  totalCardExpenses: number;
   totalInvestments: number;
   totalFixedCosts: number;
   openingBalance: number;
@@ -230,6 +236,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   forecastDateInput = '';
   entriesFeedback = '';
   activeDayDetails: ActiveDayDetails | null = null;
+  activeContextMenuEvent: FinancialEvent | null = null;
+  sortMode: 'recent' | 'highest' | 'lowest' = 'recent';
   deletingEventIds = new Set<string>();
   payingEventIds = new Set<string>();
   payingInvoiceKeys = new Set<string>();
@@ -488,6 +496,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     minBalance: 0,
     totalIncome: 0,
     totalExpenses: 0,
+    totalOtherExpenses: 0,
+    totalCardExpenses: 0,
     totalInvestments: 0,
     totalFixedCosts: 0,
     negativeDays: 0,
@@ -935,6 +945,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         months: [],
         totalIncome: 0,
         totalExpenses: 0,
+        totalOtherExpenses: 0,
+        totalCardExpenses: 0,
         totalInvestments: 0,
         totalFixedCosts: 0,
         openingBalance: 0,
@@ -962,6 +974,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       months,
       totalIncome: months.reduce((total, month) => total + month.totalIncome, 0),
       totalExpenses: months.reduce((total, month) => total + month.totalExpenses, 0),
+      totalOtherExpenses: months.reduce((total, month) => total + month.totalOtherExpenses, 0),
+      totalCardExpenses: months.reduce((total, month) => total + month.totalCardExpenses, 0),
       totalInvestments: months.reduce((total, month) => total + month.totalInvestments, 0),
       totalFixedCosts: months.reduce((total, month) => total + month.totalFixedCosts, 0),
       openingBalance: firstMonth.openingBalance,
@@ -2268,6 +2282,16 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }, 0);
   }
 
+  goToCardInvoice(cardId: string | number, year: number, monthNumber: number): void {
+    this.closeDayDetails();
+    this.closeDayEntryMenu();
+    this.setActiveTab('cards');
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.cardsTab?.focusInvoiceMonth(cardId, year, monthNumber);
+    }, 0);
+  }
+
   isPayingInvoice(cardId: string, year: number, monthNumber: number): boolean {
     return this.payingInvoiceKeys.has(`${cardId}-${year}-${monthNumber}`);
   }
@@ -2764,12 +2788,19 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.refreshActiveDayDetails();
 
     this.payingEventIds.add(eventId);
-    this.entriesFeedback = '';
+    this.entriesFeedback = paid
+      ? 'Lançamento marcado como pago.'
+      : 'Lançamento marcado como pendente.';
+    setTimeout(() => { this.entriesFeedback = ''; }, 3000);
 
     this.financeApi.updateMonth(month).subscribe({
       next: () => {
         this.payingEventIds.delete(eventId);
         this.refreshActiveDayDetails();
+        this.entriesFeedback = paid
+          ? 'Lançamento marcado como pago.'
+          : 'Lançamento marcado como pendente.';
+        setTimeout(() => { this.entriesFeedback = ''; }, 3000);
       },
       error: () => {
         month.events = previousEvents;
@@ -2866,6 +2897,20 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     return repeatLabel ? `Repete ${repeatLabel}` : 'Faz parte de uma serie';
   }
 
+  getSecondaryInfo(event: FinancialEvent): string {
+    const parts: string[] = [];
+    if (event.type === 'income') parts.push('Receita');
+    if (event.type === 'investment') parts.push('Investimento');
+    if (event.type === 'daily') parts.push('Diário');
+    if (event.tags && event.tags.length > 0) {
+      parts.push(event.tags.join(', '));
+    }
+    if (this.hasRecurrence(event)) {
+      parts.push(this.getRecurrenceLabel(event));
+    }
+    return parts.join(' • ');
+  }
+
   trackMonthBy(_index: number, month: MonthSummary): string {
     return month.key;
   }
@@ -2884,6 +2929,51 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   trackSimplifiedEntryBy(_index: number, entry: SimplifiedMonthEntry): string {
     return entry.key;
+  }
+
+  get sortedEvents(): FinancialEvent[] {
+    if (!this.activeDayDetails) {
+      return [];
+    }
+
+    const events = this.activeDayDetails.day.events;
+    switch (this.sortMode) {
+      case 'highest':
+        return [...events].sort((a, b) => b.amount - a.amount);
+      case 'lowest':
+        return [...events].sort((a, b) => a.amount - b.amount);
+      default:
+        return events;
+    }
+  }
+
+  onSortChange(): void {
+    this.cdr.detectChanges();
+  }
+
+  getEventIcon(event: FinancialEvent): string {
+    switch (event.type) {
+      case 'income':      return '↑';
+      case 'expense':     return '↓';
+      case 'investment':  return '📈';
+      case 'daily':       return '📅';
+      default:            return '📌';
+    }
+  }
+
+  hasEventActions(event: FinancialEvent): boolean {
+    return this.canTogglePaid(event) || event.type === 'daily' || event.type === 'investment';
+  }
+
+  isRecurring(event: FinancialEvent): boolean {
+    return this.hasRecurrence(event);
+  }
+
+  getChipLabel(event: FinancialEvent): string {
+    if (this.hasRecurrence(event)) {
+      return 'Fixa';
+    }
+    return 'Variável';
   }
 
   hasSeries(event: FinancialEvent): boolean {
@@ -2970,6 +3060,27 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.isFabMenuOpen = false;
   }
 
+  toggleDayEntryMenu(event: Event, targetEvent: FinancialEvent): void {
+    event.stopPropagation();
+    this.activeContextMenuEvent =
+      this.activeContextMenuEvent === targetEvent ? null : targetEvent;
+  }
+
+  closeDayEntryMenu(): void {
+    this.activeContextMenuEvent = null;
+  }
+
+  duplicateEvent(event: FinancialEvent): void {
+    this.closeDayEntryMenu();
+    this.openDuplicateLaunchForm(event);
+  }
+
+  openMoveEventPrompt(event: FinancialEvent): void {
+    this.closeDayEntryMenu();
+    this.entriesFeedback = 'Função "Mover" será implementada em breve.';
+    setTimeout(() => { this.entriesFeedback = ''; }, 3000);
+  }
+
   onDayNotesToggle(event: Event): void {
     const details = event.target as HTMLDetailsElement | null;
     if (!details) {
@@ -3041,9 +3152,18 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
+    const sortedEvents = [...currentDay.events].sort((a, b) => {
+      const aPaid = this.canTogglePaid(a) && this.isEventPaid(a) ? 1 : 0;
+      const bPaid = this.canTogglePaid(b) && this.isEventPaid(b) ? 1 : 0;
+      return aPaid - bPaid;
+    });
+
     this.activeDayDetails = {
       month: currentMonth,
-      day: currentDay,
+      day: {
+        ...currentDay,
+        events: sortedEvents,
+      },
     };
   }
 
@@ -3162,6 +3282,31 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.editingSourceMonthKey = null;
     this.editingAnchorDay = null;
     this.launchForm = this.createEmptyLaunchForm();
+    this.selectedExistingTag = '';
+    this.syncLaunchAmountInput();
+    this.isLaunchFormOpen = true;
+  }
+
+  openDuplicateLaunchForm(event: FinancialEvent): void {
+    this.closeFabMenu();
+    this.launchError = '';
+    this.dailyError = '';
+    this.entriesFeedback = '';
+    this.editingEventId = null;
+    this.editingSeriesId = null;
+    this.editingScope = null;
+    this.editingSourceMonthKey = null;
+    this.editingAnchorDay = null;
+    this.launchForm = {
+      type: event.type,
+      amount: event.amount,
+      date: '',
+      label: event.label,
+      recurrenceKind: event.recurrenceKind ?? 'single',
+      repeatMode: event.repeatMode ?? 'monthly',
+      installments: event.seriesOccurrences ?? 1,
+      tags: [...(event.tags ?? [])],
+    };
     this.selectedExistingTag = '';
     this.syncLaunchAmountInput();
     this.isLaunchFormOpen = true;
@@ -5243,7 +5388,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     return `evt-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
   }
 
-  private getInstallmentReference(event: FinancialEvent, monthKey?: string): string | null {
+  getInstallmentReference(event: FinancialEvent, monthKey?: string): string | null {
     if ((event.recurrenceKind ?? 'single') !== 'installment' || !event.seriesId || !monthKey) {
       return null;
     }
@@ -5675,6 +5820,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     let runningBalance = openingBalanceOverride !== undefined ? openingBalanceOverride : definition.openingBalance;
     let totalIncome = 0;
     let totalExpenses = 0;
+    let totalOtherExpenses = 0;
+    let totalCardExpenses = 0;
     let totalInvestments = 0;
     const activeSeriesAmounts = new Map<string, number>(inheritedDailyState.seriesAmounts);
     let currentDailyFixedCost = this.sumMapValues(activeSeriesAmounts);
@@ -5687,6 +5834,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           day,
           income: 0,
           expense: 0,
+          otherExpense: 0,
+          cardExpense: 0,
           investment: 0,
           fixedCost: 0,
           closingBalance: Number(runningBalance.toFixed(2)),
@@ -5704,7 +5853,9 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       const projectedCardInvoiceExpense = cardInvoiceForecasts.reduce((sum, item) => sum + item.amount, 0);
       let income = 0;
       let expense = 0;
+      let otherExpense = 0;
       let investment = 0;
+      const cardExpense = projectedCardInvoiceExpense;
       expense += projectedCardInvoiceExpense;
       let singleDayDailyAmount = 0;
       const seriesUpdates = new Map<string, number>();
@@ -5722,6 +5873,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
         if (event.type === 'expense') {
           expense += event.amount;
+          otherExpense += event.amount;
         }
 
         if (event.type === 'investment') {
@@ -5751,6 +5903,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       totalIncome += income;
       totalExpenses += expense;
+      totalOtherExpenses += otherExpense;
+      totalCardExpenses += cardExpense;
       totalInvestments += investment;
 
       runningBalance += income;
@@ -5764,6 +5918,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         day,
         income,
         expense,
+        otherExpense,
+        cardExpense,
         investment,
         fixedCost: currentDailyFixedCost,
         closingBalance: Number(runningBalance.toFixed(2)),
@@ -5806,6 +5962,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       minBalance,
       totalIncome,
       totalExpenses,
+      totalOtherExpenses,
+      totalCardExpenses,
       totalInvestments,
       totalFixedCosts: projection.reduce((total, day) => total + day.fixedCost, 0),
       negativeDays: projection.filter((day) => day.closingBalance < 0).length,

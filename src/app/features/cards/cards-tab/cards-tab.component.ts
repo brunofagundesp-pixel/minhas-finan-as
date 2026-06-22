@@ -77,6 +77,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   deletingLaunchIds = new Set<string>();
   isClosingInvoice = false;
   isDeletingCard = false;
+  activeLaunchMenuId: string | number | null = null;
   pendingDeleteLaunch: CardLaunch | null = null;
   pendingDeleteHasRecurringOptions = false;
   pendingDeleteCard: CreditCard | null = null;
@@ -703,6 +704,15 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   isLaunchFilterTagActive(tagName: string): boolean {
     const normalizedTagName = this.normalizeTagName(tagName);
     return this.selectedLaunchFilterTags.some((tag) => this.normalizeTagName(tag) === normalizedTagName);
+  }
+
+  toggleLaunchMenu(event: Event, launch: CardLaunch): void {
+    event.stopPropagation();
+    this.activeLaunchMenuId = this.activeLaunchMenuId === (launch.id ?? null) ? null : (launch.id ?? null);
+  }
+
+  closeLaunchMenu(): void {
+    this.activeLaunchMenuId = null;
   }
 
   closeDeleteScopePrompt(): void {
@@ -1713,7 +1723,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     };
   }
 
-  private formatCurrency(value: number): string {
+  formatCurrency(value: number): string {
     return this.currencyFormatter.format(Number.isFinite(value) ? value : 0);
   }
 
