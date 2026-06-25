@@ -180,7 +180,9 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     return this.launches
       .filter((l) => {
         if (String(l.cardId) !== String(this.selectedCardId)) return false;
-        const inv = getCardInvoiceMonthForDate(l.date, selectedCard);
+        const inv = l.invoiceMonthRef
+          ? this.parseInvoiceMonthRef(l.invoiceMonthRef)
+          : getCardInvoiceMonthForDate(l.date, selectedCard);
         return inv != null && inv.year === this.invoiceMonth.year && inv.month === this.invoiceMonth.month;
       })
       .sort((a, b) => b.date.localeCompare(a.date));
@@ -309,7 +311,9 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       .filter((l) => {
         if (String(l.cardId) !== String(this.selectedCardId)) return false;
         if (l.repeatMode !== 'installment') return false;
-        const invMonth = getCardInvoiceMonthForDate(l.date, card);
+        const invMonth = l.invoiceMonthRef
+          ? this.parseInvoiceMonthRef(l.invoiceMonthRef)
+          : getCardInvoiceMonthForDate(l.date, card);
         if (!invMonth) return false;
         return (
           invMonth.year > this.invoiceMonth.year ||
@@ -775,6 +779,10 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     this.cardForm.dueMonthOffset = checked ? 1 : 0;
   }
 
+  onCardDayChange(): void {
+    this.cardForm.dueMonthOffset = this.cardForm.closeDay > this.cardForm.dueDay ? 1 : 0;
+  }
+
   requestDeleteCard(card: CreditCard): void {
     if (!card.id || this.isDeletingCard) {
       return;
@@ -855,7 +863,11 @@ export class CardsTabComponent implements OnInit, OnDestroy {
 
   private doOpenEditLaunchModal(launch: CardLaunch): void {
     const launchInvoiceMonth = this.selectedCard
-      ? this.clampInvoiceMonthToCard(getCardInvoiceMonthForDate(launch.date, this.selectedCard) ?? this.invoiceMonth, this.selectedCard)
+      ? this.clampInvoiceMonthToCard(
+          (launch.invoiceMonthRef
+            ? this.parseInvoiceMonthRef(launch.invoiceMonthRef)
+            : getCardInvoiceMonthForDate(launch.date, this.selectedCard)) ?? this.invoiceMonth,
+          this.selectedCard)
       : this.parseInvoiceMonthFromInputDate(launch.date);
 
     this.editingLaunchId = launch.id ?? null;
@@ -957,6 +969,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       cardId: this.selectedCardId,
       amount: this.launchForm.amount,
       date: normalizedDate,
+      invoiceMonthRef: this.launchForm.invoiceMonthRef || undefined,
       repeatMode: this.launchForm.repeatMode,
       seriesId: editingLaunch?.seriesId,
       installmentNumber: editingLaunch?.installmentNumber,
@@ -1123,7 +1136,8 @@ export class CardsTabComponent implements OnInit, OnDestroy {
 
     const closeDay = this.cardForm.closeDay;
     const dueDay = this.cardForm.dueDay;
-    const dueMonthOffset = this.cardForm.dueMonthOffset;
+    // Auto-corrige dueMonthOffset com base na relação closeDay/dueDay
+    const dueMonthOffset = closeDay > dueDay ? 1 : 0;
     const firstDueDate = this.normalizeFirstDueDate(this.cardForm.firstDueDate);
     const closeDaysBefore = dueMonthOffset === 0
       ? Math.max(0, dueDay - closeDay)
@@ -1300,14 +1314,16 @@ export class CardsTabComponent implements OnInit, OnDestroy {
   }
 
   private createEmptyCardForm(): CreditCardFormState {
+    const defaultDueDay = 20;
+    const defaultCloseDay = 10;
     return {
       name: '',
       brand: this.cardTypeOptions[0],
       limit: null,
-      dueDay: 20,
+      dueDay: defaultDueDay,
       firstDueDate: this.getTodayInputDate().slice(0, 7),
-      closeDay: 10,
-      dueMonthOffset: 1,
+      closeDay: defaultCloseDay,
+      dueMonthOffset: defaultCloseDay > defaultDueDay ? 1 : 0,
       parentCardName: '',
     };
   }
@@ -1776,15 +1792,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
       return this.currentYearMonth();
     }
 
-    const dueMonth = parsed.getMonth() + 1;
-    const dueYear = parsed.getFullYear();
-    const oldOffset = card.dueMonthOffset ?? (card.closeDay ?? (card.dueDay - card.closeDaysBefore) > card.dueDay ? 1 : 0);
-
-    let refMonth = dueMonth - (oldOffset + 1);
-    let refYear = dueYear;
-    while (refMonth < 1) { refMonth += 12; refYear -= 1; }
-
-    return { year: refYear, month: refMonth };
+    return { year: parsed.getFullYear(), month: parsed.getMonth() + 1 };
   }
 
   private clampInvoiceMonthToCard(invoiceMonth: InvoiceMonth, card: CreditCard): InvoiceMonth {

@@ -26,6 +26,7 @@ export interface CardLaunch {
   cardId: number | string;
   amount: number;
   date: string;
+  invoiceMonthRef?: string;
   repeatMode: LaunchRepeatMode;
   seriesId?: string;
   installmentNumber?: number;

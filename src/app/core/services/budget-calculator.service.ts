@@ -339,7 +339,7 @@ export class BudgetCalculatorService {
       }
       if (period.invoiceMonth) {
         // Período = Ciclo de fatura: agrupa pelo ciclo de fechamento do cartão.
-        const inv = getInvoiceMonthForDate(launch.date, card);
+        const inv = this.getLaunchInvoiceMonth(launch, card);
         if (inv && inv.year === period.invoiceMonth.year && inv.month === period.invoiceMonth.month) {
           total += this.absAmount(launch.amount);
         }
@@ -432,7 +432,7 @@ export class BudgetCalculatorService {
       if (!card) {
         continue;
       }
-      const inv = getInvoiceMonthForDate(launch.date, card);
+      const inv = this.getLaunchInvoiceMonth(launch, card);
       if (inv && inv.year === period.year && inv.month === period.month) {
         total += this.absAmount(launch.amount);
       }
@@ -442,6 +442,20 @@ export class BudgetCalculatorService {
 
   // -------------------------------------------------------------------------
   // Helpers
+
+  private getLaunchInvoiceMonth(launch: CardLaunch, card: CreditCard): InvoiceMonth | null {
+    if (launch.invoiceMonthRef) {
+      const match = /^(\d{4})-(\d{2})$/.exec(launch.invoiceMonthRef);
+      if (match) {
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        if (year && month >= 1 && month <= 12) {
+          return { year, month };
+        }
+      }
+    }
+    return getInvoiceMonthForDate(launch.date, card);
+  }
   // -------------------------------------------------------------------------
 
   private isExpenseEvent(ev: FinancialEvent): boolean {

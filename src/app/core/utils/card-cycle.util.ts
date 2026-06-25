@@ -45,15 +45,15 @@ export function getInvoiceMonthForDate(dateInput: string, card: CreditCard): Inv
   let refMonth: number;
   let refYear: number;
 
-  if (purchaseDay <= closeDay) {
-    // Compra antes/dia do fechamento → pertence à fatura do mês anterior
+  if (purchaseDay > closeDay) {
+    // Compra após o fechamento → pertence ao ciclo que iniciou NESTE mês
+    refMonth = purchaseMonth;
+    refYear = purchaseYear;
+  } else {
+    // Compra antes/dia do fechamento → pertence ao ciclo que iniciou no mês anterior
     const shifted = shiftMonth(purchaseYear, purchaseMonth, -1);
     refMonth = shifted.month;
     refYear = shifted.year;
-  } else {
-    // Compra após o fechamento → pertence à fatura deste mês
-    refMonth = purchaseMonth;
-    refYear = purchaseYear;
   }
 
   return { year: refYear, month: refMonth };
@@ -61,6 +61,8 @@ export function getInvoiceMonthForDate(dateInput: string, card: CreditCard): Inv
 
 export function getClosingDateForInvoiceMonth(invoiceMonth: InvoiceMonth, card: CreditCard): Date {
   const closeDay = getCloseDay(card);
+  // O fechamento ocorre no mês seguinte ao mês da fatura
+  // Ex.: fatura de junho → fechamento em julho (dia closeDay)
   const closeMonth = shiftMonth(invoiceMonth.year, invoiceMonth.month, 1);
   const safeDay = getSafeDayForMonth(closeMonth.year, closeMonth.month, closeDay);
   return new Date(closeMonth.year, closeMonth.month - 1, safeDay);

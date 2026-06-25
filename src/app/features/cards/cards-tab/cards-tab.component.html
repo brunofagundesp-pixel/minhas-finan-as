@@ -426,7 +426,7 @@
     <div class="card-grid two-cols">
       <label>
         Dia vencimento
-        <input type="number" name="dueDay" [(ngModel)]="cardForm.dueDay" min="1" max="31" step="1" />
+        <input type="number" name="dueDay" [(ngModel)]="cardForm.dueDay" (change)="onCardDayChange()" min="1" max="31" step="1" />
       </label>
 
       <label>
@@ -446,7 +446,7 @@
     <div class="card-grid two-cols">
       <label>
         Dia fechamento
-        <input type="number" name="closeDay" [(ngModel)]="cardForm.closeDay" min="1" max="31" step="1" />
+        <input type="number" name="closeDay" [(ngModel)]="cardForm.closeDay" (change)="onCardDayChange()" min="1" max="31" step="1" />
       </label>
       <label class="checkbox-label">
         <input type="checkbox" [checked]="cardForm.dueMonthOffset === 1" (change)="onDueMonthToggle($event)" />
