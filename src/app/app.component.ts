@@ -491,7 +491,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   // fazia O(meses * eventos) ou O(cards * launches), o que com volume real de
   // dados travava a aba ao montar. A invalidacao depende dos mesmos inputs.
   private dashboardExpenseSlicesCache: DashboardExpenseSlice[] | null = null;
-  private dashboardExpenseSlicesSignature = '';
+  private _dashboardExpenseSlicesMonthKey = '';
   private dashboardCardSummariesCache: DashboardCardSummary[] | null = null;
   private dashboardCardSummariesSignature = '';
   private readonly monthCharts = new Map<string, Chart<'line'>>();
@@ -1001,6 +1001,185 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     return this.visibleMonths[0] ?? this.monthSummaries[0] ?? this.emptyMonthSummary;
   }
 
+  // ── Dashboard month selector ────────────────────────────────────────────
+
+  private _dashboardMonthIndex = -1;
+  /** Cache da data de referência do dashboard (evita new Date() a cada CD). */
+  private _dashboardReferenceDate: Date | null = null;
+
+  /** Inicializa/retorna o índice do mês selecionado no Dashboard. */
+  private get dashboardMonthIndex(): number {
+    if (this._dashboardMonthIndex < 0 || this._dashboardMonthIndex >= this.monthSummaries.length) {
+      this._dashboardMonthIndex = this.findClosestDashboardMonthIndex();
+    }
+    return this._dashboardMonthIndex;
+  }
+
+  private findClosestDashboardMonthIndex(): number {
+    if (!this.monthSummaries.length) return -1;
+    const now = new Date();
+    const targetYear = now.getFullYear();
+    const targetMonth = now.getMonth() + 1;
+    // Procura o mês exato (year + monthNumber)
+    const exact = this.monthSummaries.findIndex(m => m.year === targetYear && m.monthNumber === targetMonth);
+    if (exact >= 0) return exact;
+    // Se não achar, procura o mais próximo (menor diferença)
+    let best = 0;
+    let bestDiff = Infinity;
+    for (let i = 0; i < this.monthSummaries.length; i++) {
+      const m = this.monthSummaries[i];
+      const diff = Math.abs(m.year - targetYear) * 12 + Math.abs(m.monthNumber - targetMonth);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  get dashboardSelectedMonth(): MonthSummary | null {
+    const idx = this.dashboardMonthIndex;
+    return idx >= 0 && idx < this.monthSummaries.length ? this.monthSummaries[idx] : null;
+  }
+
+  get dashboardSelectedMonthLabel(): string {
+    const m = this.dashboardSelectedMonth;
+    return m ? `${m.title} ${m.year}` : '—';
+  }
+
+  get dashboardReferenceDate(): Date {
+    const m = this.dashboardSelectedMonth;
+    if (!m) {
+      if (!this._dashboardReferenceDate) this._dashboardReferenceDate = new Date();
+      return this._dashboardReferenceDate;
+    }
+    const candidate = new Date(m.year, m.monthNumber - 1, 1);
+    if (!this._dashboardReferenceDate || this._dashboardReferenceDate.getTime() !== candidate.getTime()) {
+      this._dashboardReferenceDate = candidate;
+    }
+    return this._dashboardReferenceDate;
+  }
+
+  get canGoDashboardPrev(): boolean {
+    const idx = this.dashboardMonthIndex;
+    return this.monthSummaries.length > 0 && idx > 0;
+  }
+
+  get canGoDashboardNext(): boolean {
+    const idx = this.dashboardMonthIndex;
+    return this.monthSummaries.length > 0 && idx < this.monthSummaries.length - 1;
+  }
+
+  get dashboardIsCurrentMonth(): boolean {
+    const m = this.dashboardSelectedMonth;
+    if (!m) return false;
+    const now = new Date();
+    return m.year === now.getFullYear() && m.monthNumber === now.getMonth() + 1;
+  }
+
+  dashboardGoToPreviousMonth(): void {
+    const idx = this.dashboardMonthIndex;
+    if (idx > 0) {
+      this._dashboardMonthIndex = idx - 1;
+      this._dashboardReferenceDate = null;
+      this.dashboardExpenseSlicesCache = null;
+      this._dashboardExpenseSlicesMonthKey = '';
+    }
+  }
+
+  dashboardGoToNextMonth(): void {
+    const idx = this.dashboardMonthIndex;
+    if (idx < this.monthSummaries.length - 1) {
+      this._dashboardMonthIndex = idx + 1;
+      this._dashboardReferenceDate = null;
+      this.dashboardExpenseSlicesCache = null;
+      this._dashboardExpenseSlicesMonthKey = '';
+    }
+  }
+
+  dashboardGoToCurrentMonth(): void {
+    this._dashboardMonthIndex = -1;
+    this._dashboardReferenceDate = null;
+    this.dashboardExpenseSlicesCache = null;
+    this._dashboardExpenseSlicesMonthKey = '';
+  }
+
+  // ── Year forecast (dashboard) ───────────────────────────────────────────
+
+  private get currentYearMonths(): MonthSummary[] {
+    const currentYear = new Date().getFullYear();
+    return this.monthSummaries.filter((m) => m.year === currentYear);
+  }
+
+  get currentYear(): number {
+    return new Date().getFullYear();
+  }
+
+  get dashboardYearProjectedBalance(): number {
+    const months = this.currentYearMonths;
+    return months.length > 0 ? months[months.length - 1].closingBalance : 0;
+  }
+
+  get dashboardYearMinPoint(): { dateLabel: string; balance: number } | null {
+    let min = Infinity;
+    let minMonth = '';
+    for (const month of this.currentYearMonths) {
+      if (month.minBalance < min) {
+        min = month.minBalance;
+        minMonth = `${month.title} ${month.year}`;
+      }
+    }
+    return min < Infinity ? { dateLabel: minMonth, balance: min } : null;
+  }
+
+  get dashboardYearMaxPoint(): { dateLabel: string; balance: number } | null {
+    let max = -Infinity;
+    let maxMonth = '';
+    for (const month of this.currentYearMonths) {
+      if (month.closingBalance > max) {
+        max = month.closingBalance;
+        maxMonth = `${month.title} ${month.year}`;
+      }
+    }
+    return max > -Infinity ? { dateLabel: maxMonth, balance: max } : null;
+  }
+
+  get dashboardYearProtectedDays(): number {
+    return this.currentYearMonths.reduce(
+      (count, month) => count + month.projection.filter((day) => day.closingBalance > 0).length,
+      0
+    );
+  }
+
+  get dashboardYearTotalDays(): number {
+    return this.currentYearMonths.reduce(
+      (count, month) => count + month.projection.length,
+      0
+    );
+  }
+
+  /** Primeiro dia negativo no mês selecionado (dashboard), a partir de hoje. */
+  get dashboardFirstNegative(): { dateLabel: string; balance: number } | null {
+    const month = this.dashboardSelectedMonth;
+    if (!month) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayDay = today.getDate();
+
+    for (const proj of month.projection) {
+      if (proj.day < todayDay) continue;
+      if (proj.day > 31) break;
+      if (proj.closingBalance < 0) {
+        return {
+          dateLabel: `${proj.day} de ${month.title}`,
+          balance: proj.closingBalance
+        };
+      }
+    }
+    return null;
+  }
+
   get dashboardCardSummaries(): DashboardCardSummary[] {
     const signature = `${this.cards.length}|${this.cardLaunches.length}|${this.windowStartIndex}|${this.cardLaunches.reduce((s, l) => s + (l.amount || 0) + (l.paid ? 1 : 0), 0).toFixed(2)}`;
     if (this.dashboardCardSummariesCache && signature === this.dashboardCardSummariesSignature) {
@@ -1044,30 +1223,33 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   get dashboardExpenseSlices(): DashboardExpenseSlice[] {
-    // Reaproveita a assinatura de monthSummaries (que cobre meses+eventos+launches)
-    // mais o indice da janela visivel, ja que a fatia depende dos meses visiveis.
-    const signature = `${this.summariesCacheSignature || this.computeSummariesSignature()}|${this.windowStartIndex}|${this.windowSize}`;
-    if (this.dashboardExpenseSlicesCache && signature === this.dashboardExpenseSlicesSignature) {
+    const selected = this.dashboardSelectedMonth;
+    if (!selected) return [];
+
+    // Cache: só recalcula se o mês mudou
+    const monthKey = `${selected.year}-${selected.monthNumber}`;
+    if (this.dashboardExpenseSlicesCache && this._dashboardExpenseSlicesMonthKey === monthKey) {
       return this.dashboardExpenseSlicesCache;
     }
 
-    const visibleKeys = new Set(this.visibleMonths.map((month) => month.key));
+    const idx = this.monthSummaries.indexOf(selected);
+    const targetMonth = idx >= 0 ? this.monthDefinitions[idx] : null;
+    if (!targetMonth) {
+      this._dashboardExpenseSlicesMonthKey = monthKey;
+      this.dashboardExpenseSlicesCache = [];
+      return this.dashboardExpenseSlicesCache;
+    }
+
     const expenseByLabel = new Map<string, number>();
 
-    for (const month of this.monthDefinitions) {
-      if (!visibleKeys.has(month.key)) {
+    for (const event of targetMonth.events) {
+      if (event.type !== 'expense' || event.suppressed) {
         continue;
       }
 
-      for (const event of month.events) {
-        if (event.type !== 'expense' || event.suppressed) {
-          continue;
-        }
-
-        const baseLabel = this.normalizeText(event.label ?? '').trim();
-        const label = baseLabel || 'Sem categoria';
-        expenseByLabel.set(label, (expenseByLabel.get(label) ?? 0) + event.amount);
-      }
+      const baseLabel = this.normalizeText(event.label ?? '').trim();
+      const label = baseLabel || 'Sem categoria';
+      expenseByLabel.set(label, (expenseByLabel.get(label) ?? 0) + event.amount);
     }
 
     const sorted = Array.from(expenseByLabel.entries())
@@ -1076,7 +1258,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     const total = sorted.reduce((sum, item) => sum + item.amount, 0);
     if (total <= 0) {
-      this.dashboardExpenseSlicesSignature = signature;
+      this._dashboardExpenseSlicesMonthKey = monthKey;
       this.dashboardExpenseSlicesCache = [];
       return this.dashboardExpenseSlicesCache;
     }
@@ -1094,7 +1276,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       color: this.dashboardExpensePalette[index % this.dashboardExpensePalette.length]
     }));
 
-    this.dashboardExpenseSlicesSignature = signature;
+    this._dashboardExpenseSlicesMonthKey = monthKey;
     this.dashboardExpenseSlicesCache = result;
     return result;
   }

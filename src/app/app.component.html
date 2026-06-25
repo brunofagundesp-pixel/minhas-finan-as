@@ -855,180 +855,147 @@
     </div>
   </div>
 
-  <section *ngIf="activeTab === 'dashboard'" class="dashboard-view">
-    <section class="panel budgets-panel">
-      <app-budgets-summary
-        title="Metas do período"
-        emptyStateMessage="Você ainda não cadastrou metas. Va em Configurações para definir tetos por tag, cartão ou geral."
-      ></app-budgets-summary>
-    </section>
-
-    <section class="panel forecast-panel">
-      <header class="forecast-head">
-        <div>
-          <p class="eyebrow">previsibilidade</p>
-          <h2>Previsão de saldo</h2>
-          <p class="section-text">Consulte o saldo projetado para qualquer dia do horizonte e veja os pontos de atenção.</p>
-        </div>
-        <label class="forecast-date-field">
-          <span>Data alvo</span>
-          <input
-            type="date"
-            [(ngModel)]="forecastDateInput"
-            [min]="forecastDateMin"
-            [max]="forecastDateMax"
-          />
-        </label>
-      </header>
-
-      <div class="forecast-grid">
-        <article class="forecast-card forecast-card--target">
-          <p class="forecast-card-label">Saldo previsto em</p>
-          <p class="forecast-card-date">{{ forecastDateLabel || '—' }}</p>
-          <p
-            *ngIf="forecastBalanceAtDate !== null"
-            class="forecast-card-value"
-            [ngClass]="getBalanceClass(forecastBalanceAtDate)"
-          >
-            {{ formatCurrency(forecastBalanceAtDate) }}
-          </p>
-          <p *ngIf="forecastBalanceAtDate === null && forecastDateOutOfRange" class="forecast-card-hint">
-            Fora do horizonte carregado.
-          </p>
-          <p *ngIf="forecastBalanceAtDate === null && !forecastDateOutOfRange" class="forecast-card-hint">
-            Selecione uma data.
-          </p>
-        </article>
-
-        <article class="forecast-card forecast-card--alert" [class.forecast-card--ok]="!forecastFirstNegative">
-          <p class="forecast-card-label">Primeiro dia negativo {{ forecastDateLabel ? 'até ' + forecastDateLabel : '' }}</p>
-          <ng-container *ngIf="forecastFirstNegative as neg; else noNegative">
-            <p class="forecast-card-date">{{ neg.dateLabel }}</p>
-            <p class="forecast-card-value forecast-card-value--negative">{{ formatCurrency(neg.balance) }}</p>
-          </ng-container>
-          <ng-template #noNegative>
-            <p class="forecast-card-date">Sem alertas</p>
-            <p class="forecast-card-hint">Saldo se mantém positivo no período.</p>
-          </ng-template>
-        </article>
-
-        <article class="forecast-card forecast-card--min" *ngIf="forecastMinPoint as minP">
-          <p class="forecast-card-label">Menor saldo {{ forecastDateLabel ? 'até ' + forecastDateLabel : 'previsto' }}</p>
-          <p class="forecast-card-date">{{ minP.dateLabel }}</p>
-          <p class="forecast-card-value" [ngClass]="getBalanceClass(minP.balance)">
-            {{ formatCurrency(minP.balance) }}
-          </p>
-        </article>
-
-        <article class="forecast-card forecast-card--max" *ngIf="forecastMaxPoint as maxP">
-          <p class="forecast-card-label">Maior saldo {{ forecastDateLabel ? 'até ' + forecastDateLabel : 'previsto' }}</p>
-          <p class="forecast-card-date">{{ maxP.dateLabel }}</p>
-          <p class="forecast-card-value" [ngClass]="getBalanceClass(maxP.balance)">
-            {{ formatCurrency(maxP.balance) }}
-          </p>
-        </article>
-      </div>
-    </section>
-
-    <section class="panel window-panel">
-      <div class="window-head">
-        <div>
-          <p class="eyebrow">janela trimestral</p>
-          <h2>{{ visibleWindow.label }}</h2>
-          <p class="section-text">
-            Resumo dos próximos 3 meses com os totais principais: entrada, saída, investimentos, custos fixos e saldo final.
-          </p>
-        </div>
-
-        <div class="window-actions">
-          <button class="nav-button" type="button" (click)="goToPreviousWindow()" [disabled]="!canGoPrevious" aria-label="Ver 3 meses anteriores">
-            ←
+  <section *ngIf="activeTab === 'dashboard'" class="dashboard-tab-view">
+    <header class="dashboard-toolbar">
+      <h2>Dashboard</h2>
+      <div class="dashboard-toolbar-right">
+        <div class="dashboard-month-nav">
+          <button type="button" class="dashboard-nav-arrow" (click)="dashboardGoToPreviousMonth()" [disabled]="!canGoDashboardPrev" aria-label="Mês anterior">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <button class="nav-button" type="button" (click)="goToNextWindow()" [disabled]="!canGoNext" aria-label="Ver próximos 3 meses">
-            →
+          <span class="dashboard-month-label">{{ dashboardSelectedMonthLabel }}</span>
+          <button type="button" class="dashboard-nav-arrow" (click)="dashboardGoToNextMonth()" [disabled]="!canGoDashboardNext" aria-label="Próximo mês">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
+        <button class="current-month-button" type="button" (click)="dashboardGoToCurrentMonth()" [disabled]="dashboardIsCurrentMonth">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Mês atual
+        </button>
       </div>
+    </header>
+    <div class="dashboard-content">
 
-      <div class="window-overview">
-        <article class="window-pill">
-          <span
-            class="dashboard-field-label"
-            tabindex="0"
-            data-tooltip="Saldo no início do primeiro mês da janela (saldo de abertura)."
-          >saldo inicial</span>
-          <strong>{{ formatCurrency(visibleWindow.openingBalance) }}</strong>
+      <ng-container *ngIf="dashboardSelectedMonth as month">
+      <section class="dashboard-kpis-grid">
+        <article class="dashboard-kpi-card dashboard-kpi-card--accent">
+          <span class="dashboard-kpi-label">Saldo projetado</span>
+          <strong class="dashboard-kpi-value" [ngClass]="getBalanceClass(month.closingBalance)">{{ formatCurrency(month.closingBalance) }}</strong>
+          <p class="dashboard-kpi-hint">Fechamento de {{ month.title }} {{ month.year }}</p>
         </article>
-        <article class="window-pill">
-          <span
-            class="dashboard-field-label"
-            tabindex="0"
-            data-tooltip="Soma de todas as entradas dos 3 meses exibidos nesta janela."
-          >entrada (período)</span>
-          <strong>{{ formatCurrency(visibleWindow.totalIncome) }}</strong>
-        </article>
-        <article class="window-pill">
-          <span
-            class="dashboard-field-label"
-            tabindex="0"
-            data-tooltip="Soma das despesas dos 3 meses exibidos nesta janela."
-          >saída (período)</span>
-          <strong>{{ formatCurrency(visibleWindow.totalExpenses) }}</strong>
-        </article>
-        <article class="window-pill">
-          <span
-            class="dashboard-field-label"
-            tabindex="0"
-            data-tooltip="Soma dos lançamentos marcados como investimento nos 3 meses da janela."
-          >investimentos (período)</span>
-          <strong>{{ formatCurrency(visibleWindow.totalInvestments) }}</strong>
-        </article>
-        <article class="window-pill">
-          <span
-            class="dashboard-field-label"
-            tabindex="0"
-            data-tooltip="Total de custos diários recorrentes (tipo diário) acumulados no período."
-          >custos fixos (período)</span>
-          <strong>{{ formatCurrency(visibleWindow.totalFixedCosts) }}</strong>
-        </article>
-        <article class="window-pill emphasis-soft">
-          <span
-            class="dashboard-field-label"
-            tabindex="0"
-            data-tooltip="Saldo projetado no fim do último mês da janela."
-          >saldo final</span>
-          <strong>{{ formatCurrency(visibleWindow.closingBalance) }}</strong>
-        </article>
-      </div>
 
-      <div class="month-grid month-grid--window">
-        <article class="month-card month-card--compact" *ngFor="let month of visibleMonths; trackBy: trackByMonthKey">
-          <div class="month-top month-top--compact">
-            <div>
-              <p>{{ month.title }} {{ month.year }}</p>
-              <small class="month-card-caption">Saldo acumulado</small>
+        <article class="dashboard-kpi-card">
+          <span class="dashboard-kpi-label">Resultado do mês</span>
+          <strong class="dashboard-kpi-value" [ngClass]="getBalanceClass(getMonthPerformance(month))">
+            {{ formatSignedCurrency(getMonthPerformance(month)) }}
+          </strong>
+          <p class="dashboard-kpi-hint">{{ month.title }} {{ month.year }}</p>
+        </article>
+
+        <article class="dashboard-kpi-card">
+          <span class="dashboard-kpi-label">Investido no mês</span>
+          <strong class="dashboard-kpi-value">{{ formatCurrency(month.totalInvestments) }}</strong>
+          <p class="dashboard-kpi-hint">Total de investimentos em {{ month.title }}</p>
+        </article>
+
+        <article class="dashboard-kpi-card">
+          <span class="dashboard-kpi-label">Taxa de poupança</span>
+          <strong class="dashboard-kpi-value" *ngIf="month.totalIncome > 0; else noIncome">
+            {{ (month.totalInvestments / month.totalIncome) | percent:'1.0-1' }}
+          </strong>
+          <ng-template #noIncome><strong class="dashboard-kpi-value">—</strong></ng-template>
+          <p class="dashboard-kpi-hint">Investido / Receitas do mês</p>
+        </article>
+      </section>
+      </ng-container>
+
+      <section class="dashboard-highlight-grid">
+        <article class="panel dashboard-panel-section">
+          <header class="dashboard-section-head">
+            <p class="eyebrow">alertas</p>
+            <h3>Pontos de atenção</h3>
+          </header>
+
+          <ng-container *ngIf="dashboardSelectedMonth as month">
+          <div class="dashboard-alert-list">
+            <div class="dashboard-alert dashboard-alert--risk" *ngIf="dashboardFirstNegative as neg">
+              <span class="dashboard-alert-icon">⚠</span>
+              <div>
+                <strong>Primeiro dia negativo</strong>
+                <p>{{ neg.dateLabel }} — {{ formatCurrency(neg.balance) }}</p>
+              </div>
+            </div>
+            <div class="dashboard-alert dashboard-alert--ok" *ngIf="!dashboardFirstNegative">
+              <span class="dashboard-alert-icon">✓</span>
+              <div>
+                <strong>Sem dias negativos</strong>
+                <p>Saldo se mantém positivo em {{ month.title }}.</p>
+              </div>
             </div>
 
-            <strong class="month-card-balance" [ngClass]="getBalanceClass(month.closingBalance)">{{ formatCurrency(month.closingBalance) }}</strong>
+            <div class="dashboard-alert dashboard-alert--risk" *ngIf="month.negativeDays > 0">
+              <span class="dashboard-alert-icon">!</span>
+              <div>
+                <strong>{{ month.negativeDays }} {{ month.negativeDays === 1 ? 'dia' : 'dias' }} negativo{{ month.negativeDays === 1 ? '' : 's' }}</strong>
+                <p>No mês de {{ month.title }} {{ month.year }}</p>
+              </div>
+            </div>
+            <div class="dashboard-alert dashboard-alert--ok" *ngIf="month.negativeDays === 0">
+              <span class="dashboard-alert-icon">✓</span>
+              <div>
+                <strong>Mês sem sustos</strong>
+                <p>Nenhum dia negativo em {{ month.title }} {{ month.year }}</p>
+              </div>
+            </div>
+          </div>
+          </ng-container>
+        </article>
+
+        <article class="panel dashboard-panel-section">
+          <header class="dashboard-section-head">
+            <p class="eyebrow">previsão {{ currentYear }}</p>
+            <h3>Saldo no horizonte</h3>
+          </header>
+
+          <div class="dashboard-forecast-cards">
+            <div class="dashboard-forecast-item">
+              <span class="dashboard-forecast-item-label">Saldo final projetado</span>
+              <strong class="dashboard-forecast-item-value" [ngClass]="getBalanceClass(dashboardYearProjectedBalance)">{{ formatCurrency(dashboardYearProjectedBalance) }}</strong>
+              <span class="dashboard-forecast-item-date">{{ currentYear }}</span>
+            </div>
+            <div class="dashboard-forecast-item" *ngIf="dashboardYearMinPoint as minP">
+              <span class="dashboard-forecast-item-label">Menor saldo</span>
+              <strong class="dashboard-forecast-item-value" [ngClass]="getBalanceClass(minP.balance)">{{ formatCurrency(minP.balance) }}</strong>
+              <span class="dashboard-forecast-item-date">{{ minP.dateLabel }}</span>
+            </div>
+            <div class="dashboard-forecast-item" *ngIf="dashboardYearMaxPoint as maxP">
+              <span class="dashboard-forecast-item-label">Maior saldo</span>
+              <strong class="dashboard-forecast-item-value" [ngClass]="getBalanceClass(maxP.balance)">{{ formatCurrency(maxP.balance) }}</strong>
+              <span class="dashboard-forecast-item-date">{{ maxP.dateLabel }}</span>
+            </div>
+            <div class="dashboard-forecast-item">
+              <span class="dashboard-forecast-item-label">Dias no azul</span>
+              <strong class="dashboard-forecast-item-value">{{ dashboardYearProtectedDays }}</strong>
+              <span class="dashboard-forecast-item-date">de {{ dashboardYearTotalDays }} dias em {{ currentYear }}</span>
+            </div>
           </div>
         </article>
-      </div>
-    </section>
+      </section>
 
-    <section class="content-grid">
-      <article class="panel dashboard-functional-panel">
-        <div class="section-head compact">
-          <div>
-            <p class="eyebrow">dados funcionais</p>
-            <h2>Resumo rápido do período</h2>
-          </div>
-        </div>
+      <section class="panel dashboard-panel-section">
+        <app-budgets-summary
+          [referenceDate]="dashboardReferenceDate"
+          title="Metas do período"
+          emptyStateMessage="Você ainda não cadastrou metas. Va em Configurações para definir tetos por tag, cartão ou geral."
+        ></app-budgets-summary>
+      </section>
 
-        <section class="dashboard-functional-card">
-          <div class="dashboard-functional-head">
-            <h3>Cartões de credito</h3>
-            <small>Resumo da fatura atual por cartão</small>
-          </div>
+      <section class="dashboard-content-grid">
+        <article class="panel dashboard-panel-section">
+          <header class="dashboard-section-head">
+            <p class="eyebrow">cartões de crédito</p>
+            <h3>Resumo da fatura</h3>
+          </header>
 
           <div class="dashboard-cards-list" *ngIf="dashboardCardSummaries.length; else noCardsSummary">
             <article class="dashboard-card-row" *ngFor="let summary of dashboardCardSummaries">
@@ -1036,9 +1003,7 @@
                 <strong>{{ summary.cardName }}</strong>
                 <span>{{ formatCurrency(summary.invoiceTotal) }}</span>
               </div>
-
               <small>Fatura {{ summary.dueDateLabel }} (Fechamento {{ summary.closingDateLabel }})</small>
-
               <div class="dashboard-card-row-metrics">
                 <span>Pago {{ formatCurrency(summary.paidTotal) }}</span>
                 <span>A pagar {{ formatCurrency(summary.pendingTotal) }}</span>
@@ -1046,23 +1011,21 @@
               </div>
             </article>
           </div>
-
           <ng-template #noCardsSummary>
             <p class="dashboard-empty">Sem cartões cadastrados.</p>
           </ng-template>
-        </section>
+        </article>
 
-        <section class="dashboard-functional-card">
-          <div class="dashboard-functional-head">
-            <h3>Despesas por categoria</h3>
-            <small>Com base nas saídas dos meses exibidos</small>
-          </div>
+        <article class="panel dashboard-panel-section">
+          <header class="dashboard-section-head">
+            <p class="eyebrow">despesas</p>
+            <h3>Por categoria</h3>
+          </header>
 
           <div class="dashboard-expense-wrap" *ngIf="dashboardExpenseTotal > 0; else noExpensesSummary">
             <div class="dashboard-expense-donut" [style.background]="dashboardExpenseDonutStyle">
               <span>{{ dashboardTopExpensePercent | number:'1.0-1' }}%</span>
             </div>
-
             <div class="dashboard-expense-legend">
               <div class="dashboard-expense-row" *ngFor="let slice of dashboardExpenseSlices">
                 <span class="dashboard-expense-label-wrap">
@@ -1072,66 +1035,19 @@
                 </span>
                 <strong>-{{ formatCurrency(slice.amount) }}</strong>
               </div>
-
               <div class="dashboard-expense-total">
                 <span>Total</span>
                 <strong>-{{ formatCurrency(dashboardExpenseTotal) }}</strong>
               </div>
             </div>
           </div>
-
           <ng-template #noExpensesSummary>
             <p class="dashboard-empty">Sem despesas registradas na janela atual.</p>
           </ng-template>
-        </section>
-      </article>
+        </article>
+      </section>
 
-      <article class="panel">
-        <div class="section-head compact">
-          <div>
-            <p class="eyebrow">ritmo diário</p>
-            <h2>{{ focusMonth.title }} {{ focusMonth.year }} em detalhe</h2>
-          </div>
-
-          <p class="section-text">
-            Visao diária do mês para entender como cada dia afeta o saldo.
-          </p>
-        </div>
-
-        <div class="legend">
-          <span><i class="dot healthy"></i> conforto</span>
-          <span><i class="dot warning"></i> atenção</span>
-          <span><i class="dot negative"></i> pressao</span>
-        </div>
-
-        <div class="projection-list">
-          <article
-            class="projection-row"
-            *ngFor="let day of focusMonth.projection"
-            [class.projection-row--warning]="day.status === 'warning'"
-            [class.projection-row--negative]="day.status === 'negative'"
-          >
-            <div class="projection-day">{{ day.day }}</div>
-
-            <div class="projection-main">
-              <div class="projection-values">
-                <span class="income" *ngIf="day.income">Entrada {{ formatCurrency(day.income) }}</span>
-                <span class="expense" *ngIf="day.expense">Saída {{ formatCurrency(day.expense) }}</span>
-                <span class="investment" *ngIf="day.investment">Investimentos {{ formatCurrency(day.investment) }}</span>
-                <span class="fixed">Custos fixos {{ formatCurrency(day.fixedCost) }}</span>
-              </div>
-
-              <small>{{ day.notes.length ? day.notes.join(' • ') : 'Sem lançamentos neste dia, apenas custos fixos.' }}</small>
-            </div>
-
-            <div class="projection-balance">
-              <strong>{{ formatCurrency(day.closingBalance) }}</strong>
-              <span>saldo corrido</span>
-            </div>
-          </article>
-        </div>
-      </article>
-    </section>
+    </div>
   </section>
 
   <!-- Botão Adicionar movido para o topbar-entries-bar -->
