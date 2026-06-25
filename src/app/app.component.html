@@ -785,6 +785,19 @@
                   {{ isPayingEvent(event.id) ? '...' : (isEventPaid(event) ? '✓ Pago' : 'Pagar') }}
                 </button>
 
+                <!-- Botão Resgatar (apenas para investimentos) -->
+                <button
+                  *ngIf="canWithdrawInvestment(event)"
+                  type="button"
+                  class="day-launch-withdraw-btn"
+                  (click)="openInvestmentWithdrawal(activeDayDetails.month.key, event)"
+                  [disabled]="isDeletingEvent(event.id) || getInvestmentAvailableAmount(event) <= 0"
+                  aria-label="Registrar resgate"
+                  title="{{ 'Resgatar (disponivel ' + formatCurrency(getInvestmentAvailableAmount(event)) + ')' }}"
+                >
+                  ↩
+                </button>
+
                 <!-- Menu ⋮ -->
                 <div class="day-context-wrap">
                   <button type="button" class="day-launch-menu-btn" (click)="toggleDayEntryMenu($event, event)" aria-label="Mais opções">⋮</button>
