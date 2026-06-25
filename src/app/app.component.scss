@@ -2797,6 +2797,30 @@
 	}
 }
 
+.day-launch-withdraw-btn {
+	height: 32px;
+	padding: 0 12px;
+	border: 1px solid #d3dcfb;
+	border-radius: 10px;
+	background: #eef2ff;
+	cursor: pointer;
+	font-weight: 600;
+	font-size: 13px;
+	font-family: inherit;
+	white-space: nowrap;
+	color: #4057b7;
+	transition: background 120ms ease;
+
+	&:hover {
+		background: #e0e7ff;
+	}
+
+	&:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+}
+
 .day-launch-menu-btn {
 	width: 32px;
 	height: 32px;
@@ -5770,6 +5794,12 @@
       border-color: #2d5040;
       &:hover { background: #1f3d30; }
     }
+  }
+  .day-launch-withdraw-btn {
+    background: #1f2440;
+    border-color: #35407a;
+    color: #a5b4f8;
+    &:hover { background: #29325a; }
   }
   .day-launch-edit-btn {
     background: #1f2440;
