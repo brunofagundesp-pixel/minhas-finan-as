@@ -3814,6 +3814,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     this.financeApi.updateMonth(month).subscribe({
       next: () => {
+        this.refreshActiveDayDetails();
         this.deletingEventIds.delete(eventId);
         this.entriesFeedback = eventType === 'daily' ? 'Diário removido.' : 'Lançamento removido.';
       },
@@ -4262,6 +4263,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
+        this.refreshActiveDayDetails();
         this.entriesFeedback = 'Lançamento atualizado.';
         this.closeLaunchForm();
       },
@@ -6152,6 +6154,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     forkJoin(saveOps).subscribe({
       next: () => {
+        this.refreshActiveDayDetails();
         if (triggerEventId) {
           this.deletingEventIds.delete(triggerEventId);
         }
@@ -6242,6 +6245,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     forkJoin(saveOps).subscribe({
       next: () => {
+        this.refreshActiveDayDetails();
         if (triggerEventId) {
           this.deletingEventIds.delete(triggerEventId);
         }
