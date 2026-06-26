@@ -5146,15 +5146,29 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   getMonthEvents(month: MonthDefinition): FinancialEvent[] {
     const events = [...month.events];
     const monthKey = month.key;
+    if (!monthKey) return events;
+
     const daysInMonth = new Date(month.year, month.monthNumber, 0).getDate();
     const existingSeriesIds = new Set(
       month.events.filter(e => e.seriesId).map(e => e.seriesId)
     );
 
+    const [mY, mM] = monthKey.split('-').map(Number);
+    if (Number.isNaN(mY)) return events;
+
     for (const series of this.seriesDefinitions) {
       if (!series.isActive) continue;
-      if (series.createdInMonthKey > monthKey) continue;
-      if (series.endedInMonthKey && monthKey > series.endedInMonthKey) continue;
+      if (!series.createdInMonthKey) continue;
+
+      const [sY, sM] = series.createdInMonthKey.split('-').map(Number);
+      if (Number.isNaN(sY)) continue;
+      if (sY > mY || (sY === mY && sM > mM)) continue;
+
+      if (series.endedInMonthKey) {
+        const [eY, eM] = series.endedInMonthKey.split('-').map(Number);
+        if (!Number.isNaN(eY) && (mY > eY || (mY === eY && mM > eM))) continue;
+      }
+
       if (existingSeriesIds.has(series.id)) continue;
 
       const override = month.seriesOverrides?.find(o => o.seriesId === series.id);
@@ -5759,12 +5773,31 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     // Series-based computation for virtual events
     if (event.seriesId) {
       const series = this.seriesDefinitions.find(s => s.id === event.seriesId);
-      if (series && series.seriesOccurrences && series.seriesOccurrences > 0) {
+      if (series && series.seriesOccurrences != null && series.seriesOccurrences > 0) {
         const [startYear, startMonth] = series.createdInMonthKey.split('-').map(Number);
         const [year, month] = monthKey.split('-').map(Number);
-        const offset = (year - startYear) * 12 + (month - startMonth);
-        if (offset >= 0 && offset < series.seriesOccurrences) {
-          return `${offset + 1}/${series.seriesOccurrences}`;
+        if (!Number.isNaN(startYear) && !Number.isNaN(year)) {
+          const offset = (year - startYear) * 12 + (month - startMonth);
+          if (offset >= 0 && offset < series.seriesOccurrences) {
+            return `${offset + 1}/${series.seriesOccurrences}`;
+          }
+        }
+      }
+
+      // Fallback: extract from deterministic virtual ID format v:{seriesId}:{monthKey}:{day}
+      if (event.id && event.id.startsWith('v:')) {
+        const parts = event.id.split(':');
+        if (parts.length >= 3) {
+          const evMonthKey = parts[2];
+          const [evStartYear, evStartMonth] = series?.createdInMonthKey?.split('-').map(Number) ?? [];
+          const [evYear, evMonth] = evMonthKey.split('-').map(Number);
+          const total = series?.seriesOccurrences ?? event.seriesOccurrences;
+          if (!Number.isNaN(evStartYear) && !Number.isNaN(evYear) && total != null && total > 0) {
+            const evOffset = (evYear - evStartYear) * 12 + (evMonth - evStartMonth);
+            if (evOffset >= 0 && evOffset < total) {
+              return `${evOffset + 1}/${total}`;
+            }
+          }
         }
       }
     }
