@@ -5195,6 +5195,11 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         if (ended && (mY > ended.year || (mY === ended.year && mM > ended.month))) continue;
       }
 
+      if (series.recurrenceKind === 'installment' && series.seriesOccurrences != null && series.seriesOccurrences > 0) {
+        const offset = (mY - parsed.year) * 12 + (mM - parsed.month);
+        if (offset >= series.seriesOccurrences) continue;
+      }
+
       if (existingSeriesIds.has(series.id)) { console.log('[getMonthEvents] BLOQUEADO existingSeriesIds', monthKey, series.id?.slice(0,8)); continue; }
 
       const override = month.seriesOverrides?.find(o => o.seriesId === series.id);
