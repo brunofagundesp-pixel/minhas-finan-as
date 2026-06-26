@@ -3205,7 +3205,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   hasEventActions(event: FinancialEvent): boolean {
-    return this.canTogglePaid(event) || event.type === 'daily' || event.type === 'investment' || this.hasSeries(event);
+    return this.canTogglePaid(event) || event.type === 'income' || event.type === 'daily' || event.type === 'investment' || this.hasSeries(event);
   }
 
   isRecurring(event: FinancialEvent): boolean {
