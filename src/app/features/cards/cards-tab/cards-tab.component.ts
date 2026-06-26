@@ -1761,6 +1761,7 @@ export class CardsTabComponent implements OnInit, OnDestroy {
     return Array.from({ length: installmentCount }, (_value, index) => ({
       ...baseLaunch,
       date: this.addMonthsToInputDate(baseLaunch.date, index),
+      invoiceMonthRef: undefined,
       repeatMode: 'installment',
       seriesId,
       installmentNumber: index + 1,
