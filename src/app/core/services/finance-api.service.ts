@@ -62,6 +62,33 @@ export interface FinancialEvent {
   investmentMovement?: 'withdrawal';
 }
 
+export interface SeriesDefinition {
+  id: string;
+  label: string;
+  amount: number;
+  type: EventType;
+  day: number;
+  repeatMode: RepeatMode;
+  recurrenceKind: RecurrenceKind;
+  seriesOccurrences?: number | null;
+  tags?: string[];
+  isActive: boolean;
+  createdInMonthKey: string;
+  endedInMonthKey?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeriesOccurrenceOverride {
+  seriesId: string;
+  day: number;
+  action?: 'skip';
+  paid?: boolean;
+  paidAt?: string;
+  amount?: number;
+  label?: string;
+}
+
 export interface MonthDefinition {
   id: string;
   key: string;
@@ -71,6 +98,7 @@ export interface MonthDefinition {
   openingBalance: number;
   dailyFixedCost: number;
   events: FinancialEvent[];
+  seriesOverrides?: SeriesOccurrenceOverride[];
 }
 
 /**
@@ -88,6 +116,7 @@ export interface MonthsQueryRange {
 @Injectable({ providedIn: 'root' })
 export class FinanceApiService {
   private readonly monthsCollection = 'months';
+  private readonly seriesCollection = 'series';
   private readonly cardsCollection = 'cards';
   private readonly cardLaunchesCollection = 'cardLaunches';
 
@@ -234,6 +263,41 @@ export class FinanceApiService {
         observer.complete();
         })
         .catch((error) => observer.error(error));
+    });
+  }
+
+  getSeries(): Observable<SeriesDefinition[]> {
+    return this.afAuth.authState.pipe(
+      switchMap(user => {
+        if (!user) return of([]);
+        return this.firestore
+          .collection<SeriesDefinition>(`users/${user.uid}/${this.seriesCollection}`)
+          .valueChanges({ idField: 'id' });
+      })
+    );
+  }
+
+  saveSeries(series: SeriesDefinition): Observable<SeriesDefinition> {
+    const payload = JSON.parse(JSON.stringify(series));
+    const docId = series.id;
+    return new Observable<SeriesDefinition>((observer) => {
+      this.uid().then(uid =>
+        this.firestore.collection(`users/${uid}/${this.seriesCollection}`).doc(docId).set(payload)
+      ).then(() => {
+        observer.next(series);
+        observer.complete();
+      }).catch((error) => observer.error(error));
+    });
+  }
+
+  deleteSeries(seriesId: string): Observable<void> {
+    return new Observable<void>((observer) => {
+      this.uid().then(uid =>
+        this.firestore.collection(`users/${uid}/${this.seriesCollection}`).doc(seriesId).delete()
+      ).then(() => {
+        observer.next();
+        observer.complete();
+      }).catch((error) => observer.error(error));
     });
   }
 }

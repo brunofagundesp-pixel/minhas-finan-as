@@ -1,12 +1,12 @@
 import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
-import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, MonthDefinition, RecurrenceKind, RepeatMode } from './core/services/finance-api.service';
+import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, MonthDefinition, SeriesDefinition, SeriesOccurrenceOverride, RecurrenceKind, RepeatMode } from './core/services/finance-api.service';
 import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.component';
 import { AuthService } from './core/services/auth.service';
 import { TagsService } from './core/services/tags.service';
 import { DailyAutoSkipService } from './core/services/daily-auto-skip.service';
 import { AnnouncementsService } from './core/services/announcements.service';
 import { BudgetsService } from './core/services/budgets.service';
-import { forkJoin, Subscription } from 'rxjs';
+import { forkJoin, Observable, Subscription } from 'rxjs';
 import { getInvoiceMonthForDate, getDueDateForInvoiceMonth, getClosingDateForInvoiceMonth, InvoiceMonth } from './core/utils/card-cycle.util';
 import {
   CategoryScale,
@@ -473,6 +473,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   private readonly dashboardExpensePalette = ['#16c6a0', '#3f8df6', '#e5cc3a', '#f97316', '#a78bfa', '#f43f5e'];
 
   private monthDefinitions: MonthDefinition[] = [];
+  private seriesDefinitions: SeriesDefinition[] = [];
   private cards: CreditCard[] = [];
   private cardLaunches: CardLaunch[] = [];
 
@@ -758,6 +759,27 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
             }
             tagHash = (tagHash + 1) | 0;
           }
+        }
+      }
+      if (month.seriesOverrides?.length) {
+        for (const override of month.seriesOverrides) {
+          amountSum += override.amount || 0;
+          if (override.paid) flagsHash++;
+          if (override.action === 'skip') flagsHash += 13;
+        }
+      }
+    }
+    for (const series of this.seriesDefinitions) {
+      amountSum += series.amount || 0;
+      dayHash = (dayHash + series.day) | 0;
+      if (!series.isActive) flagsHash += 17;
+      if (series.endedInMonthKey) flagsHash += 23;
+      if (series.tags?.length) {
+        for (const tag of series.tags) {
+          for (let i = 0; i < tag.length; i++) {
+            tagHash = ((tagHash * 31) + tag.charCodeAt(i)) | 0;
+          }
+          tagHash = (tagHash + 1) | 0;
         }
       }
     }
@@ -2966,21 +2988,34 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     const eventId = event.id;
-    const previousEvents = [...month.events];
     const paid = !event.paid;
     const paidAt = paid ? this.getTodayInputDate() : undefined;
 
-    month.events = month.events.map((item) => {
-      if (item.id !== eventId) {
-        return item;
+    // Virtual series event: store in seriesOverrides
+    if (event.seriesId && this.seriesDefinitions.some(s => s.id === event.seriesId)) {
+      const overrides = month.seriesOverrides ?? [];
+      const existingIdx = overrides.findIndex(o => o.seriesId === event.seriesId && o.day === event.day);
+      if (existingIdx >= 0) {
+        overrides[existingIdx] = { ...overrides[existingIdx], paid, paidAt };
+      } else {
+        overrides.push({ seriesId: event.seriesId, day: event.day, paid, paidAt });
       }
+      month.seriesOverrides = overrides;
+    } else {
+      // Physical event: modify directly in month.events
+      const previousEvents = [...month.events];
+      month.events = month.events.map((item) => {
+        if (item.id !== eventId) {
+          return item;
+        }
 
-      return {
-        ...item,
-        paid,
-        paidAt,
-      };
-    });
+        return {
+          ...item,
+          paid,
+          paidAt,
+        };
+      });
+    }
     this.refreshActiveDayDetails();
 
     this.payingEventIds.add(eventId);
@@ -2999,7 +3034,19 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         setTimeout(() => { this.entriesFeedback = ''; }, 3000);
       },
       error: () => {
-        month.events = previousEvents;
+        // Rollback
+        if (event.seriesId && this.seriesDefinitions.some(s => s.id === event.seriesId)) {
+          const overrides = month.seriesOverrides ?? [];
+          const idx = overrides.findIndex(o => o.seriesId === event.seriesId && o.day === event.day);
+          if (idx >= 0) {
+            if (overrides[idx].paid === undefined && overrides[idx].amount === undefined && overrides[idx].label === undefined && overrides[idx].action === undefined) {
+              overrides.splice(idx, 1);
+            } else {
+              overrides[idx] = { ...overrides[idx], paid: event.paid, paidAt: event.paidAt };
+            }
+          }
+          month.seriesOverrides = overrides;
+        }
         this.payingEventIds.delete(eventId);
         this.refreshActiveDayDetails();
         this.entriesFeedback = 'Não foi possivel atualizar o status de pagamento do lançamento.';
@@ -3158,7 +3205,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   hasEventActions(event: FinancialEvent): boolean {
-    return this.canTogglePaid(event) || event.type === 'daily' || event.type === 'investment';
+    return this.canTogglePaid(event) || event.type === 'daily' || event.type === 'investment' || this.hasSeries(event);
   }
 
   isRecurring(event: FinancialEvent): boolean {
@@ -3662,8 +3709,18 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     const month = this.monthDefinitions.find((item) => item.key === monthKey);
-    const event = month?.events.find((item) => item.id === eventId);
-    if (!month || !event) {
+    if (!month) {
+      return;
+    }
+
+    let event = month.events.find((item) => item.id === eventId);
+
+    // Virtual series event: find in expanded view instead
+    if (!event) {
+      event = this.getMonthEvents(month).find((item) => item.id === eventId);
+    }
+
+    if (!event) {
       return;
     }
 
@@ -3704,30 +3761,48 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     const previousEvents = [...month.events];
     const targetEvent = month.events.find((event) => event.id === eventId);
-    if (!targetEvent) {
-      return;
-    }
-
     let hasChanged = false;
 
-    if (eventType === 'daily' && targetEvent.seriesId && (targetEvent.recurrenceKind ?? 'single') !== 'single') {
-      month.events = month.events.map((event) => {
-        if (event.id !== eventId) {
-          return event;
+    // Virtual series event: add skip override
+    if (!targetEvent && eventId) {
+      const virtualSource = this.getMonthEvents(month).find(e => e.id === eventId);
+      if (virtualSource?.seriesId && this.seriesDefinitions.some(s => s.id === virtualSource.seriesId)) {
+        const overrides = month.seriesOverrides ?? [];
+        const existingIdx = overrides.findIndex(o => o.seriesId === virtualSource.seriesId && o.day === virtualSource.day);
+        if (existingIdx >= 0) {
+          overrides[existingIdx] = { ...overrides[existingIdx], action: 'skip' };
+        } else {
+          overrides.push({ seriesId: virtualSource.seriesId, day: virtualSource.day, action: 'skip' });
         }
-
+        month.seriesOverrides = overrides;
         hasChanged = true;
+      }
+    }
 
-        return {
-          ...event,
-          amount: 0,
-          suppressed: true,
-          dailyOccurrenceAction: 'skip'
-        };
-      });
-    } else {
-      month.events = month.events.filter((event) => event.id !== eventId);
-      hasChanged = month.events.length !== previousEvents.length;
+    if (!hasChanged) {
+      if (!targetEvent) {
+        return;
+      }
+
+      if (eventType === 'daily' && targetEvent.seriesId && (targetEvent.recurrenceKind ?? 'single') !== 'single') {
+        month.events = month.events.map((event) => {
+          if (event.id !== eventId) {
+            return event;
+          }
+
+          hasChanged = true;
+
+          return {
+            ...event,
+            amount: 0,
+            suppressed: true,
+            dailyOccurrenceAction: 'skip'
+          };
+        });
+      } else {
+        month.events = month.events.filter((event) => event.id !== eventId);
+        hasChanged = month.events.length !== previousEvents.length;
+      }
     }
 
     if (!hasChanged) {
@@ -3831,6 +3906,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const recurrenceKind: RecurrenceKind = this.launchForm.recurrenceKind;
     const repeatMode = this.launchForm.repeatMode;
     const installments = this.showInstallmentsField ? this.launchForm.installments : 1;
+    const seriesId = recurrenceKind !== 'single' ? this.generateEventId() : undefined;
+
     const touchedMonths = this.applyRecurringLaunches(
       parsedDate,
       this.launchForm.type,
@@ -3839,7 +3916,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       recurrenceKind,
       repeatMode,
       installments,
-      undefined,
+      seriesId,
       this.launchForm.tags
     );
 
@@ -3849,7 +3926,31 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
-    forkJoin(touchedMonths.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    const saveOps: Observable<unknown>[] = touchedMonths.map((month) => this.financeApi.updateMonth(month));
+
+    if (seriesId && repeatMode === 'monthly') {
+      const monthKey = `${year}-${String(monthNumber).padStart(2, '0')}`;
+      const now = new Date().toISOString();
+      const series: SeriesDefinition = {
+        id: seriesId,
+        label,
+        amount,
+        type: this.launchForm.type,
+        day: parsedDate.getDate(),
+        repeatMode,
+        recurrenceKind,
+        seriesOccurrences: recurrenceKind === 'installment' ? installments : null,
+        tags: this.launchForm.tags?.length ? this.launchForm.tags : undefined,
+        isActive: true,
+        createdInMonthKey: monthKey,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.seriesDefinitions = [...this.seriesDefinitions, series];
+      saveOps.push(this.financeApi.saveSeries(series));
+    }
+
+    forkJoin(saveOps).subscribe({
       next: () => {
         this.isSavingLaunch = false;
         this.syncTagCatalogWithEvents();
@@ -4102,6 +4203,40 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const originalSourceEvents = [...sourceMonth.events];
     const originalTargetEvents = sourceMonth === targetMonth ? originalSourceEvents : [...targetMonth.events];
     const originalEvent = sourceMonth.events.find((event) => event.id === this.editingEventId);
+
+    // Virtual series event: add override instead of modifying events array
+    if (!originalEvent && this.editingEventId) {
+      const virtualSource = this.getMonthEvents(sourceMonth).find(e => e.id === this.editingEventId);
+      if (virtualSource?.seriesId && this.seriesDefinitions.some(s => s.id === virtualSource.seriesId)) {
+        const month = targetMonth;
+        const overrides = month.seriesOverrides ?? [];
+        const existingIdx = overrides.findIndex(o => o.seriesId === virtualSource.seriesId && o.day === virtualSource.day);
+        const override = { seriesId: virtualSource.seriesId, day: parsedDate.getDate(), amount, label };
+        if (existingIdx >= 0) {
+          overrides[existingIdx] = { ...overrides[existingIdx], ...override };
+        } else {
+          overrides.push(override);
+        }
+        month.seriesOverrides = overrides;
+
+        this.isSavingLaunch = true;
+        this.financeApi.updateMonth(month).subscribe({
+          next: () => {
+            this.isSavingLaunch = false;
+            this.entriesFeedback = 'Lançamento atualizado.';
+            this.closeLaunchForm();
+          },
+          error: () => {
+            this.isSavingLaunch = false;
+            this.launchError = 'Não foi possivel salvar a edição no backend.';
+          }
+        });
+        return;
+      }
+
+      this.launchError = 'Lançamento não encontrado para editar.';
+      return;
+    }
 
     if (!originalEvent) {
       this.launchError = 'Lançamento não encontrado para editar.';
@@ -4357,6 +4492,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
+    const existingSeries = this.seriesDefinitions.find(s => s.id === this.editingSeriesId);
     const backups = new Map<string, FinancialEvent[]>();
     for (const month of this.monthDefinitions) {
       const hasSeriesEvents = month.events.some((event) => event.seriesId === this.editingSeriesId);
@@ -4388,7 +4524,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return previous.length !== month.events.length || touchedMonths.some((item) => item.key === month.key);
     });
 
-    if (!monthsToSave.length) {
+    if (!monthsToSave.length && !existingSeries) {
       for (const [monthKey, events] of backups) {
         const month = this.monthDefinitions.find((item) => item.key === monthKey);
         if (month) {
@@ -4400,7 +4536,17 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     this.isSavingLaunch = true;
-    forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    const saveOps: Observable<unknown>[] = monthsToSave.map((month) => this.financeApi.updateMonth(month));
+
+    if (existingSeries && existingSeries.repeatMode === 'monthly') {
+      existingSeries.amount = amount;
+      existingSeries.label = label;
+      existingSeries.tags = this.launchForm.tags;
+      existingSeries.updatedAt = new Date().toISOString();
+      saveOps.push(this.financeApi.saveSeries(existingSeries));
+    }
+
+    forkJoin(saveOps).subscribe({
       next: () => {
         this.isSavingLaunch = false;
         this.entriesFeedback = 'Serie atualizada.';
@@ -4432,6 +4578,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
+    const existingSeries = this.seriesDefinitions.find(s => s.id === this.editingSeriesId);
     const backups = new Map<string, FinancialEvent[]>();
     for (let monthIndex = triggerMonthIndex; monthIndex < this.monthDefinitions.length; monthIndex += 1) {
       const month = this.monthDefinitions[monthIndex];
@@ -4468,9 +4615,44 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     );
 
     const monthsToSave = this.monthDefinitions.filter((month) => backups.has(month.key) || touchedMonths.some((item) => item.key === month.key));
+    const now = new Date().toISOString();
 
     this.isSavingLaunch = true;
-    forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    const saveOps: Observable<unknown>[] = monthsToSave.map((month) => this.financeApi.updateMonth(month));
+
+    // Virtual series: end the original and create a new one from anchor forward
+    if (existingSeries && existingSeries.repeatMode === 'monthly') {
+      const prevMonth = this.monthDefinitions[triggerMonthIndex - 1];
+      existingSeries.endedInMonthKey = prevMonth ? prevMonth.key : this.editingSourceMonthKey;
+      existingSeries.updatedAt = now;
+      saveOps.push(this.financeApi.saveSeries(existingSeries));
+
+      const newSeriesId = this.generateEventId();
+      const newSeries: SeriesDefinition = {
+        ...existingSeries,
+        id: newSeriesId,
+        amount,
+        label,
+        tags: this.launchForm.tags,
+        endedInMonthKey: undefined,
+        createdInMonthKey: this.editingSourceMonthKey,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.seriesDefinitions = [...this.seriesDefinitions, newSeries];
+      saveOps.push(this.financeApi.saveSeries(newSeries));
+
+      // Update events in months to use new seriesId
+      for (const month of touchedMonths) {
+        for (const event of month.events) {
+          if (event.seriesId === this.editingSeriesId) {
+            event.seriesId = newSeriesId;
+          }
+        }
+      }
+    }
+
+    forkJoin(saveOps).subscribe({
       next: () => {
         this.isSavingLaunch = false;
         this.entriesFeedback = 'Este lançamento e os próximos foram atualizados.';
@@ -4703,6 +4885,27 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const normalizedNames = new Set(this.availableTags.map((tag) => this.normalizeTagName(tag.name)));
     let changed = false;
 
+    for (const series of this.seriesDefinitions) {
+      for (const rawTag of series.tags ?? []) {
+        const tagName = this.normalizeTagLabel(rawTag);
+        if (!tagName) {
+          continue;
+        }
+
+        const normalizedName = this.normalizeTagName(tagName);
+        if (normalizedNames.has(normalizedName)) {
+          continue;
+        }
+
+        this.availableTags.push({
+          name: tagName,
+          color: this.pickTagColor(this.availableTags)
+        });
+        normalizedNames.add(normalizedName);
+        changed = true;
+      }
+    }
+
     for (const month of this.monthDefinitions) {
       for (const event of month.events) {
         for (const rawTag of event.tags ?? []) {
@@ -4907,22 +5110,79 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           return;
         }
 
-        this.ensurePlanningHorizonMonths();
-
-        if (!hadMonthsBefore) {
-          this.syncWindowToCurrentMonth();
-        }
-
-        this.syncTagCatalogWithEvents();
-
-        this.isLoading = false;
+        this.loadSeriesAndFinish(hadMonthsBefore);
       },
       error: () => {
         this.monthDefinitions = [];
+        this.seriesDefinitions = [];
         this.isLoading = false;
         this.dataError = 'Não foi possivel carregar os dados do backend. Inicie o servidor local e tente novamente.';
       }
     });
+  }
+
+  private loadSeriesAndFinish(hadMonthsBefore: boolean): void {
+    this.financeApi.getSeries().subscribe({
+      next: (series) => {
+        this.seriesDefinitions = series.filter(s => s.isActive);
+        this.finishLoadingMonths(hadMonthsBefore);
+      },
+      error: () => {
+        this.seriesDefinitions = [];
+        this.finishLoadingMonths(hadMonthsBefore);
+      }
+    });
+  }
+
+  private finishLoadingMonths(hadMonthsBefore: boolean): void {
+    if (!hadMonthsBefore) {
+      this.syncWindowToCurrentMonth();
+    }
+
+    this.syncTagCatalogWithEvents();
+    this.isLoading = false;
+  }
+
+  getMonthEvents(month: MonthDefinition): FinancialEvent[] {
+    const events = [...month.events];
+    const monthKey = month.key;
+    const daysInMonth = new Date(month.year, month.monthNumber, 0).getDate();
+    const existingSeriesIds = new Set(
+      month.events.filter(e => e.seriesId).map(e => e.seriesId)
+    );
+
+    for (const series of this.seriesDefinitions) {
+      if (!series.isActive) continue;
+      if (series.createdInMonthKey > monthKey) continue;
+      if (series.endedInMonthKey && monthKey > series.endedInMonthKey) continue;
+      if (existingSeriesIds.has(series.id)) continue;
+
+      const override = month.seriesOverrides?.find(o => o.seriesId === series.id);
+      if (override?.action === 'skip') continue;
+
+      const day = Math.min(series.day, daysInMonth);
+      const amount = override?.amount ?? series.amount;
+      const label = override?.label ?? series.label;
+
+      const virtualEvent: FinancialEvent = {
+        id: `v:${series.id}:${monthKey}:${day}`,
+        seriesId: series.id,
+        recurrenceKind: series.recurrenceKind,
+        repeatMode: series.repeatMode,
+        seriesOccurrences: series.seriesOccurrences,
+        day,
+        label,
+        amount,
+        type: series.type,
+        tags: series.tags,
+        paid: override?.paid,
+        paidAt: override?.paidAt,
+      };
+
+      events.push(virtualEvent);
+    }
+
+    return events;
   }
 
   private loadCardForecastData(): void {
@@ -4972,18 +5232,14 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return Array.from(touched.values());
     }
 
-    if (repeatMode === 'monthly') {
-      const maxMonths = this.monthDefinitions.length - startIndex;
-      const totalOccurrences = recurrenceKind === 'installment' ? Math.min(installments, maxMonths) : maxMonths;
-
-      for (let offset = 0; offset < totalOccurrences; offset += 1) {
-        this.pushEventToMonth(
-          this.monthDefinitions[startIndex + offset],
-          this.createEvent(day, label, amount, type, seriesId, recurrenceKind, repeatMode, seriesOccurrences, tags),
-          touched
-        );
-      }
-
+    // Monthly recurring (non-daily): only touch the starting month.
+    // SeriesDefinition handles virtual expansion for all months.
+    if (repeatMode === 'monthly' && type !== 'daily') {
+      this.pushEventToMonth(
+        this.monthDefinitions[startIndex],
+        this.createEvent(day, label, amount, type, seriesId, recurrenceKind, repeatMode, seriesOccurrences, tags),
+        touched
+      );
       return Array.from(touched.values());
     }
 
@@ -5097,15 +5353,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
-    const propagated = this.propagateFixedMonthlySeriesToMonths(created);
-    const monthsToPersistMap = new Map<string, MonthDefinition>();
-
-    for (const month of [...created, ...propagated]) {
-      monthsToPersistMap.set(month.key, month);
-    }
-
-    const monthsToPersist = Array.from(monthsToPersistMap.values());
-    forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    forkJoin(created.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
         this.entriesFeedback = 'Não foi possivel persistir alguns meses futuros no backend.';
       }
@@ -5139,78 +5387,11 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
-    const propagated = this.propagateFixedMonthlySeriesToMonths(created);
-    const monthsToPersistMap = new Map<string, MonthDefinition>();
-
-    for (const month of [...created, ...propagated]) {
-      monthsToPersistMap.set(month.key, month);
-    }
-
-    const monthsToPersist = Array.from(monthsToPersistMap.values());
-    forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    forkJoin(created.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
         this.entriesFeedback = 'Não foi possivel atualizar o horizonte de meses no backend.';
       }
     });
-  }
-
-  private propagateFixedMonthlySeriesToMonths(targetMonths: MonthDefinition[]): MonthDefinition[] {
-    if (!targetMonths.length || !this.monthDefinitions.length) {
-      return [];
-    }
-
-    const templateBySeriesId = new Map<string, FinancialEvent>();
-
-    for (const month of this.monthDefinitions) {
-      for (const event of month.events) {
-        if (!event.seriesId || event.recurrenceKind !== 'fixed' || event.repeatMode !== 'monthly') {
-          continue;
-        }
-
-        if (!templateBySeriesId.has(event.seriesId)) {
-          templateBySeriesId.set(event.seriesId, event);
-        }
-      }
-    }
-
-    if (!templateBySeriesId.size) {
-      return [];
-    }
-
-    const changed: MonthDefinition[] = [];
-
-    for (const month of targetMonths) {
-      let monthChanged = false;
-      const maxDay = new Date(month.year, month.monthNumber, 0).getDate();
-
-      for (const template of templateBySeriesId.values()) {
-        const alreadyExists = month.events.some((event) => event.seriesId === template.seriesId);
-        if (alreadyExists) {
-          continue;
-        }
-
-        month.events = [
-          ...month.events,
-          this.createEvent(
-            Math.min(template.day, maxDay),
-            template.label,
-            template.amount,
-            template.type,
-            template.seriesId,
-            'fixed',
-            'monthly',
-            null
-          )
-        ];
-        monthChanged = true;
-      }
-
-      if (monthChanged) {
-        changed.push(month);
-      }
-    }
-
-    return changed;
   }
 
   private getPlanningHorizonEndDate(referenceDate: Date): Date {
@@ -5259,13 +5440,6 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
-    const propagated = this.propagateFixedMonthlySeriesToMonths(created);
-    const monthsToPersistMap = new Map<string, MonthDefinition>();
-    for (const month of [...created, ...propagated]) {
-      monthsToPersistMap.set(month.key, month);
-    }
-    const monthsToPersist = Array.from(monthsToPersistMap.values());
-
     this.monthDefinitions = [...this.monthDefinitions, ...created].sort((a, b) => {
       if (a.year === b.year) {
         return a.monthNumber - b.monthNumber;
@@ -5273,7 +5447,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return a.year - b.year;
     });
 
-    forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    forkJoin(created.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
         this.entriesFeedback = 'Não foi possivel persistir alguns meses futuros no backend.';
       }
@@ -5294,14 +5468,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
-    const propagated = this.propagateFixedMonthlySeriesToMonths(created);
-    const monthsToPersistMap = new Map<string, MonthDefinition>();
-    for (const month of [...created, ...propagated]) {
-      monthsToPersistMap.set(month.key, month);
-    }
-    const monthsToPersist = Array.from(monthsToPersistMap.values());
-
-    forkJoin(monthsToPersist.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    forkJoin(created.map((month) => this.financeApi.updateMonth(month))).subscribe({
       error: () => {
         this.entriesFeedback = 'Não foi possivel persistir alguns meses do ano selecionado no backend.';
       }
@@ -5589,6 +5756,20 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return null;
     }
 
+    // Series-based computation for virtual events
+    if (event.seriesId) {
+      const series = this.seriesDefinitions.find(s => s.id === event.seriesId);
+      if (series && series.seriesOccurrences && series.seriesOccurrences > 0) {
+        const [startYear, startMonth] = series.createdInMonthKey.split('-').map(Number);
+        const [year, month] = monthKey.split('-').map(Number);
+        const offset = (year - startYear) * 12 + (month - startMonth);
+        if (offset >= 0 && offset < series.seriesOccurrences) {
+          return `${offset + 1}/${series.seriesOccurrences}`;
+        }
+      }
+    }
+
+    // Fallback: scan events from months (backward compat for old data)
     const seriesEvents = this.monthDefinitions
       .flatMap((month) => month.events.map((item) => ({ month, item })))
       .filter(({ item }) => item.seriesId === event.seriesId && (item.recurrenceKind ?? 'single') === 'installment')
@@ -5877,6 +6058,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private deleteSeries(seriesId: string, triggerEventId?: string): void {
+    const existingSeries = this.seriesDefinitions.find(s => s.id === seriesId);
     const backups = new Map<string, FinancialEvent[]>();
     const monthsToSave: MonthDefinition[] = [];
 
@@ -5891,15 +6073,27 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       monthsToSave.push(month);
     }
 
-    if (!monthsToSave.length) {
-      return;
-    }
-
     if (triggerEventId) {
       this.deletingEventIds.add(triggerEventId);
     }
 
-    forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    const saveOps: Observable<unknown>[] = monthsToSave.map((month) => this.financeApi.updateMonth(month));
+
+    if (existingSeries) {
+      existingSeries.isActive = false;
+      existingSeries.updatedAt = new Date().toISOString();
+      this.seriesDefinitions = this.seriesDefinitions.filter(s => s.id !== seriesId);
+      saveOps.push(this.financeApi.saveSeries(existingSeries));
+    }
+
+    if (!saveOps.length) {
+      if (triggerEventId) {
+        this.deletingEventIds.delete(triggerEventId);
+      }
+      return;
+    }
+
+    forkJoin(saveOps).subscribe({
       next: () => {
         if (triggerEventId) {
           this.deletingEventIds.delete(triggerEventId);
@@ -5912,6 +6106,10 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           if (month) {
             month.events = events;
           }
+        }
+        if (existingSeries) {
+          existingSeries.isActive = true;
+          this.seriesDefinitions = [...this.seriesDefinitions, existingSeries];
         }
         if (triggerEventId) {
           this.deletingEventIds.delete(triggerEventId);
@@ -5926,6 +6124,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
+    const existingSeries = this.seriesDefinitions.find(s => s.id === triggerEvent.seriesId);
     const triggerMonthIndex = this.monthDefinitions.findIndex((month) => month.key === monthKey);
     if (triggerMonthIndex < 0) {
       return;
@@ -5964,15 +6163,27 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       monthsToSave.push(month);
     }
 
-    if (!monthsToSave.length) {
-      return;
-    }
-
     if (triggerEventId) {
       this.deletingEventIds.add(triggerEventId);
     }
 
-    forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
+    const saveOps: Observable<unknown>[] = monthsToSave.map((month) => this.financeApi.updateMonth(month));
+
+    if (existingSeries && existingSeries.repeatMode === 'monthly') {
+      const prevMonth = this.monthDefinitions[triggerMonthIndex - 1];
+      existingSeries.endedInMonthKey = prevMonth ? prevMonth.key : monthKey;
+      existingSeries.updatedAt = new Date().toISOString();
+      saveOps.push(this.financeApi.saveSeries(existingSeries));
+    }
+
+    if (!saveOps.length) {
+      if (triggerEventId) {
+        this.deletingEventIds.delete(triggerEventId);
+      }
+      return;
+    }
+
+    forkJoin(saveOps).subscribe({
       next: () => {
         if (triggerEventId) {
           this.deletingEventIds.delete(triggerEventId);
@@ -6006,8 +6217,9 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   ): MonthSummary {
     const eventsByDay = new Map<number, FinancialEvent[]>();
     const daysInMonth = new Date(definition.year, definition.monthNumber, 0).getDate();
+    const expandedEvents = this.getMonthEvents(definition);
 
-    for (const event of definition.events) {
+    for (const event of expandedEvents) {
       const dayEvents = eventsByDay.get(event.day) ?? [];
       dayEvents.push(event);
       eventsByDay.set(event.day, dayEvents);
