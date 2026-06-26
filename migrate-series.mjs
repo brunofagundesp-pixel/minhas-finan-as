@@ -210,7 +210,8 @@ function findEarliestMonth(months, seriesId) {
   for (const m of months) {
     const hasSeries = (m.events ?? []).some((ev) => ev.seriesId === seriesId);
     if (hasSeries) {
-      const key = m.key ?? `${m.year}-${String(m.monthNumber).padStart(2, '0')}`;
+      // FORÇAR formato numerico YYYY-MM independente de como m.key esta
+      const key = `${m.year}-${String(m.monthNumber).padStart(2, '0')}`;
       if (!earliest || key < earliest) {
         earliest = key;
       }

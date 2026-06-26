@@ -5143,33 +5143,54 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.isLoading = false;
   }
 
+  private parseMonthKey(key: string): { year: number; month: number } | null {
+    if (!key) return null;
+    const parts = key.split('-');
+    if (parts.length !== 2) return null;
+
+    const a = parseInt(parts[0], 10);
+    const b = parseInt(parts[1], 10);
+
+    if (!Number.isNaN(a) && !Number.isNaN(b)) {
+      if (a > 12) return { year: a, month: b };
+      return { year: b, month: a };
+    }
+
+    const MONTH_MAP: Record<string, number> = {
+      jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
+      jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
+    };
+    const month = MONTH_MAP[parts[0]?.toLowerCase()];
+    const year = parseInt(parts[1], 10);
+    if (month && !Number.isNaN(year)) return { year, month };
+
+    return null;
+  }
+
   getMonthEvents(month: MonthDefinition): FinancialEvent[] {
     const events = [...month.events];
-    const monthKey = month.key;
-    if (!monthKey) { console.warn('[getMonthEvents] monthKey vazio', month); return events; }
+    const mY = month.year;
+    const mM = month.monthNumber;
+    if (!mY || !mM) return events;
 
-    const daysInMonth = new Date(month.year, month.monthNumber, 0).getDate();
+    const monthKey = month.key;
+    const daysInMonth = new Date(mY, mM, 0).getDate();
     const existingSeriesIds = new Set(
       month.events.filter(e => e.seriesId).map(e => e.seriesId)
     );
 
-    const [mY, mM] = monthKey.split('-').map(Number);
-    if (Number.isNaN(mY)) { console.warn('[getMonthEvents] monthKey invalido', monthKey); return events; }
-
     for (const series of this.seriesDefinitions) {
       if (!series.isActive) continue;
       if (series.type === 'daily') continue;
-      if (!series.createdInMonthKey) { console.warn('[getMonthEvents] serie sem createdInMonthKey', series.id?.slice(0,8)); continue; }
 
-      const [sY, sM] = series.createdInMonthKey.split('-').map(Number);
-      if (Number.isNaN(sY)) { console.warn('[getMonthEvents] createdInMonthKey invalido', series.createdInMonthKey); continue; }
+      const parsed = this.parseMonthKey(series.createdInMonthKey);
+      if (!parsed) { console.warn('[getMonthEvents] createdInMonthKey invalido', series.createdInMonthKey, series.id?.slice(0,8)); continue; }
 
-      const beforeMonth = sY > mY || (sY === mY && sM > mM);
-      if (beforeMonth) continue;
+      if (parsed.year > mY || (parsed.year === mY && parsed.month > mM)) continue;
 
       if (series.endedInMonthKey) {
-        const [eY, eM] = series.endedInMonthKey.split('-').map(Number);
-        if (!Number.isNaN(eY) && (mY > eY || (mY === eY && mM > eM))) continue;
+        const ended = this.parseMonthKey(series.endedInMonthKey);
+        if (ended && (mY > ended.year || (mY === ended.year && mM > ended.month))) continue;
       }
 
       if (existingSeriesIds.has(series.id)) { console.log('[getMonthEvents] BLOQUEADO existingSeriesIds', monthKey, series.id?.slice(0,8)); continue; }
@@ -5777,10 +5798,10 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (event.seriesId) {
       const series = this.seriesDefinitions.find(s => s.id === event.seriesId);
       if (series && series.seriesOccurrences != null && series.seriesOccurrences > 0) {
-        const [startYear, startMonth] = series.createdInMonthKey.split('-').map(Number);
-        const [year, month] = monthKey.split('-').map(Number);
-        if (!Number.isNaN(startYear) && !Number.isNaN(year)) {
-          const offset = (year - startYear) * 12 + (month - startMonth);
+        const parsedKey = this.parseMonthKey(monthKey);
+        const parsedSeries = this.parseMonthKey(series.createdInMonthKey);
+        if (parsedKey && parsedSeries) {
+          const offset = (parsedKey.year - parsedSeries.year) * 12 + (parsedKey.month - parsedSeries.month);
           if (offset >= 0 && offset < series.seriesOccurrences) {
             return `${offset + 1}/${series.seriesOccurrences}`;
           }
@@ -5792,13 +5813,13 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         const parts = event.id.split(':');
         if (parts.length >= 3) {
           const evMonthKey = parts[2];
-          const [evStartYear, evStartMonth] = series?.createdInMonthKey?.split('-').map(Number) ?? [];
-          const [evYear, evMonth] = evMonthKey.split('-').map(Number);
+          const parsedKey = this.parseMonthKey(evMonthKey);
+          const parsedSeries = series ? this.parseMonthKey(series.createdInMonthKey) : null;
           const total = series?.seriesOccurrences ?? event.seriesOccurrences;
-          if (!Number.isNaN(evStartYear) && !Number.isNaN(evYear) && total != null && total > 0) {
-            const evOffset = (evYear - evStartYear) * 12 + (evMonth - evStartMonth);
-            if (evOffset >= 0 && evOffset < total) {
-              return `${evOffset + 1}/${total}`;
+          if (parsedKey && parsedSeries && total != null && total > 0) {
+            const offset = (parsedKey.year - parsedSeries.year) * 12 + (parsedKey.month - parsedSeries.month);
+            if (offset >= 0 && offset < total) {
+              return `${offset + 1}/${total}`;
             }
           }
         }
