@@ -5146,7 +5146,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   getMonthEvents(month: MonthDefinition): FinancialEvent[] {
     const events = [...month.events];
     const monthKey = month.key;
-    if (!monthKey) return events;
+    if (!monthKey) { console.warn('[getMonthEvents] monthKey vazio', month); return events; }
 
     const daysInMonth = new Date(month.year, month.monthNumber, 0).getDate();
     const existingSeriesIds = new Set(
@@ -5154,22 +5154,24 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     );
 
     const [mY, mM] = monthKey.split('-').map(Number);
-    if (Number.isNaN(mY)) return events;
+    if (Number.isNaN(mY)) { console.warn('[getMonthEvents] monthKey invalido', monthKey); return events; }
 
     for (const series of this.seriesDefinitions) {
       if (!series.isActive) continue;
-      if (!series.createdInMonthKey) continue;
+      if (!series.createdInMonthKey) { console.warn('[getMonthEvents] serie sem createdInMonthKey', series.id?.slice(0,8)); continue; }
 
       const [sY, sM] = series.createdInMonthKey.split('-').map(Number);
-      if (Number.isNaN(sY)) continue;
-      if (sY > mY || (sY === mY && sM > mM)) continue;
+      if (Number.isNaN(sY)) { console.warn('[getMonthEvents] createdInMonthKey invalido', series.createdInMonthKey); continue; }
+
+      const beforeMonth = sY > mY || (sY === mY && sM > mM);
+      if (beforeMonth) continue;
 
       if (series.endedInMonthKey) {
         const [eY, eM] = series.endedInMonthKey.split('-').map(Number);
         if (!Number.isNaN(eY) && (mY > eY || (mY === eY && mM > eM))) continue;
       }
 
-      if (existingSeriesIds.has(series.id)) continue;
+      if (existingSeriesIds.has(series.id)) { console.log('[getMonthEvents] BLOQUEADO existingSeriesIds', monthKey, series.id?.slice(0,8)); continue; }
 
       const override = month.seriesOverrides?.find(o => o.seriesId === series.id);
       if (override?.action === 'skip') continue;
@@ -5193,6 +5195,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         paidAt: override?.paidAt,
       };
 
+      console.log(`[getMonthEvents] ADICIONOU ${monthKey}: ${label.slice(0,20)} R$${amount} (${series.recurrenceKind})`);
       events.push(virtualEvent);
     }
 
@@ -5778,6 +5781,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         const [year, month] = monthKey.split('-').map(Number);
         if (!Number.isNaN(startYear) && !Number.isNaN(year)) {
           const offset = (year - startYear) * 12 + (month - startMonth);
+          console.log(`[installmentRef] serie ${series.id?.slice(0,8)} criado=${series.createdInMonthKey} mes=${monthKey} offset=${offset} total=${series.seriesOccurrences}`);
           if (offset >= 0 && offset < series.seriesOccurrences) {
             return `${offset + 1}/${series.seriesOccurrences}`;
           }
@@ -6251,6 +6255,10 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const eventsByDay = new Map<number, FinancialEvent[]>();
     const daysInMonth = new Date(definition.year, definition.monthNumber, 0).getDate();
     const expandedEvents = this.getMonthEvents(definition);
+
+    if (expandedEvents.length !== definition.events.length) {
+      console.log(`[buildMonthSummary] ${definition.key}: ${definition.events.length} fisicos + ${expandedEvents.length - definition.events.length} virtuais = ${expandedEvents.length} total`);
+    }
 
     for (const event of expandedEvents) {
       const dayEvents = eventsByDay.get(event.day) ?? [];
