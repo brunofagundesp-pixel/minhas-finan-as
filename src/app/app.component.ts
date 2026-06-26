@@ -5158,6 +5158,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     for (const series of this.seriesDefinitions) {
       if (!series.isActive) continue;
+      if (series.type === 'daily') continue;
       if (!series.createdInMonthKey) { console.warn('[getMonthEvents] serie sem createdInMonthKey', series.id?.slice(0,8)); continue; }
 
       const [sY, sM] = series.createdInMonthKey.split('-').map(Number);
@@ -5195,7 +5196,6 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         paidAt: override?.paidAt,
       };
 
-      console.log(`[getMonthEvents] ADICIONOU ${monthKey}: ${label.slice(0,20)} R$${amount} (${series.recurrenceKind})`);
       events.push(virtualEvent);
     }
 
@@ -5781,7 +5781,6 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         const [year, month] = monthKey.split('-').map(Number);
         if (!Number.isNaN(startYear) && !Number.isNaN(year)) {
           const offset = (year - startYear) * 12 + (month - startMonth);
-          console.log(`[installmentRef] serie ${series.id?.slice(0,8)} criado=${series.createdInMonthKey} mes=${monthKey} offset=${offset} total=${series.seriesOccurrences}`);
           if (offset >= 0 && offset < series.seriesOccurrences) {
             return `${offset + 1}/${series.seriesOccurrences}`;
           }
@@ -6255,10 +6254,6 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const eventsByDay = new Map<number, FinancialEvent[]>();
     const daysInMonth = new Date(definition.year, definition.monthNumber, 0).getDate();
     const expandedEvents = this.getMonthEvents(definition);
-
-    if (expandedEvents.length !== definition.events.length) {
-      console.log(`[buildMonthSummary] ${definition.key}: ${definition.events.length} fisicos + ${expandedEvents.length - definition.events.length} virtuais = ${expandedEvents.length} total`);
-    }
 
     for (const event of expandedEvents) {
       const dayEvents = eventsByDay.get(event.day) ?? [];
