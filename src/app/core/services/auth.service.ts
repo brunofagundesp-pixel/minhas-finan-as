@@ -7,6 +7,7 @@ import { environment } from '../../../environments/environment';
 
 const EMAIL_KEY = 'emailForSignIn';
 const TRUST_UNTIL_KEY = 'authTrustUntil';
+const PENDING_VERIFICATION_KEY = 'pendingVerification';
 
 export interface AuthState {
   /** True quando o Firebase Auth já restaurou (ou não) a sessão persistida. */
@@ -36,18 +37,21 @@ export class AuthService {
 
   /**
    * Tenta fazer login com email+senha. Se o usuário não existir, cria a conta.
+   * Retorna `{ credential, isNewUser }` indicando se a conta foi criada agora.
    * Google e email-link já criam conta automaticamente pelo Firebase.
    */
-  async loginWithEmailPassword(email: string, password: string, trustDays: number | null): Promise<firebase.auth.UserCredential> {
+  async loginWithEmailPassword(email: string, password: string, trustDays: number | null): Promise<{ credential: firebase.auth.UserCredential; isNewUser: boolean }> {
     await this.configurePersistence(trustDays);
 
     try {
-      return await this.afAuth.createUserWithEmailAndPassword(email, password);
+      const credential = await this.afAuth.createUserWithEmailAndPassword(email, password);
+      return { credential, isNewUser: true };
     } catch (err: any) {
       const code: string = err?.code ?? '';
 
       if (code === 'auth/email-already-in-use') {
-        return await this.afAuth.signInWithEmailAndPassword(email, password);
+        const credential = await this.afAuth.signInWithEmailAndPassword(email, password);
+        return { credential, isNewUser: false };
       }
 
       throw err;
@@ -89,7 +93,42 @@ export class AuthService {
     return true;
   }
 
+  /** Envia email de verificação para o usuário logado. */
+  async sendVerificationEmail(): Promise<void> {
+    const user = await this.afAuth.currentUser;
+    if (!user) throw new Error('Nenhum usuário logado.');
+    await user.sendEmailVerification({ url: environment.appUrl });
+  }
+
+  /** Atualiza o email do usuário logado e envia nova verificação. */
+  async updateEmailAndVerify(newEmail: string): Promise<void> {
+    const user = await this.afAuth.currentUser;
+    if (!user) throw new Error('Nenhum usuário logado.');
+    await user.updateEmail(newEmail);
+    await user.sendEmailVerification({ url: environment.appUrl });
+    localStorage.setItem(PENDING_VERIFICATION_KEY, newEmail);
+  }
+
+  /** Recarrega os dados do usuário do servidor e retorna emailVerified. */
+  async checkEmailVerified(): Promise<boolean> {
+    const user = await this.afAuth.currentUser;
+    if (!user) return false;
+    await user.reload();
+    return (await this.afAuth.currentUser)?.emailVerified ?? false;
+  }
+
+  /** Email pendente de verificação salvo no localStorage. */
+  get pendingVerificationEmail(): string | null {
+    return localStorage.getItem(PENDING_VERIFICATION_KEY);
+  }
+
+  /** Remove a flag de verificação pendente. */
+  clearPendingVerification(): void {
+    localStorage.removeItem(PENDING_VERIFICATION_KEY);
+  }
+
   logout(): Promise<void> {
+    localStorage.removeItem(PENDING_VERIFICATION_KEY);
     return this.afAuth.signOut();
   }
 

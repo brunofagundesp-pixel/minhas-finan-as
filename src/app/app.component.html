@@ -1,6 +1,7 @@
 <ng-container *ngIf="auth.authState$ | async as authState">
 <ng-container *ngIf="authState.ready; else authBootTpl">
 <ng-container *ngIf="authState.user !== null; else loginTpl">
+<ng-container *ngIf="!showVerificationScreen; else verificationTpl">
 <div class="app-layout">
   <header class="topbar" [class.topbar--with-entries-bar]="activeTab === 'entries'">
     <div class="topbar-main-row">
@@ -1490,12 +1491,77 @@
 <!-- Anúncios só aparecem depois que o usuário fecha o tutorial inicial. -->
 <app-announcements-modal *ngIf="!showOnboarding"></app-announcements-modal>
 </ng-container>
+</ng-container>
 
 <ng-template #loginTpl>
   <app-login></app-login>
 </ng-template>
 </ng-container>
 </ng-container>
+
+<ng-template #verificationTpl>
+  <div class="auth-boot verification-screen">
+    <div class="verification-card">
+      <div class="verification-icon">✉️</div>
+      <h2>Verifique seu e-mail</h2>
+      <p class="verification-text">
+        Enviamos um link de confirmação para<br>
+        <strong>{{ pendingVerificationEmail }}</strong>
+      </p>
+      <p class="verification-hint">
+        Clique no link enviado e depois clique em "Já verifiquei" abaixo.
+      </p>
+
+      <ng-container *ngIf="!editingVerificationEmail; else editEmailTpl">
+        <button
+          type="button"
+          class="verification-btn verification-btn--primary"
+          (click)="checkAndConfirmVerification()"
+          [disabled]="verifying"
+        >
+          {{ verifying ? 'Verificando…' : 'Já verifiquei' }}
+        </button>
+
+        <div class="verification-links">
+          <button type="button" class="verification-link-btn" (click)="resendVerificationEmail()" [disabled]="verifying">
+            Reenviar e-mail
+          </button>
+          <button type="button" class="verification-link-btn" (click)="startEditVerificationEmail()" [disabled]="verifying">
+            Corrigir e-mail
+          </button>
+        </div>
+
+        <button type="button" class="verification-link-btn verification-link-btn--muted" (click)="cancelVerification()">
+          Sair
+        </button>
+      </ng-container>
+
+      <ng-template #editEmailTpl>
+        <div class="verification-edit-email">
+          <label class="verification-label" for="verify-email-input">Corrigir e-mail</label>
+          <input
+            id="verify-email-input"
+            type="email"
+            [(ngModel)]="newVerificationEmail"
+            class="verification-input"
+            placeholder="seu@email.com"
+            [disabled]="verifying"
+          />
+          <div class="verification-edit-actions">
+            <button type="button" class="verification-btn verification-btn--primary" (click)="confirmVerificationEmailEdit()" [disabled]="verifying">
+              {{ verifying ? 'Salvando…' : 'Salvar e reenviar' }}
+            </button>
+            <button type="button" class="verification-link-btn" (click)="cancelVerificationEmailEdit()" [disabled]="verifying">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </ng-template>
+
+      <p class="verification-error" *ngIf="verificationErrorMessage">{{ verificationErrorMessage }}</p>
+    </div>
+  </div>
+</ng-template>
 
 <ng-template #authBootTpl>
   <div class="auth-boot" role="status" aria-live="polite" aria-label="Carregando">

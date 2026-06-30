@@ -255,6 +255,86 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   deletingEventIds = new Set<string>();
   payingEventIds = new Set<string>();
   payingInvoiceKeys = new Set<string>();
+
+  // ── Email verification ──────────────────────────────────────────────────────
+  verifying = false;
+  editingVerificationEmail = false;
+  newVerificationEmail = '';
+  verificationErrorMessage = '';
+
+  get showVerificationScreen(): boolean {
+    return !!localStorage.getItem('pendingVerification');
+  }
+
+  get pendingVerificationEmail(): string {
+    return this.auth.pendingVerificationEmail ?? 'seu e-mail';
+  }
+
+  async resendVerificationEmail(): Promise<void> {
+    this.verifying = true;
+    this.verificationErrorMessage = '';
+    try {
+      await this.auth.sendVerificationEmail();
+    } catch (err: any) {
+      this.verificationErrorMessage = err?.message ?? 'Erro ao reenviar e-mail de verificação.';
+    } finally {
+      this.verifying = false;
+    }
+  }
+
+  async checkAndConfirmVerification(): Promise<void> {
+    this.verifying = true;
+    this.verificationErrorMessage = '';
+    try {
+      const verified = await this.auth.checkEmailVerified();
+      if (verified) {
+        this.auth.clearPendingVerification();
+      } else {
+        this.verificationErrorMessage = 'O e-mail ainda não foi verificado. Verifique sua caixa de entrada (incluindo spam) e tente novamente, ou peça um novo link.';
+      }
+    } catch (err: any) {
+      this.verificationErrorMessage = err?.message ?? 'Erro ao verificar e-mail.';
+    } finally {
+      this.verifying = false;
+    }
+  }
+
+  startEditVerificationEmail(): void {
+    this.editingVerificationEmail = true;
+    this.newVerificationEmail = this.pendingVerificationEmail;
+    this.verificationErrorMessage = '';
+  }
+
+  async confirmVerificationEmailEdit(): Promise<void> {
+    const email = this.newVerificationEmail.trim();
+    if (!email) {
+      this.verificationErrorMessage = 'Informe um e-mail válido.';
+      return;
+    }
+    this.verifying = true;
+    this.verificationErrorMessage = '';
+    try {
+      await this.auth.updateEmailAndVerify(email);
+      this.editingVerificationEmail = false;
+    } catch (err: any) {
+      this.verificationErrorMessage = err?.message ?? 'Erro ao atualizar e-mail.';
+    } finally {
+      this.verifying = false;
+    }
+  }
+
+  cancelVerificationEmailEdit(): void {
+    this.editingVerificationEmail = false;
+    this.newVerificationEmail = '';
+    this.verificationErrorMessage = '';
+  }
+
+  cancelVerification(): void {
+    this.auth.clearPendingVerification();
+    this.auth.logout();
+  }
+  // ── Fim email verification ─────────────────────────────────────────────────
+
   private saveAndNewLaunchRequested = false;
   private saveAndNewDailyRequested = false;
   private currentUserId: string | null = null;

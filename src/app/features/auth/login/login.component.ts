@@ -44,7 +44,11 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
     this.loading = true;
     try {
-      await this.auth.loginWithEmailPassword(this.email, this.password, this.getTrustDaysOrSession());
+      const { isNewUser } = await this.auth.loginWithEmailPassword(this.email, this.password, this.getTrustDaysOrSession());
+      if (isNewUser) {
+        await this.auth.sendVerificationEmail();
+        localStorage.setItem('pendingVerification', this.email);
+      }
     } catch (err: any) {
       this.errorMessage = this.describeAuthError(err);
     } finally {
