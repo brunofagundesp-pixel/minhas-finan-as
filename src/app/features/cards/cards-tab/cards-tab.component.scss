@@ -1167,152 +1167,124 @@
 
 // ─── Dark Mode Overrides ───────────────────────────────────────────────────────
 :host-context(body.dark) {
-
-  // Sidebar e cards
-  .card-sidebar {
+  // Container principal
+  .cards-container {
     background: var(--surface);
-    border-color: var(--border);
   }
-  .card-selector-head {
-    border-bottom-color: var(--border);
-  }
-  .sidebar-hero {
-    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-strong) 100%);
-    border-bottom-color: var(--border);
-  }
-  .sidebar-hero-badge {
-    background: #283258; border-color: #3c4f85; color: #a5b4f8;
-  }
-  .sidebar-hero-value { color: var(--ink-strong); }
-  .sidebar-hero-month, .sidebar-hero-meta span { color: var(--ink-soft); }
 
-  // Nav de faturas
-  .invoice-nav {
-    background: var(--bg-strong);
+  // Toolbar
+  .cards-toolbar {
+    background: var(--surface);
     border-bottom-color: var(--border);
   }
-  .nav-arrow-btn {
+  .cards-nav-arrow {
     background: var(--surface-raised);
     border-color: var(--border);
     color: var(--ink-soft);
     &:hover { background: var(--surface); border-color: var(--accent); }
   }
-  .invoice-month-label { color: var(--ink-strong); }
-
-  // Sidebar sections
-  .sidebar-section {
-    background: var(--surface);
-    border-bottom-color: var(--border);
-  }
-  .sidebar-section--invoice.sidebar-section--ok   { background: linear-gradient(180deg, var(--surface) 0%, #1a3028 100%); }
-  .sidebar-section--invoice.sidebar-section--warn { background: linear-gradient(180deg, var(--surface) 0%, #2e2410 100%); }
-  .sidebar-section--invoice.sidebar-section--danger { background: linear-gradient(180deg, var(--surface) 0%, #2e1f24 100%); }
-  .sidebar-section-label { color: var(--ink-soft); }
-
-  // Select do cartão
-  .card-select-shell {
-    filter: drop-shadow(0 6px 12px rgba(5, 8, 18, 0.12));
-  }
-  .card-select {
-    color: var(--ink-strong);
-    border-color: #414d69;
-    background: linear-gradient(180deg, #2d3449 0%, #242b3f 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-
-    &:hover {
-      border-color: #586788;
-      background: linear-gradient(180deg, #313951 0%, #283149 100%);
-    }
-
-    &:focus {
-      border-color: #84aaf1;
-      box-shadow: 0 0 0 3px rgba(132, 170, 241, 0.18);
-    }
-
-    option {
-      color: #f1f4ff;
-      background: #242b3f;
-    }
-  }
-  .card-select-icon { color: #aab7d2; }
-  .card-brand-label { color: var(--ink-soft); }
-  .card-icon-btn {
-    color: var(--ink-soft);
-    &:hover { background: var(--surface-raised); color: var(--accent); }
-  }
-  .field-help {
-    border-color: #4a5874;
-    background: #2a3349;
-    color: #cbd7f5;
-  }
-  .field-help::after,
-  .field-help::before {
-    background: #111827;
-  }
-  .field-help::after {
-    color: #edf2ff;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
-  }
-
-  // Badges de saúde
-  .invoice-health-badge         { background: #1f2440; border-color: #35407a; color: #a5b4f8; }
-  .invoice-health-badge--ok     { background: #1a3028; border-color: #2d5040; color: #6ec99a; }
-  .invoice-health-badge--warn   { background: #2e2410; border-color: #5a4520; color: #fbbf6a; }
-  .invoice-health-badge--danger { background: #2e1f24; border-color: #5a3040; color: #f9a8ba; }
-
-  // Linhas de resumo
-  .summary-row {
+  .cards-nav-label { color: var(--ink-strong); }
+  .cards-nav-today {
     background: var(--surface-raised);
     border-color: var(--border);
     color: var(--ink-soft);
-    span:last-child { color: var(--ink-strong); }
+    &:hover:not(:disabled) { color: var(--ink-strong); border-color: var(--ink-soft); }
   }
-  .summary-row--total    { background: var(--surface); border-color: var(--border); color: var(--ink-strong); }
-  .summary-row--highlight { background: #1f2440; border-color: #35407a; color: #a5b4f8; span:last-child { color: #a5b4f8; } }
-  .summary-row--highlight-ok   { background: #1a3028; border-color: #2d5040; span:last-child { color: #6ec99a; } }
-  .summary-row--highlight-warn { background: #2e2410; border-color: #5a4520; span:last-child { color: #fbbf6a; } }
-  .summary-row--highlight-danger { background: #2e1f24; border-color: #5a3040; span:last-child { color: #f9a8ba; } }
+  .cards-toolbar-btn {
+    &--add {
+      background: var(--accent-deep);
+      &:hover { background: var(--accent); }
+    }
+    &--close {
+      background: #1a3028;
+      border-color: #2d5040;
+      color: #6ec99a;
+    }
+  }
 
-  // Filtros
-  .launch-filter-field {
+  // Content area
+  .cards-content {
+    background: var(--surface);
+  }
+
+  // Sidebar
+  .cards-sidebar {
+    background: var(--surface-raised);
+    border-color: var(--border);
+  }
+  .cards-summary-card {
+    background: var(--bg-strong);
+    border-color: var(--border);
+  }
+  .cards-summary-card-label { color: var(--ink-soft); b { color: var(--ink-strong); } }
+  .cards-summary-card strong { color: var(--ink-strong); }
+  .cards-summary-card--total strong { color: var(--ink-strong); }
+  .cards-summary-card--paid strong { color: #16a34a; }
+  .cards-summary-card--pending strong { color: #dc2626; }
+  .cards-summary-card--available strong { color: #2563eb; }
+  .cards-summary-card--dates { background: var(--surface); }
+
+  .cards-sidebar-action {
+    background: var(--surface);
+    border-color: var(--border);
     color: var(--ink-soft);
+    &:hover { background: var(--surface-raised); }
+    &--danger { color: var(--danger); border-color: var(--danger); &:hover { background: rgba(227, 81, 110, 0.08); } }
+  }
+
+  // Filters
+  .cards-filter-field {
     input, select {
       background: var(--bg-strong);
       border-color: var(--border);
       color: var(--ink-strong);
     }
   }
-
-  // Lista de lançamentos
-  .launch-item {
+  .cards-filter-divider { background: var(--border); }
+  .cards-filter-tags summary {
     background: var(--surface);
     border-color: var(--border);
+    color: var(--ink-strong);
   }
-  .launch-item-day {
-    background: var(--surface-raised);
+  .cards-filter-tags-panel {
+    background: var(--surface);
     border-color: var(--border);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
   }
-  .launch-item-day-number { color: var(--ink-strong); }
-  .launch-item-day-month  { color: var(--ink-soft); }
-  .launch-item-main {
-    strong { color: var(--ink-strong); }
-    small  { color: var(--ink-soft); }
-  }
-  .launch-item-meta small { color: var(--ink-soft); }
+  .cards-filter-tag-option:hover { background: var(--surface-raised); }
+  .cards-filter-tags-empty { color: var(--ink-soft); }
 
-  // Ledger do cartão
-  .card-ledger-row {
-    background: var(--surface-raised);
+  // Launch list
+  .cards-launch-row {
+    background: var(--surface);
+    border-bottom-color: var(--border);
+  }
+  .cards-launch-date { color: var(--ink-soft); }
+  .cards-launch-main strong { color: var(--ink-strong); }
+  .cards-launch-main small { color: var(--ink-soft); }
+  .cards-launch-status--paid {
+    background: #1a3028;
+    color: #6ec99a;
+  }
+  .cards-launch-tag {
+    background: #1f2440;
+    color: #a5b4f8;
+  }
+
+  // Context menu
+  .cards-launch-context-menu {
+    background: var(--surface);
     border-color: var(--border);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
   }
-  .card-ledger-header { strong { color: var(--ink-strong); } .eyebrow { color: var(--ink-soft); } }
-  .card-ledger-header-meta span { color: var(--ink-soft); }
-  .current-chip { background: #283258; border-color: #3c4f85; color: #a5b4f8; }
-
-  // Launches head
-  .launches-head { h3 { color: var(--ink-strong); } small { color: var(--ink-soft); } }
-  .launches-head-meta   { color: var(--ink-soft); }
-  .launches-head-label  { color: var(--ink-soft); }
+  .cards-launch-context-menu button {
+    color: var(--ink-strong);
+    &:hover { background: var(--surface-raised); }
+  }
+  .cards-launch-context-menu .cards-launch-context-danger {
+    color: #f9a8ba;
+    &:hover { background: #2e1f24; }
+  }
 
   // Empty state
   .cards-empty-wrap {
@@ -1324,28 +1296,14 @@
     p  { color: var(--ink-soft); }
   }
 
-  .launch-modal-actions {
-    background: var(--surface);
-    border-top-color: var(--border);
+  // Budget bar
+  .cards-budget-bar {
+    background: var(--surface-raised);
+    border-color: var(--border);
   }
 
-  .launch-modal-head,
-  .card-modal-head {
-    background: var(--surface);
-    border-bottom-color: var(--border);
-  }
-  
-  .launch-modal-body {
-    background: var(--surface);
-  }
-
-  .card-modal-actions {
-    background: var(--surface);
-    border-top-color: var(--border);
-  }
-
-  // Modal de cartão
-  .card-modal-panel {
+  // Shared modals (launch-modal-* vive no app.component, card-modal-* vive aqui)
+  .card-modal {
     background: var(--surface);
     border-color: var(--border);
     box-shadow: 0 30px 55px rgba(0, 0, 0, 0.55);
@@ -1354,83 +1312,31 @@
     background: var(--surface-raised);
     color: var(--ink-soft);
   }
-  .card-grid {
-    label,
-    .balance-type-box { color: var(--ink-soft); }
-    input, select {
-      background: var(--bg-strong);
-      border-color: var(--border);
-      color: var(--ink-strong);
-    }
+  .card-modal-head {
+    background: var(--surface);
+    border-bottom-color: var(--border);
   }
-  .radio-pill {
-    background: var(--surface-raised);
-    border-color: var(--border);
-    color: var(--ink-soft);
-  }
-  .btn-light {
-    background: var(--surface-raised);
-    border-color: var(--border);
-    color: var(--ink-soft);
+  .card-modal-actions {
+    background: var(--surface);
+    border-top-color: var(--border);
   }
   .card-form-error {
     background: #2e1f24;
     border-color: #5a3040;
     color: #f9a8ba;
   }
-
-  // Filtro de tags nos lançamentos
-  .card-launch-tag-filter summary {
-    background: var(--surface);
-    border-color: var(--border);
-    color: var(--ink-strong);
+  .card-form {
+    input, select, textarea {
+      background: var(--bg-strong);
+      border-color: var(--border);
+      color: var(--ink-strong);
+    }
   }
-  .card-launch-tag-filter-panel {
-    background: var(--surface);
-    border-color: var(--border);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+  .cards-create-button {
+    background: var(--accent);
+    color: #fff;
+    &:hover { background: var(--accent-deep); }
   }
-  .card-launch-tag-filter-option:hover { background: var(--surface-raised); }
-  .card-launch-tag-filter-check {
-    background: var(--surface-raised);
-    border-color: var(--border);
-    color: var(--ink-soft);
-  }
-  .card-launch-tag-filter-option--active .card-launch-tag-filter-check {
-    background: #1f2440;
-    border-color: #35407a;
-    color: #a5b4f8;
-  }
-  .card-launch-tag-filter-empty { color: var(--ink-soft); }
-
-  // Popover de notas do dia
-  .card-day-notes-popover {
-    background: var(--surface);
-    border-color: var(--border);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
-    strong { color: var(--ink-soft); }
-    li { color: var(--ink-strong); }
-  }
-  .card-ledger-note-count {
-    background: #283258;
-    border-color: #3c4f85;
-    color: #a5b4f8;
-  }
-
-  // Botões de edição de eventos
-  .card-edit-event-button   { background: #1f2440; border-color: #35407a; color: #a5b4f8; }
-  .card-delete-event-button { background: #2e1f24; border-color: #5a3040; color: #f9a8ba; }
-
-  // Estados das linhas do ledger
-  .card-ledger-row--head {
-    background: var(--bg-strong);
-    border-color: var(--border);
-    color: var(--ink-soft);
-  }
-  .card-ledger-row--today   { background: #272f4a; border-color: #3d4f80; }
-  .card-ledger-row--warning { background: #2e2410; border-color: #5a4520; }
-  .card-ledger-row--negative,
-  .card-ledger-row--has-launch { background: #2e1f24; border-color: #5a3040; }
 }
 
 .card-modal-backdrop {

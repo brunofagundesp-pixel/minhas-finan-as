@@ -87,6 +87,10 @@
                 <span class="user-dropdown-item-icon">⚙️</span>
                 Configurações
               </button>
+              <button class="user-dropdown-item" type="button" (click)="openFeedback(); userMenuOpen = false">
+                <span class="user-dropdown-item-icon">💬</span>
+                Feedback
+              </button>
               <button class="user-dropdown-item" type="button" (click)="toggleDarkMode()">
                 <span class="user-dropdown-item-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
                 {{ darkMode ? 'Modo claro' : 'Modo escuro' }}
@@ -1568,3 +1572,18 @@
     <div class="auth-boot-spinner" aria-hidden="true"></div>
   </div>
 </ng-template>
+
+<!-- Feedback modal -->
+<div class="feedback-backdrop" *ngIf="feedbackOpen" (click)="closeFeedback()">
+  <div class="feedback-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="feedback-header">
+      <h3>Feedback</h3>
+      <button type="button" class="feedback-close" (click)="closeFeedback()" aria-label="Fechar">&times;</button>
+    </header>
+
+<p class="feedback-thanks">💬 Feedback em manutenção. Em breve você poderá enviar sugestões por aqui!</p>
+<footer class="feedback-actions">
+  <button type="button" class="feedback-btn feedback-btn--send" (click)="closeFeedback()">Fechar</button>
+</footer>
+  </div>
+</div>

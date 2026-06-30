@@ -829,6 +829,7 @@
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
+	background: var(--surface);
 }
 
 .investment-tab-view {
@@ -837,6 +838,7 @@
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
+	background: var(--surface);
 }
 
 .goals-tab-view {
@@ -5770,5 +5772,119 @@
 
   .verification-btn {
     flex: 1;
+  }
+}
+
+// ── Feedback Modal ─────────────────────────────────────────────────────────
+.feedback-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 25, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.feedback-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 0;
+
+  h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--ink-strong);
+  }
+}
+
+.feedback-close {
+  background: transparent;
+  border: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-soft);
+  padding: 4px;
+}
+
+.feedback-textarea {
+  width: 100%;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink-strong);
+  resize: vertical;
+  min-height: 100px;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.feedback-thanks {
+  margin: 20px;
+  text-align: center;
+  color: var(--ink-strong);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+}
+
+.feedback-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 0;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+  }
+
+  &--send {
+    background: var(--accent);
+    color: #fff;
+
+    &:hover:not(:disabled) {
+      background: var(--accent-deep);
+    }
   }
 }

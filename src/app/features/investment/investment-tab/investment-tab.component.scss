@@ -81,7 +81,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 20px 24px;
-  background: #ffffff;
+  background: var(--surface);
   min-height: 0;
   -webkit-overflow-scrolling: touch;
 }
@@ -339,7 +339,7 @@
 }
 
 .investment-card__value {
-  color: #0f172a;
+  color: var(--ink-strong);
   font-size: 1.35rem;
   font-weight: 700;
   line-height: 1.2;
@@ -347,7 +347,7 @@
 
 .investment-card__text {
   margin: 0;
-  color: #64748b;
+  color: var(--ink-soft);
   line-height: 1.4;
   font-size: 0.82rem;
 }

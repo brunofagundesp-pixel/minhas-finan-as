@@ -3,6 +3,7 @@ import { CardLaunch, CreditCard, FinanceApiService, EventType, FinancialEvent, M
 import { CardsTabComponent } from './features/cards/cards-tab/cards-tab.component';
 import { AuthService } from './core/services/auth.service';
 import { TagsService } from './core/services/tags.service';
+
 import { DailyAutoSkipService } from './core/services/daily-auto-skip.service';
 import { AnnouncementsService } from './core/services/announcements.service';
 import { BudgetsService } from './core/services/budgets.service';
@@ -247,6 +248,16 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.entriesFeedback = '';
       this.feedbackTimeout = null;
     }, 3000);
+  }
+
+  feedbackOpen = false;
+
+  openFeedback(): void {
+    this.feedbackOpen = true;
+  }
+
+  closeFeedback(): void {
+    this.feedbackOpen = false;
   }
 
   activeDayDetails: ActiveDayDetails | null = null;
@@ -5335,7 +5346,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         if (offset >= series.seriesOccurrences) continue;
       }
 
-      if (existingSeriesIds.has(series.id)) { console.log('[getMonthEvents] BLOQUEADO existingSeriesIds', monthKey, series.id?.slice(0,8)); continue; }
+      if (existingSeriesIds.has(series.id)) { continue; }
 
       const override = month.seriesOverrides?.find(o => o.seriesId === series.id);
       if (override?.action === 'skip') continue;
