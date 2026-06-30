@@ -1952,6 +1952,11 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     return `${signal}${this.currencyFormatter.format(Math.abs(value))}`;
   }
 
+  formatEventValue(event: FinancialEvent): string {
+    const formatted = this.currencyFormatter.format(Math.abs(event.amount));
+    return event.type === 'income' ? `+${formatted}` : `-${formatted}`;
+  }
+
   getMonthProjectedDateLabel(month: MonthSummary): string {
     const lastDay = new Date(month.year, month.monthNumber, 0).getDate();
     return `${String(lastDay).padStart(2, '0')}/${String(month.monthNumber).padStart(2, '0')}`;

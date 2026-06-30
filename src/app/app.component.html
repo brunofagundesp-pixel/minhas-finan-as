@@ -772,7 +772,7 @@
                 <span class="day-launch-desc">{{ getEventDescription(event) }}</span>
               </div>
               <div class="day-launch-body-right">
-                <span class="day-launch-value" [class]="getEventValueClass(event)">{{ formatSignedCurrency(event.amount) }}</span>
+                <span class="day-launch-value" [class]="getEventValueClass(event)">{{ formatEventValue(event) }}</span>
                 <div class="day-launch-actions">
                   <!-- Botão Pagar (apenas para despesas) -->
                   <button
