@@ -284,7 +284,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         'Entrada: receitas recebidas (salario, freelance, transferencia)',
         'Saída: despesas e contas a pagar',
         'Investido: reserva que sai do caixa',
-        'Diário: custo que se repete diariamente (ex: transporte R$ 8 por dia)'
+        'Diária: custo que se repete diariamente (ex: transporte R$ 8 por dia)'
       ],
       tip: 'Lançamentos parcelados usam o valor de cada parcela, não o total da compra.'
     },
@@ -303,7 +303,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       title: 'Modos de visualizacao',
       body: 'Use os botões no topo da aba Lançamentos para alternar entre quatro modos:',
       bullets: [
-        'Simplificado: lista apenas os dias com movimento no mês, sem repetir o diário dia a dia',
+        'Simplificado: lista apenas os dias com movimento no mês, sem repetir a diária dia a dia',
         '3 meses: tres colunas lado a lado, bom para acompanhamento diário',
         '12 meses: visao anual em blocos, boa para planejamento de longo prazo',
         'Personalizado: selecione exatamente os meses que quer comparar'
@@ -402,7 +402,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     { value: 'income', label: 'Entrada' },
     { value: 'expense', label: 'Saida' },
     { value: 'investment', label: 'Investido' },
-    { value: 'daily', label: 'Diario' }
+    { value: 'daily', label: 'Diária' }
   ];
 
   readonly repeatModeOptions: Array<{ value: RepeatMode; label: string }> = [
@@ -1180,26 +1180,22 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     );
   }
 
-  /** Primeiro dia negativo no mês selecionado (dashboard), a partir de hoje. */
-  get dashboardFirstNegative(): { dateLabel: string; balance: number } | null {
+  /** Dia com maior total de saídas no mês selecionado (dashboard). */
+  get dashboardBiggestExpenseDay(): { day: number; amount: number } | null {
     const month = this.dashboardSelectedMonth;
-    if (!month) return null;
+    if (!month || !month.projection.length) return null;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayDay = today.getDate();
+    let maxDay: { day: number; amount: number } | null = null;
 
     for (const proj of month.projection) {
-      if (proj.day < todayDay) continue;
-      if (proj.day > 31) break;
-      if (proj.closingBalance < 0) {
-        return {
-          dateLabel: `${proj.day} de ${month.title}`,
-          balance: proj.closingBalance
-        };
+      const outflow = proj.expense + proj.fixedCost + proj.cardExpense + proj.investment;
+      if (outflow <= 0) continue;
+      if (!maxDay || outflow > maxDay.amount) {
+        maxDay = { day: proj.day, amount: outflow };
       }
     }
-    return null;
+
+    return maxDay;
   }
 
   get dashboardCardSummaries(): DashboardCardSummary[] {
@@ -1474,13 +1470,13 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (this.isDailyFormOpen) {
       if (!this.dailyForm.effectiveDate || !this.monthDefinitions.length) {
         return this.isEditingLaunch
-          ? 'Edição ativa: ajuste o valor e a data de início deste diário.'
-          : 'Defina valor e data para aplicar o diário dali em diante.';
+          ? 'Edição ativa: ajuste o valor e a data de início desta diária.'
+          : 'Defina valor e data para aplicar a diária dali em diante.';
       }
 
       const parsedDate = new Date(`${this.dailyForm.effectiveDate}T00:00:00`);
       if (Number.isNaN(parsedDate.getTime())) {
-        return 'A data selecionada para o diário e invalida.';
+        return 'A data selecionada para a diária e invalida.';
       }
 
       const startIndex = this.findMonthIndex(parsedDate.getFullYear(), parsedDate.getMonth() + 1);
@@ -1493,22 +1489,22 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       const installments = this.showDailyInstallmentsField ? this.dailyForm.installments : 1;
 
       if (recurrenceKind === 'single' || !repeatMode) {
-        return `O diário será aplicado apenas no dia ${parsedDate.getDate()}.`;
+        return `A diária será aplicada apenas no dia ${parsedDate.getDate()}.`;
       }
 
       const preview = this.buildRecurrencePreview(parsedDate, recurrenceKind, repeatMode, installments);
       if (!preview || preview.occurrences <= 0) {
-        return 'Nenhum diário será criado com as regras atuais.';
+        return 'Nenhuma diária será criada com as regras atuais.';
       }
 
       const first = this.formatMonthRef(preview.firstMonthIndex);
       const last = this.formatMonthRef(preview.lastMonthIndex);
 
       if (preview.occurrences === 1) {
-        return `Vai criar 1 ponto de início para o diário em ${first}.`;
+        return `Vai criar 1 ponto de início para a diária em ${first}.`;
       }
 
-      return `Vai criar ${preview.occurrences} pontos de início para o diário entre ${first} e ${last}.`;
+      return `Vai criar ${preview.occurrences} pontos de início para a diária entre ${first} e ${last}.`;
     }
 
     if (this.isEditingSeries) {
@@ -2577,7 +2573,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   get dailyModalTitle(): string {
-    return this.isEditingLaunch ? 'Editar diário' : 'Novo diário';
+    return this.isEditingLaunch ? 'Editar diária' : 'Nova diária';
   }
 
   get seriesActionTitle(): string {
@@ -2586,7 +2582,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     const actionLabel = this.pendingEventAction.type === 'edit' ? 'Editar' : 'Excluir';
-    const targetLabel = this.pendingEventAction.event.type === 'daily' ? 'serie de diário' : 'recorrencia';
+    const targetLabel = this.pendingEventAction.event.type === 'daily' ? 'serie de diária' : 'recorrencia';
     return `${actionLabel} ${targetLabel}`;
   }
 
@@ -2597,7 +2593,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     if (this.pendingEventAction.type === 'delete') {
       if (this.pendingEventAction.event.type === 'daily') {
-        return 'Esse diário faz parte de uma serie. Você quer excluir so este, este e os próximos, ou toda a serie deste diário?';
+        return 'Essa diária faz parte de uma serie. Você quer excluir so esta, estas e as próximas, ou toda a serie desta diária?';
       }
 
       return 'Esse lançamento faz parte de uma serie. Você quer excluir so este, este e os próximos, ou toda a serie?';
@@ -2605,14 +2601,14 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     if (this.pendingEventAction.type === 'edit') {
       if (this.pendingEventAction.event.type === 'daily') {
-        return 'Esse diário faz parte de uma serie. Você quer editar so este, este e os próximos, ou toda a serie deste diário?';
+        return 'Essa diária faz parte de uma serie. Você quer editar so esta, estas e as próximas, ou toda a serie desta diária?';
       }
 
       return 'Esse lançamento faz parte de uma serie. Você quer editar so este, este e os próximos, ou toda a serie?';
     }
 
     if (this.pendingEventAction.event.type === 'daily') {
-      return 'Esse diário faz parte de uma serie. Você quer aplicar a ação so neste diário ou em toda a serie deste diário?';
+      return 'Essa diária faz parte de uma serie. Você quer aplicar a ação so nesta diária ou em toda a serie desta diária?';
     }
 
     return 'Esse lançamento faz parte de uma serie. Você quer aplicar a ação so neste lançamento ou em toda a serie?';
@@ -2626,7 +2622,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     switch (ev.type) {
       case 'income': return 'Entrada';
       case 'investment': return 'Investimento';
-      case 'daily': return 'Diario';
+      case 'daily': return 'Diária';
       default: return 'Saida';
     }
   }
@@ -2685,7 +2681,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     switch (ev.type) {
       case 'income': return 'Entrada';
       case 'investment': return 'Investimento';
-      case 'daily': return 'Diario';
+      case 'daily': return 'Diária';
       default: return 'Saida';
     }
   }
@@ -2746,15 +2742,15 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const isForward = this.pendingDeleteConfirmation.scope === 'forward';
 
     if (isDaily && isSeries) {
-      return 'Excluir serie de diário';
+      return 'Excluir serie de diária';
     }
 
     if (isDaily && isForward) {
-      return 'Excluir diário e próximos';
+      return 'Excluir diária e próximas';
     }
 
     if (isDaily) {
-      return 'Excluir diário';
+      return 'Excluir diária';
     }
 
     if (isForward) {
@@ -2777,11 +2773,11 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const isDaily = event.type === 'daily';
 
     if (isDaily && scope === 'series') {
-      return 'Você vai excluir toda a serie deste diário. Essa ação não pode ser desfeita.';
+      return 'Você vai excluir toda a serie desta diária. Essa ação não pode ser desfeita.';
     }
 
     if (isDaily && scope === 'forward') {
-      return 'Você vai excluir este diário e todos os próximos dessa recorrência. Os diários anteriores serão mantidos.';
+      return 'Você vai excluir esta diária e todas as próximas dessa recorrência. As diárias anteriores serão mantidas.';
     }
 
     if (scope === 'forward') {
@@ -2789,7 +2785,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     if (isDaily) {
-      return 'Você vai excluir este diário. Essa ação não pode ser desfeita.';
+      return 'Você vai excluir esta diária. Essa ação não pode ser desfeita.';
     }
 
     if (scope === 'series') {
@@ -3075,7 +3071,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       case 'investment':
         return 'Investido';
       case 'daily':
-        return 'Diario';
+        return 'Diária';
       default:
         return 'Tipo';
     }
@@ -3144,7 +3140,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const parts: string[] = [];
     if (event.type === 'income') parts.push('Receita');
     if (event.type === 'investment') parts.push('Investimento');
-    if (event.type === 'daily') parts.push('Diário');
+    if (event.type === 'daily') parts.push('Diária');
     if (event.tags && event.tags.length > 0) {
       parts.push(event.tags.join(', '));
     }
@@ -3217,6 +3213,60 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return 'Fixa';
     }
     return 'Variável';
+  }
+
+  // ── Novos helpers para o redesign da modal "Detalhes do Dia" ────────────────
+
+  getFinancialTypeBadge(event: FinancialEvent): string {
+    switch (event.type) {
+      case 'income': return 'ENTRADA';
+      case 'investment': return 'INVESTIMENTO';
+      default: return 'SAÍDA';
+    }
+  }
+
+  getBehaviorChip(event: FinancialEvent): string {
+    if (!this.hasRecurrence(event)) return 'Variável';
+    if (event.recurrenceKind === 'installment') return 'Parcelado';
+    return 'Recorrente';
+  }
+
+  getPeriodicityChip(event: FinancialEvent): string {
+    if (!this.hasRecurrence(event)) return 'Sem repetição';
+    if (event.recurrenceKind === 'installment') {
+      return event.seriesOccurrences ? `${event.seriesOccurrences} parcelas` : 'Parcelado';
+    }
+    switch (event.repeatMode) {
+      case 'daily': return 'Todo dia';
+      case 'weekly': return 'Toda semana';
+      case 'monthly': return 'Todo mês';
+      default: return 'Recorrente';
+    }
+  }
+
+  getEventDescription(event: FinancialEvent): string {
+    const base = event.type === 'income' ? 'Receita' : event.type === 'investment' ? 'Investimento' : 'Despesa';
+    if (!this.hasRecurrence(event)) {
+      if (event.type === 'daily') return `${base} diária avulsa`;
+      return `${base} ${event.type === 'income' ? 'avulsa' : 'avulsa'}`;
+    }
+    if (event.recurrenceKind === 'installment') {
+      return `Parcelado em ${event.seriesOccurrences ?? 'N'}x`;
+    }
+    const freq = (() => {
+      switch (event.repeatMode) {
+        case 'daily': return 'diária';
+        case 'weekly': return 'semanal';
+        case 'monthly': return 'mensal';
+        default: return 'recorrente';
+      }
+    })();
+    return `${base} recorrente ${freq}`;
+  }
+
+  getEventValueClass(event: FinancialEvent): string {
+    if (event.type === 'income') return 'text-income';
+    return 'text-expense';
   }
 
   hasSeries(event: FinancialEvent): boolean {
@@ -3816,13 +3866,13 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       next: () => {
         this.refreshActiveDayDetails();
         this.deletingEventIds.delete(eventId);
-        this.entriesFeedback = eventType === 'daily' ? 'Diário removido.' : 'Lançamento removido.';
+        this.entriesFeedback = eventType === 'daily' ? 'Diária removida.' : 'Lançamento removido.';
       },
       error: () => {
         month.events = previousEvents;
         this.deletingEventIds.delete(eventId);
         this.entriesFeedback = eventType === 'daily'
-          ? 'Não foi possivel excluir o diário. Confira o backend e tente novamente.'
+          ? 'Não foi possivel excluir a diária. Confira o backend e tente novamente.'
           : 'Não foi possivel excluir o lançamento. Confira o backend e tente novamente.';
       }
     });
@@ -3983,18 +4033,18 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.dailyError = '';
 
     if (!this.dailyForm.effectiveDate) {
-      this.dailyError = 'Informe a data inicial do diário.';
+      this.dailyError = 'Informe a data inicial da diária.';
       return;
     }
 
     if (this.dailyForm.amount === null || Number.isNaN(this.dailyForm.amount) || this.dailyForm.amount <= 0) {
-      this.dailyError = 'Informe um valor valido para o diário.';
+      this.dailyError = 'Informe um valor valido para a diária.';
       return;
     }
 
     const parsedDate = new Date(`${this.dailyForm.effectiveDate}T00:00:00`);
     if (Number.isNaN(parsedDate.getTime())) {
-      this.dailyError = 'Não foi possivel identificar a data efetiva do diário.';
+      this.dailyError = 'Não foi possivel identificar a data efetiva da diária.';
       return;
     }
 
@@ -4008,7 +4058,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     if (this.showDailyInstallmentsField && (!Number.isInteger(this.dailyForm.installments) || this.dailyForm.installments < 1)) {
-      this.dailyError = 'Informe uma quantidade valida de repetições para o diário.';
+      this.dailyError = 'Informe uma quantidade valida de repetições para a diária.';
       return;
     }
 
@@ -4033,7 +4083,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     this.isSavingLaunch = true;
-    const description = this.dailyForm.description?.trim() || 'diário manual';
+    const description = this.dailyForm.description?.trim() || 'diária manual';
     const touchedMonths = this.applyRecurringLaunches(
       parsedDate,
       'daily',
@@ -4046,14 +4096,14 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     if (!touchedMonths.length) {
       this.isSavingLaunch = false;
-      this.dailyError = 'Não foi possivel aplicar o diário dentro dos meses carregados.';
+      this.dailyError = 'Não foi possivel aplicar a diária dentro dos meses carregados.';
       return;
     }
 
     forkJoin(touchedMonths.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Diário criado.';
+        this.entriesFeedback = 'Diária criada.';
 
         if (keepOpenAfterSave) {
           const preferredEffectiveDate = this.dailyForm.effectiveDate || this.getTodayInputDate();
@@ -4067,7 +4117,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       },
       error: () => {
         this.isSavingLaunch = false;
-        this.dailyError = 'Não foi possivel salvar o diário no backend.';
+        this.dailyError = 'Não foi possivel salvar a diária no backend.';
       }
     });
   }
@@ -4280,7 +4330,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private submitDailySingleEdit(parsedDate: Date, amount: number): void {
     if (!this.editingEventId || !this.editingSourceMonthKey) {
-      this.dailyError = 'Não foi possivel identificar o diário para edição.';
+      this.dailyError = 'Não foi possivel identificar a diária para edição.';
       return;
     }
 
@@ -4299,7 +4349,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const originalEvent = sourceMonth.events.find((event) => event.id === this.editingEventId);
 
     if (!originalEvent) {
-      this.dailyError = 'Diário não encontrado para editar.';
+      this.dailyError = 'Diária não encontrada para editar.';
       return;
     }
 
@@ -4345,7 +4395,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Diário atualizado.';
+        this.entriesFeedback = 'Diária atualizada.';
         this.closeDailyForm();
       },
       error: () => {
@@ -4354,21 +4404,21 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           targetMonth.events = originalTargetEvents;
         }
         this.isSavingLaunch = false;
-        this.dailyError = 'Não foi possivel salvar a edição do diário.';
+        this.dailyError = 'Não foi possivel salvar a edição da diária.';
       }
     });
   }
 
   private submitDailySeriesEdit(parsedDate: Date, amount: number, recurrenceKind: RecurrenceKind, repeatMode: RepeatMode | null, installments: number): void {
     if (!this.editingSeriesId) {
-      this.dailyError = 'Não foi possivel identificar a serie de diário.';
+      this.dailyError = 'Não foi possivel identificar a serie de diária.';
       return;
     }
 
     const anchorDay = this.editingAnchorDay;
     const referenceEvent = this.findEventBySeriesId(this.editingSeriesId);
     if (!referenceEvent) {
-      this.dailyError = 'Serie de diário não encontrada.';
+      this.dailyError = 'Serie de diária não encontrada.';
       return;
     }
 
@@ -4398,7 +4448,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Serie de diário atualizada.';
+        this.entriesFeedback = 'Serie de diária atualizada.';
         this.closeDailyForm();
       },
       error: () => {
@@ -4409,21 +4459,21 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           }
         }
         this.isSavingLaunch = false;
-        this.dailyError = 'Não foi possivel salvar a serie de diário.';
+        this.dailyError = 'Não foi possivel salvar a serie de diária.';
       }
     });
   }
 
   private submitDailyForwardSeriesEdit(parsedDate: Date, amount: number, recurrenceKind: RecurrenceKind, repeatMode: RepeatMode | null, installments: number): void {
     if (!this.editingSeriesId || !this.editingSourceMonthKey || this.editingAnchorDay === null) {
-      this.dailyError = 'Não foi possivel identificar a recorrência de diário para edição.';
+      this.dailyError = 'Não foi possivel identificar a recorrência de diária para edição.';
       return;
     }
 
     const anchorDay = this.editingAnchorDay;
     const referenceEvent = this.findEventBySeriesId(this.editingSeriesId);
     if (!referenceEvent) {
-      this.dailyError = 'Serie de diário não encontrada.';
+      this.dailyError = 'Serie de diária não encontrada.';
       return;
     }
 
@@ -4472,7 +4522,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     forkJoin(monthsToSave.map((month) => this.financeApi.updateMonth(month))).subscribe({
       next: () => {
         this.isSavingLaunch = false;
-        this.entriesFeedback = 'Este diário e os próximos foram atualizados.';
+        this.entriesFeedback = 'Esta diária e as próximas foram atualizadas.';
         this.closeDailyForm();
       },
       error: () => {
@@ -4483,7 +4533,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           }
         }
         this.isSavingLaunch = false;
-        this.dailyError = 'Não foi possivel salvar este diário e os próximos.';
+        this.dailyError = 'Não foi possivel salvar esta diária e as próximas.';
       }
     });
   }
@@ -4737,7 +4787,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return 'investimento manual';
     }
 
-    return 'diário manual';
+    return 'diária manual';
   }
 
   private createEmptyLaunchForm(): LaunchFormState {
@@ -5008,7 +5058,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       case 'investment':
         return 'Investimento';
       case 'daily':
-        return 'Diario';
+        return 'Diária';
       default:
         return 'Saida';
     }
@@ -6114,7 +6164,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         repeatMode: 'monthly',
         seriesOccurrences: 1,
         day: 1,
-        label: 'diário base',
+        label: 'diária base',
         amount: month.dailyFixedCost,
         type: 'daily'
       }
@@ -6255,7 +6305,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           this.deletingEventIds.delete(triggerEventId);
         }
         this.entriesFeedback = triggerEvent.type === 'daily'
-          ? 'Este diário e os próximos foram removidos.'
+          ? 'Esta diária e as próximas foram removidas.'
           : 'Este lançamento e os próximos foram removidos.';
       },
       error: () => {
@@ -6269,7 +6319,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           this.deletingEventIds.delete(triggerEventId);
         }
         this.entriesFeedback = triggerEvent.type === 'daily'
-          ? 'Não foi possivel excluir este diário e os próximos. Confira o backend e tente novamente.'
+          ? 'Não foi possivel excluir esta diária e as próximas. Confira o backend e tente novamente.'
           : 'Não foi possivel excluir este lançamento e os próximos. Confira o backend e tente novamente.';
       }
     });

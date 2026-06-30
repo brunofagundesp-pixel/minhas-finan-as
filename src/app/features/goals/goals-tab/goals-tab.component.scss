@@ -1,50 +1,110 @@
+// ── Tab container ──────────────────────────────────────────────────────────────
 .goals-tab {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 0 4px;
+  gap: 0;
+  padding: 0;
+  height: 100%;
+  min-height: 0;
+  background: var(--surface);
 }
 
-.goals-header {
+// ── Toolbar ────────────────────────────────────────────────────────────────────
+.goals-toolbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 24px 20px;
   gap: 16px;
-  flex-wrap: wrap;
-
-  .eyebrow {
-    margin: 0 0 4px;
-    text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    color: var(--ink-soft);
-  }
+  background: var(--surface);
 
   h2 {
     margin: 0;
     font-size: 1.5rem;
     color: var(--ink-strong);
   }
+}
 
-  .goals-subtitle {
-    margin: 8px 0 0;
-    max-width: 640px;
-    color: var(--ink-soft);
-    font-size: 0.92rem;
-    line-height: 1.5;
+.goals-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.goals-month-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.goals-nav-arrow {
+  background: transparent;
+  border: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface);
+    color: var(--ink-strong);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
   }
 }
 
-.primary-button {
+.goals-month-label {
+  min-width: 110px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--ink-strong);
+  text-transform: capitalize;
+}
+
+.goals-nav-today {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ink-strong);
+    border-color: var(--ink-soft);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.goals-primary-btn {
   background: var(--accent);
   color: #fff;
   border: 0;
   border-radius: 10px;
-  padding: 10px 18px;
+  padding: 9px 18px;
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
+  transition: background 150ms ease;
+  white-space: nowrap;
 
   &:hover:not(:disabled) {
     background: var(--accent-deep);
@@ -54,34 +114,28 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
-
-  &--danger {
-    background: var(--danger);
-  }
 }
 
-.ghost-button {
-  background: transparent;
-  border: 1px solid var(--border);
+// ── Scrollable content ─────────────────────────────────────────────────────────
+.goals-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 24px 24px;
+  background: var(--surface);
+}
+
+// ── Error / Loading / Empty ─────────────────────────────────────────────────
+.goals-error {
+  background: rgba(227, 81, 110, 0.12);
+  color: var(--danger);
   border-radius: 10px;
-  padding: 8px 14px;
-  font-size: 0.85rem;
-  color: var(--ink-strong);
-  cursor: pointer;
-  transition: background 150ms ease;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-raised);
-  }
-
-  &--danger {
-    color: var(--danger);
-    border-color: var(--danger);
-
-    &:hover:not(:disabled) {
-      background: rgba(227, 81, 110, 0.08);
-    }
-  }
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  margin: 0;
 }
 
 .goals-loading,
@@ -103,21 +157,122 @@
   }
 }
 
-.goals-error {
-  background: rgba(227, 81, 110, 0.12);
-  color: var(--danger);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 0.88rem;
-  margin: 0;
+// ── KPI Cards Grid ─────────────────────────────────────────────────────────────
+.goals-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--border);
 }
 
+.goals-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 22px;
+  background: var(--surface);
+  border: none;
+  border-radius: 0;
+
+  &--accent {
+    .goals-card__head {
+      .goals-kicker {
+        color: var(--accent);
+      }
+    }
+  }
+
+  &--warning {
+    .goals-card__head {
+      .goals-kicker {
+        color: #d97706;
+      }
+    }
+  }
+
+  &--over {
+    .goals-card__head {
+      .goals-kicker {
+        color: var(--danger);
+      }
+    }
+  }
+}
+
+.goals-card__head {
+  margin-bottom: 2px;
+}
+
+.goals-card__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--ink-strong);
+  font-variant-numeric: tabular-nums;
+
+  &--remaining {
+    color: var(--accent);
+  }
+}
+
+.goals-card__text {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.goals-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+// ── Section panel ──────────────────────────────────────────────────────────────
+.goals-section {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-radius: 14px;
+}
+
+.goals-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .goals-kicker {
+    margin: 0;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--ink-strong);
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+}
+
+// ── Budget Grid ────────────────────────────────────────────────────────────────
 .budget-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 
+// ── Budget Card ────────────────────────────────────────────────────────────────
 .budget-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -289,6 +444,60 @@
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.primary-button {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-deep);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &--small {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+  }
+
+  &--danger {
+    background: var(--danger);
+  }
+}
+
+.ghost-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  color: var(--ink-strong);
+  cursor: pointer;
+  transition: background 150ms ease;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-raised);
+  }
+
+  &--danger {
+    color: var(--danger);
+    border-color: var(--danger);
+
+    &:hover:not(:disabled) {
+      background: rgba(227, 81, 110, 0.08);
+    }
+  }
 }
 
 // ----------------------------------------------------------------- modal
@@ -596,6 +805,34 @@
 .primary-button--small {
   font-size: 0.8rem;
   padding: 8px 12px;
+}
+
+// ── Responsivo ─────────────────────────────────────────────────────────────────
+@media (max-width: 900px) {
+  .goals-kpis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .goals-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .goals-toolbar-right {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 520px) {
+  .goals-kpis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .goals-month-nav {

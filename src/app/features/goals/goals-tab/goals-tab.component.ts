@@ -801,6 +801,38 @@ export class GoalsTabComponent implements OnInit, OnDestroy {
     return `${this.monthNames[this.referenceDate.getMonth()]} ${this.referenceDate.getFullYear()}`;
   }
 
+  // ── KPI computed properties ──────────────────────────────────────────────────
+
+  private get activeProgresses(): BudgetProgress[] {
+    return this.progresses.filter((p) => p.budget.active !== false);
+  }
+
+  get totalBudgeted(): number {
+    return this.activeProgresses.reduce((sum, p) => sum + (p.budget.amount || 0), 0);
+  }
+
+  get totalSpent(): number {
+    return this.activeProgresses.reduce((sum, p) => sum + p.spent, 0);
+  }
+
+  get totalRemaining(): number {
+    const remaining = this.totalBudgeted - this.totalSpent;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  get overallPercent(): number {
+    if (this.totalBudgeted <= 0) return 0;
+    return Math.min(1, this.totalSpent / this.totalBudgeted);
+  }
+
+  get overallStatus(): 'ok' | 'warning' | 'over' {
+    if (this.totalBudgeted <= 0) return 'ok';
+    const ratio = this.totalSpent / this.totalBudgeted;
+    if (ratio >= 1) return 'over';
+    if (ratio >= 0.85) return 'warning';
+    return 'ok';
+  }
+
   private validateForm(): string | null {
     if (!this.form.amount || this.form.amount <= 0) {
       return this.form.scope === 'investment'
