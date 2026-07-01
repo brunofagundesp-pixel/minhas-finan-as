@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
   appUrl: 'https://previsa.web.app',
+  appCheckSiteKey: '6LfYvT4tAAAAAP1oFV8lAZHtEDrq2XTPVDXeIizD',
   firebase: {
     apiKey: 'AIzaSyCp-DVWCcRwJvCQwb0i0xuyMTl1geKDDYA',
     authDomain: 'minhas-financas-75277.firebaseapp.com',
