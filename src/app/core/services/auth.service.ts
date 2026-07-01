@@ -103,11 +103,21 @@ export class AuthService {
     return true;
   }
 
-  /** Envia email de verificação para o usuário logado. */
+  /** Envia email de verificação via servidor Hostinger. */
   async sendVerificationEmail(): Promise<void> {
     const user = await this.afAuth.currentUser;
-    if (!user) throw new Error('Nenhum usuário logado.');
-    await user.sendEmailVerification({ url: environment.appUrl });
+    if (!user || !user.email) throw new Error('Nenhum usuário logado.');
+
+    const res = await fetch(`${environment.emailApiUrl}/api/send-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error || 'Erro ao enviar e-mail de verificação.');
+    }
   }
 
   /** Atualiza o email do usuário logado e envia nova verificação. */
@@ -115,7 +125,18 @@ export class AuthService {
     const user = await this.afAuth.currentUser;
     if (!user) throw new Error('Nenhum usuário logado.');
     await user.updateEmail(newEmail);
-    await user.sendEmailVerification({ url: environment.appUrl });
+
+    const res = await fetch(`${environment.emailApiUrl}/api/send-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newEmail }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error || 'Erro ao enviar e-mail de verificação.');
+    }
+
     localStorage.setItem(PENDING_VERIFICATION_KEY, newEmail);
   }
 

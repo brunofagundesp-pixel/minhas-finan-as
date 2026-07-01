@@ -1,0 +1,16 @@
+{
+  "name": "previsa-email-server",
+  "version": "1.0.0",
+  "description": "Email server for Previsa - handles verification emails via Hostinger SMTP",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "firebase-admin": "^13.8.0",
+    "nodemailer": "^6.9.16"
+  },
+  "private": true
+}

@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Se o arquivo/ pasta existir, serve diretamente
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Caso contrário, redireciona pro index.html (SPA)
+  RewriteRule ^(.*)$ /index.html [L]
+</IfModule>

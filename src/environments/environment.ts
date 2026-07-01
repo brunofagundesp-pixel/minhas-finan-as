@@ -1,6 +1,7 @@
 export const environment = {
   production: false,
   appUrl: 'http://localhost:4200',
+  emailApiUrl: 'http://localhost:3001',
   appCheckSiteKey: '6LfYvT4tAAAAAP1oFV8lAZHtEDrq2XTPVDXeIizD',
   firebase: {
     apiKey: 'AIzaSyCp-DVWCcRwJvCQwb0i0xuyMTl1geKDDYA',

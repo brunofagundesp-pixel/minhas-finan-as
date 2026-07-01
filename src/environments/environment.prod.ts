@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
-  appUrl: 'https://previsa.web.app',
+  appUrl: 'https://previsa.site',
+  emailApiUrl: 'https://previsa.site',
   appCheckSiteKey: '6LfYvT4tAAAAAP1oFV8lAZHtEDrq2XTPVDXeIizD',
   firebase: {
     apiKey: 'AIzaSyCp-DVWCcRwJvCQwb0i0xuyMTl1geKDDYA',
