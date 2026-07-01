@@ -1,136 +1,136 @@
 <section class="config-tab">
-  <header class="config-header">
-    <p class="eyebrow">configurações</p>
+  <div class="config-toolbar">
     <h2>Preferências</h2>
-    <p class="config-subtitle">Gerencie suas tags e ajustes gerais do app.</p>
-  </header>
+  </div>
 
-  <p class="config-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+  <div class="config-content">
+    <p class="config-error" *ngIf="errorMessage">{{ errorMessage }}</p>
 
-  <article class="config-section config-export">
-    <header class="config-section-head">
-      <h3>Exportar lançamentos</h3>
-      <p class="config-section-hint">
-        Gera um arquivo estruturado com todos os lançamentos, diários e despesas de
-        cartão do mês selecionado. As despesas de cartão entram pela data da compra
-        (não pela fatura).
-      </p>
-    </header>
+    <article class="config-section config-export">
+      <header class="config-section-head">
+        <h3>Exportar lançamentos</h3>
+        <p class="config-section-hint">
+          Gera um arquivo estruturado com todos os lançamentos, diários e despesas de
+          cartão do mês selecionado. As despesas de cartão entram pela data da compra
+          (não pela fatura).
+        </p>
+      </header>
 
-    <div class="config-export-controls">
-      <label class="config-export-field">
-        <span>Mês</span>
-        <select [(ngModel)]="exportMonth" name="exportMonth">
-          <option *ngFor="let m of exportMonthOptions" [ngValue]="m.value">{{ m.label }}</option>
-        </select>
-      </label>
-      <label class="config-export-field">
-        <span>Ano</span>
-        <select [(ngModel)]="exportYear" name="exportYear">
-          <option *ngFor="let y of exportYearOptions" [ngValue]="y">{{ y }}</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="config-export-groups">
-      <div class="config-export-group">
-        <strong>Resumo diário</strong>
-        <span>Uma linha por dia, com colunas Entrada / Saída / Investidos / Diário / Cartão / Saldo. Mesmo formato do dashboard.</span>
-        <div class="config-export-actions">
-          <button type="button" class="ghost-button" (click)="exportDailyCsv()">CSV</button>
-          <button type="button" class="ghost-button" (click)="exportDailyPdf()">PDF</button>
-        </div>
+      <div class="config-export-controls">
+        <label class="config-export-field">
+          <span>Mês</span>
+          <select [(ngModel)]="exportMonth" name="exportMonth">
+            <option *ngFor="let m of exportMonthOptions" [ngValue]="m.value">{{ m.label }}</option>
+          </select>
+        </label>
+        <label class="config-export-field">
+          <span>Ano</span>
+          <select [(ngModel)]="exportYear" name="exportYear">
+            <option *ngFor="let y of exportYearOptions" [ngValue]="y">{{ y }}</option>
+          </select>
+        </label>
       </div>
-      <div class="config-export-group">
-        <strong>Detalhado</strong>
-        <span>Uma linha por lançamento, com descrição, tags, conta/cartão e notas.</span>
-        <div class="config-export-actions">
-          <button type="button" class="ghost-button" (click)="exportLaunchesCsv()">CSV</button>
-          <button type="button" class="ghost-button" (click)="exportLaunchesPdf()">PDF</button>
-        </div>
-      </div>
-    </div>
-  </article>
 
-  <article class="config-section">
-    <header class="config-section-head">
-      <h3>Tags</h3>
-      <p class="config-section-hint">
-        Renomeie, troque a cor ou exclua tags do catálogo. Ao excluir, a tag também é
-        removida de todos os lançamentos que a utilizam, mas eles continuam
-        existindo, só ficam sem essa categoria.
-      </p>
-    </header>
-
-    <div class="config-loading" *ngIf="isLoading">Carregando tags…</div>
-
-    <div class="config-empty" *ngIf="!isLoading && tags.length === 0">
-      Nenhuma tag cadastrada ainda. Crie tags ao lançar uma despesa ou receita.
-    </div>
-
-    <ul class="tag-list" *ngIf="!isLoading && tags.length > 0">
-      <li
-        class="tag-row"
-        *ngFor="let tag of tags; trackBy: trackByTagName"
-        [class.tag-row--editing]="editing?.originalName === tag.name"
-      >
-        <ng-container *ngIf="editing?.originalName !== tag.name">
-          <span class="tag-chip" [style.background]="tag.color">{{ tag.name }}</span>
-          <div class="tag-row-actions">
-            <button type="button" class="tag-action-btn" (click)="startEdit(tag)" aria-label="Editar tag" title="Editar">
-              <span class="tag-action-icon">✎</span>
-              <span class="tag-action-label">Editar</span>
-            </button>
-            <button type="button" class="tag-action-btn tag-action-btn--danger" (click)="requestDelete(tag)" aria-label="Excluir tag" title="Excluir">
-              <span class="tag-action-icon">🗑</span>
-              <span class="tag-action-label">Excluir</span>
-            </button>
+      <div class="config-export-groups">
+        <div class="config-export-group">
+          <strong>Resumo diário</strong>
+          <span>Uma linha por dia, com colunas Entrada / Saída / Investidos / Diário / Cartão / Saldo. Mesmo formato do dashboard.</span>
+          <div class="config-export-actions">
+            <button type="button" class="btn-light" (click)="exportDailyCsv()">CSV</button>
+            <button type="button" class="btn-light" (click)="exportDailyPdf()">PDF</button>
           </div>
-        </ng-container>
+        </div>
+        <div class="config-export-group">
+          <strong>Detalhado</strong>
+          <span>Uma linha por lançamento, com descrição, tags, conta/cartão e notas.</span>
+          <div class="config-export-actions">
+            <button type="button" class="btn-light" (click)="exportLaunchesCsv()">CSV</button>
+            <button type="button" class="btn-light" (click)="exportLaunchesPdf()">PDF</button>
+          </div>
+        </div>
+      </div>
+    </article>
 
-        <ng-container *ngIf="editing?.originalName === tag.name && editing as e">
-          <div class="tag-edit">
-            <label class="tag-edit-field">
-              <span>Nome</span>
-              <input
-                type="text"
-                [(ngModel)]="e.name"
-                maxlength="30"
-                placeholder="Nome da tag"
-                (keydown.enter)="confirmEdit()"
-                (keydown.escape)="cancelEdit()"
-              />
-            </label>
-            <div class="tag-edit-field">
-              <span>Cor</span>
-              <div class="tag-palette">
-                <button
-                  *ngFor="let color of palette"
-                  type="button"
-                  class="tag-palette-swatch"
-                  [class.tag-palette-swatch--active]="e.color === color"
-                  [style.background]="color"
-                  [attr.aria-label]="'Selecionar cor ' + color"
-                  (click)="selectColor(color)"
-                ></button>
+    <article class="config-section">
+      <header class="config-section-head">
+        <h3>Tags</h3>
+        <p class="config-section-hint">
+          Renomeie, troque a cor ou exclua tags do catálogo. Ao excluir, a tag também é
+          removida de todos os lançamentos que a utilizam, mas eles continuam
+          existindo, só ficam sem essa categoria.
+        </p>
+      </header>
+
+      <div class="config-loading" *ngIf="isLoading">Carregando…</div>
+
+      <div class="config-empty" *ngIf="!isLoading && tags.length === 0">
+        Nenhuma tag cadastrada ainda. Crie tags ao lançar uma despesa ou receita.
+      </div>
+
+      <ul class="tag-list" *ngIf="!isLoading && tags.length > 0">
+        <li
+          class="tag-row"
+          *ngFor="let tag of tags; trackBy: trackByTagName"
+          [class.tag-row--editing]="editing?.originalName === tag.name"
+        >
+          <ng-container *ngIf="editing?.originalName !== tag.name">
+            <span class="tag-chip" [style.background]="tag.color">{{ tag.name }}</span>
+            <div class="tag-row-actions">
+              <button type="button" class="tag-action-btn" (click)="startEdit(tag)" aria-label="Editar tag" title="Editar">
+                <span class="tag-action-icon">✎</span>
+                <span class="tag-action-label">Editar</span>
+              </button>
+              <button type="button" class="tag-action-btn tag-action-btn--danger" (click)="requestDelete(tag)" aria-label="Excluir tag" title="Excluir">
+                <span class="tag-action-icon">🗑</span>
+                <span class="tag-action-label">Excluir</span>
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="editing?.originalName === tag.name && editing as e">
+            <div class="tag-edit">
+              <label class="tag-edit-field">
+                <span>Nome</span>
+                <input
+                  type="text"
+                  [(ngModel)]="e.name"
+                  maxlength="30"
+                  placeholder="Nome da tag"
+                  (keydown.enter)="confirmEdit()"
+                  (keydown.escape)="cancelEdit()"
+                />
+              </label>
+              <div class="tag-edit-field">
+                <span>Cor</span>
+                <div class="tag-palette">
+                  <button
+                    *ngFor="let color of palette"
+                    type="button"
+                    class="tag-palette-swatch"
+                    [class.tag-palette-swatch--active]="e.color === color"
+                    [style.background]="color"
+                    [attr.aria-label]="'Selecionar cor ' + color"
+                    (click)="selectColor(color)"
+                  ></button>
+                </div>
+              </div>
+              <div class="tag-edit-preview">
+                <small>Pré-visualização:</small>
+                <span class="tag-chip" [style.background]="e.color">{{ e.name || '—' }}</span>
+              </div>
+              <div class="tag-row-actions">
+                <button type="button" class="btn-primary" (click)="confirmEdit()">Salvar</button>
+                <button type="button" class="btn-light" (click)="cancelEdit()">Cancelar</button>
               </div>
             </div>
-            <div class="tag-edit-preview">
-              <small>Pré-visualização:</small>
-              <span class="tag-chip" [style.background]="e.color">{{ e.name || '—' }}</span>
-            </div>
-            <div class="tag-row-actions">
-              <button type="button" class="btn-primary" (click)="confirmEdit()">Salvar</button>
-              <button type="button" class="btn-light" (click)="cancelEdit()">Cancelar</button>
-            </div>
-          </div>
-        </ng-container>
-      </li>
-    </ul>
-  </article>
+          </ng-container>
+        </li>
+      </ul>
+    </article>
+  </div>
 </section>
 
-<!-- Modal de confirmação de exclusão (coerente com series-action-modal) -->
+<!-- Modal de confirmação de exclusão -->
 <div class="series-action-modal" *ngIf="pendingDelete as pd" role="dialog" aria-modal="true" aria-label="Confirmar exclusão de tag">
   <div class="launch-backdrop" (click)="cancelDelete()"></div>
 

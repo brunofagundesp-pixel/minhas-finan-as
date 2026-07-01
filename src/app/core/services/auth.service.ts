@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
 import firebase from 'firebase/compat/app';
-import { Observable } from 'rxjs';
-import { map, shareReplay, startWith } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, shareReplay, startWith, switchMap, take } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 const EMAIL_KEY = 'emailForSignIn';
@@ -25,7 +26,10 @@ export class AuthService {
    */
   authState$: Observable<AuthState>;
 
-  constructor(private afAuth: AngularFireAuth) {
+  constructor(
+    private afAuth: AngularFireAuth,
+    private firestore: AngularFirestore
+  ) {
     this.user$ = this.afAuth.authState;
     this.authState$ = this.afAuth.authState.pipe(
       map<firebase.User | null, AuthState>((user) => ({ ready: true, user })),
@@ -44,16 +48,22 @@ export class AuthService {
     await this.configurePersistence(trustDays);
 
     try {
+      // Seta o flag ANTES do createUser para que, quando o Firebase mudar o
+      // authState e o Angular re-renderizar, o showVerificationScreen já seja true
+      // e não haja flash da tela do app.
+      localStorage.setItem(PENDING_VERIFICATION_KEY, email);
       const credential = await this.afAuth.createUserWithEmailAndPassword(email, password);
       return { credential, isNewUser: true };
     } catch (err: any) {
       const code: string = err?.code ?? '';
 
       if (code === 'auth/email-already-in-use') {
+        localStorage.removeItem(PENDING_VERIFICATION_KEY);
         const credential = await this.afAuth.signInWithEmailAndPassword(email, password);
         return { credential, isNewUser: false };
       }
 
+      localStorage.removeItem(PENDING_VERIFICATION_KEY);
       throw err;
     }
   }
@@ -174,6 +184,33 @@ export class AuthService {
     }
 
     localStorage.removeItem(TRUST_UNTIL_KEY);
+  }
+
+  /**
+   * Verifica se o usuário está autorizado a acessar o app.
+   * Checa primeiro a coleção `betaApplicants` pelo email e, se não encontrar,
+   * usa o `metadata.creationTime` do Firebase Auth para determinar se a conta
+   * foi criada antes do beta (usuário existente).
+   */
+  checkAuthorization(email: string, uid: string): Observable<boolean> {
+    return this.firestore
+      .collection('betaApplicants', ref => ref.where('email', '==', email).limit(1))
+      .valueChanges({ idField: 'id' })
+      .pipe(
+        switchMap(applicants => {
+          if (applicants.length > 0) return of(true);
+          return this.afAuth.authState.pipe(
+            take(1),
+            map(user => {
+              if (!user?.metadata?.creationTime) return false;
+              const created = new Date(user.metadata.creationTime).getTime();
+              const cutoff = Date.now() - 5000;
+              return created < cutoff;
+            })
+          );
+        }),
+        take(1)
+      );
   }
 
   private enforceTrustedSessionWindow(): void {

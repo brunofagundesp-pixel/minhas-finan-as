@@ -13,6 +13,7 @@ import { LoginComponent } from './features/auth/login/login.component';
 import { GoalsTabComponent } from './features/goals/goals-tab/goals-tab.component';
 import { SimulatorTabComponent } from './features/simulator/simulator-tab/simulator-tab.component';
 import { InvestmentTabComponent } from './features/investment/investment-tab/investment-tab.component';
+import { BetaBlockedComponent } from './features/beta-blocked/beta-blocked.component';
 import { BudgetsSummaryComponent } from './shared/budgets-summary/budgets-summary.component';
 import { AnnouncementsModalComponent } from './shared/announcements-modal/announcements-modal.component';
 import { environment } from '../environments/environment';
@@ -26,6 +27,7 @@ import { environment } from '../environments/environment';
     GoalsTabComponent,
     SimulatorTabComponent,
     InvestmentTabComponent,
+    BetaBlockedComponent,
     BudgetsSummaryComponent,
     AnnouncementsModalComponent
   ],

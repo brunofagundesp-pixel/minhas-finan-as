@@ -1,0 +1,15 @@
+<div class="auth-boot beta-blocked-screen">
+  <div class="beta-blocked-card">
+    <div class="beta-blocked-icon">🔒</div>
+    <h2>Previsa está em Beta Fechado</h2>
+    <p class="beta-blocked-text">
+      No momento, apenas participantes convidados têm acesso ao Previsa.
+    </p>
+    <p class="beta-blocked-email" *ngIf="(user$ | async)?.email as email">
+      Logado como <strong>{{ email }}</strong>
+    </p>
+    <button type="button" class="beta-blocked-btn" (click)="auth.logout()">
+      Sair
+    </button>
+  </div>
+</div>

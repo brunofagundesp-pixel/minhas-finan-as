@@ -2,7 +2,7 @@
   <div class="goals-toolbar">
     <h2>Metas financeiras</h2>
     <div class="goals-toolbar-right">
-      <div class="goals-month-nav" role="group" aria-label="Navegar mês das metas">
+      <div class="goals-month-nav">
         <button
           type="button"
           class="goals-nav-arrow"
@@ -22,14 +22,17 @@
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        <button
-          type="button"
-          class="goals-nav-today"
-          (click)="goToCurrentMonth()"
-          [disabled]="isCurrentMonth()"
-          title="Voltar ao mês atual"
-        >hoje</button>
       </div>
+      <button
+        type="button"
+        class="goals-nav-today"
+        (click)="goToCurrentMonth()"
+        [disabled]="isCurrentMonth()"
+        title="Voltar ao mês atual"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Mês atual
+      </button>
       <button
         type="button"
         class="goals-primary-btn"
@@ -44,7 +47,7 @@
   <div class="goals-content">
     <p class="goals-error" *ngIf="errorMessage">{{ errorMessage }}</p>
 
-    <div class="goals-loading" *ngIf="isLoading">Carregando metas…</div>
+    <div class="goals-loading" *ngIf="isLoading">Preparando suas metas…</div>
 
     <ng-container *ngIf="!isLoading">
       <div class="goals-empty" *ngIf="progresses.length === 0">

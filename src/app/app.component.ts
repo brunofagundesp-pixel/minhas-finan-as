@@ -7,7 +7,8 @@ import { TagsService } from './core/services/tags.service';
 import { DailyAutoSkipService } from './core/services/daily-auto-skip.service';
 import { AnnouncementsService } from './core/services/announcements.service';
 import { BudgetsService } from './core/services/budgets.service';
-import { forkJoin, Observable, Subscription } from 'rxjs';
+import { forkJoin, Observable, of, Subscription } from 'rxjs';
+import { map, startWith, switchMap } from 'rxjs/operators';
 import { getInvoiceMonthForDate, getDueDateForInvoiceMonth, getClosingDateForInvoiceMonth, InvoiceMonth } from './core/utils/card-cycle.util';
 import {
   CategoryScale,
@@ -230,6 +231,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   private readonly planningEndYear = 2028;
   activeTab: AppTab = 'entries';
   windowStartIndex = 0;
+  authorizationState$: Observable<'checking' | 'authorized' | 'blocked'>;
   isLoading = true;
   dataError = '';
   isSavingLaunch = false;
@@ -629,6 +631,21 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     const m = String(defaultForecast.getMonth() + 1).padStart(2, '0');
     const d = String(defaultForecast.getDate()).padStart(2, '0');
     this.forecastDateInput = `${y}-${m}-${d}`;
+
+    this.authorizationState$ = this.auth.authState$.pipe(
+      switchMap(authState => {
+        if (!authState.ready || !authState.user) {
+          return of<'checking' | 'authorized' | 'blocked'>('checking');
+        }
+        if (!authState.user.email) {
+          return of<'blocked'>('blocked');
+        }
+        return this.auth.checkAuthorization(authState.user.email, authState.user.uid).pipe(
+          map(authorized => authorized ? 'authorized' as const : 'blocked' as const),
+          startWith<'checking' | 'authorized' | 'blocked'>('checking')
+        );
+      })
+    );
   }
 
   ngOnInit(): void {

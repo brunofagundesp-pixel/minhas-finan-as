@@ -47,7 +47,6 @@ export class LoginComponent implements OnInit {
       const { isNewUser } = await this.auth.loginWithEmailPassword(this.email, this.password, this.getTrustDaysOrSession());
       if (isNewUser) {
         await this.auth.sendVerificationEmail();
-        localStorage.setItem('pendingVerification', this.email);
       }
     } catch (err: any) {
       this.errorMessage = this.describeAuthError(err);

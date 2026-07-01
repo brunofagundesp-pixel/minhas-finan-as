@@ -1,6 +1,16 @@
 <ng-container *ngIf="auth.authState$ | async as authState">
 <ng-container *ngIf="authState.ready; else authBootTpl">
 <ng-container *ngIf="authState.user !== null; else loginTpl">
+<ng-container *ngIf="(authorizationState$ | async) as authz">
+<ng-container *ngIf="authz === 'checking'">
+  <div class="auth-boot" role="status" aria-live="polite" aria-label="Verificando…">
+    <div class="auth-boot-spinner" aria-hidden="true"></div>
+  </div>
+</ng-container>
+<ng-container *ngIf="authz === 'blocked'">
+  <app-beta-blocked></app-beta-blocked>
+</ng-container>
+<ng-container *ngIf="authz === 'authorized'">
 <ng-container *ngIf="!showVerificationScreen; else verificationTpl">
 <div class="app-layout">
   <header class="topbar" [class.topbar--with-entries-bar]="activeTab === 'entries'">
@@ -266,7 +276,7 @@
   <section *ngIf="activeTab === 'entries'" class="entries-view" [class.entries-view--simplified]="viewMode === '1month'">
 
     <div class="data-state" *ngIf="isLoading || dataError">
-      <p *ngIf="isLoading">Carregando dados do backend...</p>
+      <p *ngIf="isLoading">Preparando suas informações…</p>
       <div *ngIf="dataError" class="data-state-error">
         <span>{{ dataError }}</span>
         <button type="button" class="btn-light" (click)="retryLoadData()">Tentar novamente</button>
@@ -1494,6 +1504,8 @@
 </div>
 <!-- Anúncios só aparecem depois que o usuário fecha o tutorial inicial. -->
 <app-announcements-modal *ngIf="!showOnboarding"></app-announcements-modal>
+</ng-container>
+</ng-container>
 </ng-container>
 </ng-container>
 
