@@ -1416,6 +1416,22 @@
     color: #213147;
     background: #fbfdff;
   }
+
+  .checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #65758b;
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    input[type='checkbox'] {
+      width: 16px;
+      height: 16px;
+      accent-color: #1f5cc2;
+      flex-shrink: 0;
+    }
+  }
 }
 
 .balance-type-box {
