@@ -2408,6 +2408,10 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     return day.notes.length + day.cardInvoiceForecasts.length;
   }
 
+  getDayPaidCount(day: DayProjection): number {
+    return day.events.filter((event) => this.canTogglePaid(event) && this.isEventPaid(event)).length;
+  }
+
   getCardInvoiceForecastLabel(forecast: CardInvoiceForecast): string {
     const launchLabel = forecast.launchesCount === 1 ? '1 compra' : `${forecast.launchesCount} compras`;
     return `Fatura prevista ${forecast.cardName}: ${this.formatCurrency(forecast.amount)} (${launchLabel})`;
@@ -2951,6 +2955,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   openInvestmentWithdrawal(monthKey: string, event: FinancialEvent): void {
+    this.closeDayEntryMenu();
+
     if (!this.canWithdrawInvestment(event) || !event.id) {
       return;
     }
@@ -3077,6 +3083,14 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     return !!eventId && this.payingEventIds.has(eventId);
   }
 
+  isPayingEventAction(monthKey: string, event: FinancialEvent): boolean {
+    return this.payingEventIds.has(this.getEventPaymentKey(monthKey, event));
+  }
+
+  private getEventPaymentKey(monthKey: string, event: FinancialEvent): string {
+    return event.id ?? `${monthKey}:${event.seriesId ?? 'event'}:${event.day}:${event.type}:${event.label}:${event.amount}`;
+  }
+
   isDayFullyPaid(day: DayProjection): boolean {
     const payableEvents = day.events.filter((event) => this.canTogglePaid(event));
     if (!payableEvents.length) {
@@ -3087,7 +3101,9 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   toggleEventPaid(monthKey: string, event: FinancialEvent): void {
-    if (!event.id || !this.canTogglePaid(event) || this.isPayingEvent(event.id) || this.isDeletingEvent(event.id)) {
+    this.closeDayEntryMenu();
+
+    if (!this.canTogglePaid(event) || this.isPayingEventAction(monthKey, event) || this.isDeletingEvent(event.id)) {
       return;
     }
 
@@ -3096,25 +3112,45 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
-    const eventId = event.id;
+    const eventPaymentKey = this.getEventPaymentKey(monthKey, event);
     const paid = !event.paid;
     const paidAt = paid ? this.getTodayInputDate() : undefined;
+    const previousEvents = [...month.events];
+    const previousOverrides = [...(month.seriesOverrides ?? [])];
+    const storedEvent = event.id
+      ? month.events.find((item) => item.id === event.id)
+      : month.events.find((item) => item === event || (
+        item.day === event.day &&
+        item.type === event.type &&
+        item.label === event.label &&
+        item.amount === event.amount
+      ));
+    const isVirtualSeriesEvent = !!event.seriesId && !storedEvent && this.seriesDefinitions.some(s => s.id === event.seriesId);
 
     // Virtual series event: store in seriesOverrides
-    if (event.seriesId && this.seriesDefinitions.some(s => s.id === event.seriesId)) {
+    if (isVirtualSeriesEvent) {
+      const seriesId = event.seriesId as string;
       const overrides = month.seriesOverrides ?? [];
-      const existingIdx = overrides.findIndex(o => o.seriesId === event.seriesId && o.day === event.day);
+      const existingIdx = overrides.findIndex(o => o.seriesId === seriesId && o.day === event.day);
       if (existingIdx >= 0) {
         overrides[existingIdx] = { ...overrides[existingIdx], paid, paidAt };
       } else {
-        overrides.push({ seriesId: event.seriesId, day: event.day, paid, paidAt });
+        overrides.push({ seriesId, day: event.day, paid, paidAt });
       }
       month.seriesOverrides = overrides;
     } else {
       // Physical event: modify directly in month.events
-      const previousEvents = [...month.events];
       month.events = month.events.map((item) => {
-        if (item.id !== eventId) {
+        const isTarget = event.id
+          ? item.id === event.id
+          : item === event || (
+            item.day === event.day &&
+            item.type === event.type &&
+            item.label === event.label &&
+            item.amount === event.amount
+          );
+
+        if (!isTarget) {
           return item;
         }
 
@@ -3125,9 +3161,10 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         };
       });
     }
+    this.payingEventIds.add(eventPaymentKey);
     this.refreshActiveDayDetails();
+    this.cdr.detectChanges();
 
-    this.payingEventIds.add(eventId);
     this.entriesFeedback = paid
       ? 'Lançamento marcado como pago.'
       : 'Lançamento marcado como pendente.';
@@ -3135,8 +3172,9 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     this.financeApi.updateMonth(month).subscribe({
       next: () => {
-        this.payingEventIds.delete(eventId);
+        this.payingEventIds.delete(eventPaymentKey);
         this.refreshActiveDayDetails();
+        this.cdr.detectChanges();
         this.entriesFeedback = paid
           ? 'Lançamento marcado como pago.'
           : 'Lançamento marcado como pendente.';
@@ -3144,20 +3182,14 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       },
       error: () => {
         // Rollback
-        if (event.seriesId && this.seriesDefinitions.some(s => s.id === event.seriesId)) {
-          const overrides = month.seriesOverrides ?? [];
-          const idx = overrides.findIndex(o => o.seriesId === event.seriesId && o.day === event.day);
-          if (idx >= 0) {
-            if (overrides[idx].paid === undefined && overrides[idx].amount === undefined && overrides[idx].label === undefined && overrides[idx].action === undefined) {
-              overrides.splice(idx, 1);
-            } else {
-              overrides[idx] = { ...overrides[idx], paid: event.paid, paidAt: event.paidAt };
-            }
-          }
-          month.seriesOverrides = overrides;
+        if (isVirtualSeriesEvent) {
+          month.seriesOverrides = previousOverrides;
+        } else {
+          month.events = previousEvents;
         }
-        this.payingEventIds.delete(eventId);
+        this.payingEventIds.delete(eventPaymentKey);
         this.refreshActiveDayDetails();
+        this.cdr.detectChanges();
         this.entriesFeedback = 'Não foi possivel atualizar o status de pagamento do lançamento.';
       }
     });
@@ -3272,11 +3304,12 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   trackEventBy(index: number, event: FinancialEvent): string {
+    const paidFlag = event.paid ? '-p' : '';
     if (event.id) {
-      return event.id;
+      return `${event.id}${paidFlag}`;
     }
 
-    return `${event.seriesId ?? 'evt'}-${event.day}-${event.amount}-${event.type}-${index}`;
+    return `${event.seriesId ?? 'evt'}-${event.day}-${event.amount}-${event.type}-${index}${paidFlag}`;
   }
 
   trackSimplifiedEntryBy(_index: number, entry: SimplifiedMonthEntry): string {

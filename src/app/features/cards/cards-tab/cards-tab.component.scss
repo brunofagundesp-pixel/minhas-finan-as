@@ -1303,7 +1303,64 @@
   }
 
   // Shared modals (launch-modal-* vive no app.component, card-modal-* vive aqui)
+  .launch-modal-backdrop {
+    background: rgba(10, 14, 24, 0.72);
+  }
+  .launch-modal-panel {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 30px 55px rgba(0, 0, 0, 0.55);
+  }
+  .launch-modal-head {
+    background: var(--surface);
+    border-bottom-color: var(--border);
+    h3 { color: var(--ink-strong); }
+  }
+  .launch-modal-actions {
+    background: var(--surface);
+    border-top-color: var(--border);
+  }
+  .launch-modal-close {
+    background: var(--surface-raised);
+    color: var(--ink-soft);
+  }
+  .launch-grid {
+    label { color: var(--ink-soft); }
+    input, select, textarea {
+      background: var(--bg-strong);
+      border-color: var(--border);
+      color: var(--ink-strong);
+    }
+    input:disabled {
+      background: var(--surface-raised);
+      color: var(--ink-soft);
+    }
+  }
+  .btn-tag-add {
+    background: var(--surface-raised);
+    border-color: var(--border);
+    color: var(--accent);
+    &:hover:not(:disabled) {
+      background: var(--bg-strong);
+      border-color: var(--accent);
+    }
+  }
+  .launch-preview {
+    background: #1f2440;
+    border-color: #35407a;
+    color: #a5b4f8;
+  }
+  .launch-preview-title { color: #c7d2fe; }
+  .launch-preview-period { color: #a5b4f8; }
+  .launch-preview-details p { color: #a5b4f8; }
+
+  .card-modal-backdrop {
+    background: rgba(10, 14, 24, 0.72);
+  }
   .card-modal {
+    background: transparent;
+  }
+  .card-modal-panel {
     background: var(--surface);
     border-color: var(--border);
     box-shadow: 0 30px 55px rgba(0, 0, 0, 0.55);
@@ -1315,27 +1372,80 @@
   .card-modal-head {
     background: var(--surface);
     border-bottom-color: var(--border);
+    h3 { color: var(--ink-strong); }
   }
   .card-modal-actions {
     background: var(--surface);
     border-top-color: var(--border);
+  }
+  .card-grid {
+    label, .checkbox-label { color: var(--ink-soft); }
+    input, select {
+      background: var(--bg-strong);
+      border-color: var(--border);
+      color: var(--ink-strong);
+    }
+    input:disabled {
+      background: var(--surface-raised);
+      color: var(--ink-soft);
+    }
+  }
+  .radio-pill {
+    background: var(--surface-raised);
+    border-color: var(--border);
+    color: var(--ink-soft);
+    &.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
   }
   .card-form-error {
     background: #2e1f24;
     border-color: #5a3040;
     color: #f9a8ba;
   }
-  .card-form {
-    input, select, textarea {
-      background: var(--bg-strong);
-      border-color: var(--border);
-      color: var(--ink-strong);
-    }
-  }
   .cards-create-button {
     background: var(--accent);
     color: #fff;
     &:hover { background: var(--accent-deep); }
+  }
+
+  // Scope / delete confirmation modals
+  .series-action-card {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 30px 55px rgba(0, 0, 0, 0.55);
+    h3 { color: var(--ink-strong); }
+    p { color: var(--ink-soft); }
+  }
+  .series-action-card--delete {
+    background: linear-gradient(180deg, var(--surface) 0%, #2e1f24 100%);
+    border-color: #5a3040;
+  }
+  .series-action-cancel {
+    color: var(--ink-soft);
+    &:hover { color: var(--ink-strong); }
+  }
+
+  // Modal action buttons inside cards tab
+  .launch-modal-actions,
+  .card-modal-actions {
+    .btn-light {
+      background: var(--surface-raised);
+      border-color: var(--border);
+      color: var(--ink-soft);
+      &:hover:not(:disabled) {
+        background: var(--bg-strong);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+    }
+    .btn-primary {
+      background: var(--accent-deep);
+      color: #ffffff;
+      &:hover:not(:disabled) { background: var(--accent); }
+    }
   }
 }
 

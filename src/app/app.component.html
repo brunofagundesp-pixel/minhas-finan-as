@@ -740,7 +740,12 @@
         <div>
           <span class="day-modal-label">DETALHES DO DIA</span>
           <h2>{{ getDayDetailsTitle(activeDayDetails.month, activeDayDetails.day) }}</h2>
-          <p>{{ getDayDetailCount(activeDayDetails.day) }} lançamentos</p>
+          <p>
+            {{ getDayDetailCount(activeDayDetails.day) }} lançamentos
+            <span class="day-modal-paid-count" *ngIf="getDayPaidCount(activeDayDetails.day) > 0">
+              · {{ getDayPaidCount(activeDayDetails.day) }} pago{{ getDayPaidCount(activeDayDetails.day) > 1 ? 's' : '' }}
+            </span>
+          </p>
         </div>
         <button class="day-modal-close" (click)="closeDayDetails()">✕</button>
       </div>
@@ -780,6 +785,9 @@
                 <span class="day-launch-badge" [class]="'day-launch-badge--' + event.type">{{ getFinancialTypeBadge(event) }}</span>
                 <h4 class="day-launch-name">{{ event.label }}<span class="day-launch-installment" *ngIf="getInstallmentReference(event, activeDayDetails.month.key) as ref"> {{ ref }}</span></h4>
                 <div class="day-launch-chips">
+                  <span *ngIf="canTogglePaid(event)" class="day-launch-chip day-launch-chip--payment" [class.day-launch-chip--payment-paid]="isEventPaid(event)">
+                    {{ isEventPaid(event) ? 'Pago' : 'Em aberto' }}
+                  </span>
                   <span class="day-launch-chip">{{ getBehaviorChip(event) }}</span>
                   <span class="day-launch-chip">{{ getPeriodicityChip(event) }}</span>
                 </div>
@@ -795,9 +803,11 @@
                     class="day-launch-pay-btn"
                     [class.day-launch-pay-btn--paid]="isEventPaid(event)"
                     (click)="toggleEventPaid(activeDayDetails.month.key, event)"
-                    [disabled]="isPayingEvent(event.id)"
+                    [disabled]="isPayingEventAction(activeDayDetails.month.key, event)"
+                    [attr.aria-pressed]="isEventPaid(event)"
                   >
-                    {{ isPayingEvent(event.id) ? '...' : (isEventPaid(event) ? '✓ Pago' : '○ Marcar como pago') }}
+                    <span *ngIf="isPayingEventAction(activeDayDetails.month.key, event)">...</span>
+                    <span *ngIf="!isPayingEventAction(activeDayDetails.month.key, event)">{{ isEventPaid(event) ? '✓ Pago' : '○ Marcar como pago' }}</span>
                   </button>
 
                   <!-- Botão Resgatar (apenas para investimentos) -->

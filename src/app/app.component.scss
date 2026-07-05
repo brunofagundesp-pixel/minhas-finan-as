@@ -2829,6 +2829,11 @@
 	font-size: 13px;
 }
 
+.day-modal-paid-count {
+	color: #16a34a;
+	font-weight: 600;
+}
+
 .day-modal-close {
 	width: 36px;
 	height: 36px;
@@ -2943,10 +2948,21 @@
 	padding: 20px 0 20px 0;
 	border-bottom: 1px solid #e2e8f0;
 	gap: 20px;
-}
+	transition: background 140ms ease, opacity 140ms ease;
 
-.day-launch-item--paid .day-launch-value {
-	opacity: 0.45;
+	&--paid {
+		background: linear-gradient(90deg, rgba(22, 163, 74, 0.08) 0%, transparent 180px);
+		opacity: 0.82;
+
+		.day-launch-value {
+			opacity: 0.5;
+		}
+
+		.day-launch-name,
+		.day-launch-desc {
+			opacity: 0.72;
+		}
+	}
 }
 
 // ── Left Border Bar ───────────────────────────────────────────────────────────
@@ -3046,6 +3062,18 @@
 	line-height: 1.3;
 }
 
+.day-launch-chips .day-launch-chip--payment {
+	background: #fff7ed;
+	color: #c2410c;
+	border: 1px solid #fed7aa;
+}
+
+.day-launch-chips .day-launch-chip--payment-paid {
+	background: #dcfce7;
+	color: #15803d;
+	border-color: #bbf7d0;
+}
+
 .day-launch-desc {
 	font-size: 13px;
 	color: #64748b;
@@ -3081,6 +3109,8 @@
 	display: flex;
 	gap: 6px;
 	align-items: center;
+	position: relative;
+	z-index: 2;
 }
 
 .day-launch-pay-btn {
@@ -3095,18 +3125,29 @@
 	font-family: inherit;
 	white-space: nowrap;
 	color: #475569;
-	transition: background 120ms ease;
+	transition: background 120ms ease, transform 80ms ease, box-shadow 120ms ease;
 
-	&:hover {
+	&:hover:not(:disabled) {
 		background: #f8fafc;
+		transform: translateY(-1px);
+	}
+
+	&:active:not(:disabled) {
+		transform: translateY(0);
+	}
+
+	&:disabled {
+		opacity: 0.55;
+		cursor: wait;
 	}
 
 	&--paid {
 		background: #dcfce7;
 		color: #15803d;
 		border-color: #bbf7d0;
+		box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.15);
 
-		&:hover {
+		&:hover:not(:disabled) {
 			background: #c7f5d6;
 		}
 	}
@@ -5516,6 +5557,9 @@
   .day-modal-header p {
     color: var(--ink-soft);
   }
+  .day-modal-paid-count {
+    color: #6ec99a;
+  }
   .day-modal-label {
     color: var(--ink-soft);
   }
@@ -5536,6 +5580,15 @@
   }
   .day-launch-item {
     border-bottom-color: var(--border);
+
+    &--paid {
+      background: linear-gradient(90deg, rgba(22, 163, 74, 0.12) 0%, transparent 180px);
+
+      .day-launch-name,
+      .day-launch-desc {
+        opacity: 0.7;
+      }
+    }
   }
   .day-launch-name {
     color: var(--ink-strong);
@@ -5571,12 +5624,17 @@
     background: var(--surface);
     border-color: var(--border);
     color: var(--ink-soft);
-    &:hover { background: var(--surface-raised); }
+    &:hover:not(:disabled) { background: var(--surface-raised); }
+    &:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
     &--paid {
       background: #1a3028;
       color: #6ec99a;
       border-color: #2d5040;
-      &:hover { background: #1f3d30; }
+      box-shadow: 0 0 0 1px rgba(110, 201, 154, 0.15);
+      &:hover:not(:disabled) { background: #1f3d30; }
     }
   }
   .day-launch-withdraw-btn {
