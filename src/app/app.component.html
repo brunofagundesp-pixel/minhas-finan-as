@@ -682,23 +682,27 @@
         </ng-template>
 
         <div class="ledger-footer" aria-label="Resumo do mês" *ngIf="viewMode !== '1month' && viewMode !== 'balance'">
-          <div class="ledger-footer-item">
-            <span class="ledger-footer-label" data-tooltip="Soma de todas as entradas do mês">Entrada total</span>
+          <div class="ledger-footer-item" [class.ledger-footer-item--empty]="month.totalIncome === 0">
+            <span class="ledger-footer-label" data-tooltip="Soma de todas as entradas do mês">Entradas</span>
             <strong [ngClass]="getBalanceClass(month.totalIncome)">{{ formatCurrency(month.totalIncome) }}</strong>
           </div>
-          <div class="ledger-footer-item">
-            <span class="ledger-footer-label" data-tooltip="Soma de todas as saídas do mês (despesas + diárias + cartão)">Saída total</span>
+          <div class="ledger-footer-item" [class.ledger-footer-item--empty]="getMonthTotalOutflow(month) === 0">
+            <span class="ledger-footer-label" data-tooltip="Soma de todas as saídas do mês (despesas + diárias + cartão)">Saídas</span>
             <strong [ngClass]="getMonthOutflowRiskClass(month)">{{ formatCurrency(getMonthTotalOutflow(month)) }}</strong>
           </div>
-          <div class="ledger-footer-item">
-            <span class="ledger-footer-label" data-tooltip="Média de ganho ou perda por dia no mês">Média diária</span>
+          <div class="ledger-footer-item" [class.ledger-footer-item--empty]="month.totalInvestments === 0">
+            <span class="ledger-footer-label" data-tooltip="Soma dos investimentos feitos no mês">Investido</span>
+            <strong [ngClass]="getBalanceClass(month.totalInvestments)">{{ formatCurrency(month.totalInvestments) }}</strong>
+          </div>
+          <div class="ledger-footer-item" [class.ledger-footer-item--empty]="getMonthDailyAverage(month) === 0">
+            <span class="ledger-footer-label" data-tooltip="Média de ganho ou perda por dia no mês">Média/dia</span>
             <strong [ngClass]="getBalanceClass(getMonthDailyAverage(month))">{{ formatCurrency(getMonthDailyAverage(month)) }}</strong>
           </div>
-          <div class="ledger-footer-item">
-            <span class="ledger-footer-label" data-tooltip="Menor saldo atingido durante o mês">Mínimo do mês</span>
+          <div class="ledger-footer-item" [class.ledger-footer-item--empty]="month.minBalance === 0">
+            <span class="ledger-footer-label" data-tooltip="Menor saldo atingido durante o mês">Mínimo</span>
             <strong [ngClass]="getBalanceClass(month.minBalance)">{{ formatCurrency(month.minBalance) }}</strong>
           </div>
-          <div class="ledger-footer-item">
+          <div class="ledger-footer-item" [class.ledger-footer-item--empty]="month.totalCardExpenses === 0">
             <span class="ledger-footer-label" data-tooltip="Soma de todas as faturas de cartão do mês">Cartão</span>
             <strong [ngClass]="getBalanceClass(month.totalCardExpenses)">{{ formatCurrency(month.totalCardExpenses) }}</strong>
           </div>

@@ -2437,10 +2437,10 @@
 
 .ledger-footer {
 	display: grid;
-	grid-template-columns: repeat(5, minmax(0, 1fr));
-	gap: 12px;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: 6px;
 	border-top: 1px solid var(--border);
-	padding: 16px 12px 12px;
+	padding: 12px 8px 10px;
 	position: sticky;
 	bottom: 0;
 	background: var(--surface);
@@ -2448,15 +2448,24 @@
 }
 
 .ledger-footer-item {
-	padding: 14px 16px;
-	border-radius: 10px;
+	padding: 10px 8px;
+	border-radius: 8px;
 	display: grid;
-	gap: 6px;
+	gap: 4px;
+	min-width: 0;
 	font-variant-numeric: tabular-nums;
 	transition: background 150ms ease;
 
 	&:hover {
 		background: var(--surface-raised, #f5f8fc);
+	}
+}
+
+.ledger-footer-item--empty {
+	.label,
+	.ledger-footer-label,
+	strong {
+		color: #a7b1c0;
 	}
 }
 
@@ -2466,8 +2475,8 @@
 	align-items: center;
 	width: fit-content;
 	cursor: help;
-	font-size: 0.63rem;
-	letter-spacing: 0.07em;
+	font-size: 0.58rem;
+	letter-spacing: 0.04em;
 	text-transform: uppercase;
 	color: #7a8698;
 	font-weight: 800;
@@ -2509,22 +2518,25 @@
 }
 
 .ledger-footer-item strong {
-	font-size: 0.82rem;
+	font-size: 0.76rem;
 	line-height: 1;
 	color: var(--ink-strong);
 	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .ledger-footer-item strong.ledger-outflow--ok {
-	color: #0d6b4f;
+	color: var(--ink-strong);
 }
 
 .ledger-footer-item strong.ledger-outflow--warn {
-	color: #c47d00;
+	color: var(--ink-strong);
 }
 
 .ledger-footer-item strong.ledger-outflow--danger {
-	color: #ba3a55;
+	color: var(--ink-strong);
 }
 
 .ledger-row {
@@ -2698,7 +2710,7 @@
 }
 
 .ledger-footer-item strong.ledger-balance--low {
-	color: #c47d00;
+	color: var(--ink-strong);
 }
 
 .ledger-balance.ledger-balance--mid {
@@ -2708,7 +2720,7 @@
 }
 
 .ledger-footer-item strong.ledger-balance--mid {
-	color: #3a8c3a;
+	color: var(--ink-strong);
 }
 
 .ledger-balance.ledger-balance--high {
@@ -2718,7 +2730,12 @@
 }
 
 .ledger-footer-item strong.ledger-balance--high {
-	color: #0d6b4f;
+	color: var(--ink-strong);
+}
+
+.ledger-footer-item.ledger-footer-item--empty .ledger-footer-label,
+.ledger-footer-item.ledger-footer-item--empty strong {
+	color: #a7b1c0;
 }
 
 .ledger-row--today {
@@ -5239,7 +5256,7 @@
 		color: #fbbf6a;
 	}
 	.ledger-footer-item strong.ledger-balance--low {
-		color: #fbbf6a;
+		color: var(--ink-strong);
 	}
 
 	.ledger-balance.ledger-balance--mid {
@@ -5248,7 +5265,7 @@
 		color: #8edca0;
 	}
 	.ledger-footer-item strong.ledger-balance--mid {
-		color: #8edca0;
+		color: var(--ink-strong);
 	}
 
 	.ledger-balance.ledger-balance--high {
@@ -5257,7 +5274,12 @@
 		color: #6ec99a;
 	}
 	.ledger-footer-item strong.ledger-balance--high {
-		color: #6ec99a;
+		color: var(--ink-strong);
+	}
+
+	.ledger-footer-item.ledger-footer-item--empty .ledger-footer-label,
+	.ledger-footer-item.ledger-footer-item--empty strong {
+		color: #6f7b8f;
 	}
 
   // Footer de saldos
