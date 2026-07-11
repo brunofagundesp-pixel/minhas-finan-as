@@ -782,69 +782,72 @@
         <div class="day-modal-launches-list">
           <div class="day-context-backdrop" *ngIf="activeContextMenuEvent" (click)="closeDayEntryMenu()"></div>
 
-          <div class="day-launch-item" *ngFor="let event of sortedEvents; trackBy: trackEventBy" [class.day-launch-item--paid]="isEventPaid(event)">
-            <div class="day-launch-border" [class]="'day-launch-border--' + event.type"></div>
-            <div class="day-launch-body">
-              <div class="day-launch-body-left">
-                <span class="day-launch-badge" [class]="'day-launch-badge--' + event.type">{{ getFinancialTypeBadge(event) }}</span>
-                <h4 class="day-launch-name">{{ event.label }}<span class="day-launch-installment" *ngIf="getInstallmentReference(event, activeDayDetails.month.key) as ref"> {{ ref }}</span></h4>
-                <div class="day-launch-chips">
-                  <span *ngIf="canTogglePaid(event)" class="day-launch-chip day-launch-chip--payment" [class.day-launch-chip--payment-paid]="isEventPaid(event)">
-                    {{ isEventPaid(event) ? 'Pago' : 'Em aberto' }}
-                  </span>
-                  <span class="day-launch-chip">{{ getBehaviorChip(event) }}</span>
-                  <span class="day-launch-chip">{{ getPeriodicityChip(event) }}</span>
+          <ng-template #dayLaunchEvent let-event>
+            <div class="day-launch-item" [class.day-launch-item--paid]="isEventPaid(event)">
+              <div class="day-launch-border" [class]="'day-launch-border--' + event.type"></div>
+              <div class="day-launch-body">
+                <div class="day-launch-body-left">
+                  <span class="day-launch-badge" [class]="'day-launch-badge--' + event.type">{{ getFinancialTypeBadge(event) }}</span>
+                  <h4 class="day-launch-name">{{ event.label }}<span class="day-launch-installment" *ngIf="getInstallmentReference(event, activeDayDetails.month.key) as ref"> {{ ref }}</span></h4>
+                  <div class="day-launch-chips">
+                    <span *ngIf="canTogglePaid(event)" class="day-launch-chip day-launch-chip--payment" [class.day-launch-chip--payment-paid]="isEventPaid(event)">
+                      {{ isEventPaid(event) ? 'Pago' : 'Em aberto' }}
+                    </span>
+                    <span class="day-launch-chip">{{ getBehaviorChip(event) }}</span>
+                    <span class="day-launch-chip">{{ getPeriodicityChip(event) }}</span>
+                  </div>
+                  <span class="day-launch-desc">{{ getEventDescription(event) }}</span>
                 </div>
-                <span class="day-launch-desc">{{ getEventDescription(event) }}</span>
-              </div>
-              <div class="day-launch-body-right">
-                <span class="day-launch-value" [class]="getEventValueClass(event)">{{ formatEventValue(event) }}</span>
-                <div class="day-launch-actions">
-                  <!-- Botão Pagar (apenas para despesas) -->
-                  <button
-                    *ngIf="canTogglePaid(event)"
-                    type="button"
-                    class="day-launch-pay-btn"
-                    [class.day-launch-pay-btn--paid]="isEventPaid(event)"
-                    (click)="toggleEventPaid(activeDayDetails.month.key, event)"
-                    [disabled]="isPayingEventAction(activeDayDetails.month.key, event)"
-                    [attr.aria-pressed]="isEventPaid(event)"
-                  >
-                    <span *ngIf="isPayingEventAction(activeDayDetails.month.key, event)">...</span>
-                    <span *ngIf="!isPayingEventAction(activeDayDetails.month.key, event)">{{ isEventPaid(event) ? '✓ Pago' : '○ Marcar como pago' }}</span>
-                  </button>
+                <div class="day-launch-body-right">
+                  <span class="day-launch-value" [class]="getEventValueClass(event)">{{ formatEventValue(event) }}</span>
+                  <div class="day-launch-actions">
+                    <button
+                      *ngIf="canTogglePaid(event)"
+                      type="button"
+                      class="day-launch-pay-btn"
+                      [class.day-launch-pay-btn--paid]="isEventPaid(event)"
+                      (click)="toggleEventPaid(activeDayDetails.month.key, event)"
+                      [disabled]="isPayingEventAction(activeDayDetails.month.key, event)"
+                      [attr.aria-pressed]="isEventPaid(event)"
+                    >
+                      <span *ngIf="isPayingEventAction(activeDayDetails.month.key, event)">...</span>
+                      <span *ngIf="!isPayingEventAction(activeDayDetails.month.key, event)">{{ isEventPaid(event) ? '✓ Pago' : '○ Marcar como pago' }}</span>
+                    </button>
 
-                  <!-- Botão Resgatar (apenas para investimentos) -->
-                  <button
-                    *ngIf="canWithdrawInvestment(event)"
-                    type="button"
-                    class="day-launch-withdraw-btn"
-                    (click)="openInvestmentWithdrawal(activeDayDetails.month.key, event)"
-                    [disabled]="isDeletingEvent(event.id) || getInvestmentAvailableAmount(event) <= 0"
-                    aria-label="Registrar resgate"
-                    title="{{ 'Resgatar (disponivel ' + formatCurrency(getInvestmentAvailableAmount(event)) + ')' }}"
-                  >
-                    ↩ Resgatar
-                  </button>
+                    <button
+                      *ngIf="canWithdrawInvestment(event)"
+                      type="button"
+                      class="day-launch-withdraw-btn"
+                      (click)="openInvestmentWithdrawal(activeDayDetails.month.key, event)"
+                      [disabled]="isDeletingEvent(event.id) || getInvestmentAvailableAmount(event) <= 0"
+                      aria-label="Registrar resgate"
+                      title="{{ 'Resgatar (disponivel ' + formatCurrency(getInvestmentAvailableAmount(event)) + ')' }}"
+                    >
+                      ↩ Resgatar
+                    </button>
 
-                  <!-- Menu ⋮ -->
-                  <div class="day-context-wrap">
-                    <button type="button" class="day-launch-menu-btn" (click)="toggleDayEntryMenu($event, event)" aria-label="Mais opções">⋮</button>
-                    <div class="day-context-menu" *ngIf="activeContextMenuEvent === event">
-                      <button type="button" (click)="openEventActionPrompt('edit', activeDayDetails.month.key, event); closeDayEntryMenu()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Editar
-                      </button>
-                      <button type="button" class="day-context-danger" (click)="openEventActionPrompt('delete', activeDayDetails.month.key, event); closeDayEntryMenu()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        Excluir
-                      </button>
+                    <div class="day-context-wrap">
+                      <button type="button" class="day-launch-menu-btn" (click)="toggleDayEntryMenu($event, event)" aria-label="Mais opções">⋮</button>
+                      <div class="day-context-menu" *ngIf="activeContextMenuEvent === event">
+                        <button type="button" (click)="openEventActionPrompt('edit', activeDayDetails.month.key, event); closeDayEntryMenu()">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Editar
+                        </button>
+                        <button type="button" class="day-context-danger" (click)="openEventActionPrompt('delete', activeDayDetails.month.key, event); closeDayEntryMenu()">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          Excluir
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </ng-template>
+
+          <ng-container *ngFor="let event of sortedPendingEvents; trackBy: trackEventBy">
+            <ng-container *ngTemplateOutlet="dayLaunchEvent; context: { $implicit: event }"></ng-container>
+          </ng-container>
 
           <div class="day-launch-item day-launch-item--forecast" *ngFor="let forecast of activeDayDetails.day.cardInvoiceForecasts">
             <div class="day-launch-left">
@@ -880,6 +883,16 @@
               </div>
             </div>
           </div>
+
+          <details class="day-paid-launches" *ngIf="sortedPaidEvents.length > 0">
+            <summary>
+              <span>Contas pagas</span>
+              <strong>{{ sortedPaidEvents.length }}</strong>
+            </summary>
+            <ng-container *ngFor="let event of sortedPaidEvents; trackBy: trackEventBy">
+              <ng-container *ngTemplateOutlet="dayLaunchEvent; context: { $implicit: event }"></ng-container>
+            </ng-container>
+          </details>
         </div>
       </div>
     </div>

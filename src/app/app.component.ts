@@ -591,6 +591,16 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   private readonly monthCharts = new Map<string, Chart<'line'>>();
   private monthChartsRenderSignature = '';
 
+  private invalidateProjectionCaches(): void {
+    this.summariesCache = null;
+    this.summariesCacheSignature = '';
+    this.investmentWithdrawnCache = null;
+    this.investmentWithdrawnCacheSignature = '';
+    this.dashboardExpenseSlicesCache = null;
+    this._dashboardExpenseSlicesMonthKey = '';
+    this.monthChartsRenderSignature = '';
+  }
+
   @ViewChildren('monthBalanceChart')
   private monthBalanceChartRefs?: QueryList<ElementRef<HTMLCanvasElement>>;
 
@@ -872,7 +882,9 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (month.seriesOverrides?.length) {
         for (const override of month.seriesOverrides) {
           amountSum += override.amount || 0;
+          dayHash = (dayHash + (override.day || 0)) | 0;
           if (override.paid) flagsHash++;
+          if (override.paidAt) flagsHash += override.paidAt.length;
           if (override.action === 'skip') flagsHash += 13;
         }
       }
@@ -3131,13 +3143,21 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (isVirtualSeriesEvent) {
       const seriesId = event.seriesId as string;
       const overrides = month.seriesOverrides ?? [];
-      const existingIdx = overrides.findIndex(o => o.seriesId === seriesId && o.day === event.day);
+      const existingIdx = overrides.findIndex(o => o.seriesId === seriesId);
       if (existingIdx >= 0) {
-        overrides[existingIdx] = { ...overrides[existingIdx], paid, paidAt };
+        const mergedOverride = overrides
+          .filter((override) => override.seriesId === seriesId)
+          .reduce<SeriesOccurrenceOverride>(
+            (merged, override) => ({ ...merged, ...override }),
+            { seriesId, day: event.day }
+          );
+
+        overrides[existingIdx] = { ...mergedOverride, paid, paidAt };
+        month.seriesOverrides = overrides.filter((override, index) => override.seriesId !== seriesId || index === existingIdx);
       } else {
         overrides.push({ seriesId, day: event.day, paid, paidAt });
+        month.seriesOverrides = overrides;
       }
-      month.seriesOverrides = overrides;
     } else {
       // Physical event: modify directly in month.events
       month.events = month.events.map((item) => {
@@ -3161,6 +3181,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         };
       });
     }
+    this.invalidateProjectionCaches();
     this.payingEventIds.add(eventPaymentKey);
     this.refreshActiveDayDetails();
     this.cdr.detectChanges();
@@ -3187,6 +3208,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         } else {
           month.events = previousEvents;
         }
+        this.invalidateProjectionCaches();
         this.payingEventIds.delete(eventPaymentKey);
         this.refreshActiveDayDetails();
         this.cdr.detectChanges();
@@ -3330,6 +3352,14 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
       default:
         return events;
     }
+  }
+
+  get sortedPendingEvents(): FinancialEvent[] {
+    return this.sortedEvents.filter((event) => !this.canTogglePaid(event) || !this.isEventPaid(event));
+  }
+
+  get sortedPaidEvents(): FinancialEvent[] {
+    return this.sortedEvents.filter((event) => this.canTogglePaid(event) && this.isEventPaid(event));
   }
 
   onSortChange(): void {
@@ -5398,10 +5428,15 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       if (existingSeriesIds.has(series.id)) { continue; }
 
-      const override = month.seriesOverrides?.find(o => o.seriesId === series.id);
+      const override = month.seriesOverrides
+        ?.filter(o => o.seriesId === series.id)
+        .reduce<SeriesOccurrenceOverride | undefined>(
+          (merged, current) => merged ? { ...merged, ...current } : { ...current },
+          undefined
+        );
       if (override?.action === 'skip') continue;
 
-      const day = Math.min(series.day, daysInMonth);
+      const day = Math.min(override?.day ?? series.day, daysInMonth);
       const amount = override?.amount ?? series.amount;
       const label = override?.label ?? series.label;
 
@@ -6277,9 +6312,8 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
   private normalizeMonths(months: MonthDefinition[]): MonthDefinition[] {
     return months.map((month) => ({
       ...month,
-      dailyFixedCost: month.dailyFixedCost > 0 && !month.events.some((event) => event.type === 'daily') ? 0 : month.dailyFixedCost,
-      events: [
-        ...month.events.map((event) => {
+      dailyFixedCost: 0,
+      events: month.events.map((event) => {
         const eventId = event.id ?? this.generateEventId();
 
         return {
@@ -6290,36 +6324,13 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
           recurrenceKind: event.recurrenceKind ?? 'single',
           seriesOccurrences: event.seriesOccurrences ?? 1
         };
-        }),
-        ...this.createMigratedDailyEvents(month)
-      ]
+      })
     }));
-  }
-
-  private createMigratedDailyEvents(month: MonthDefinition): FinancialEvent[] {
-    if (month.dailyFixedCost <= 0 || month.events.some((event) => event.type === 'daily')) {
-      return [];
-    }
-
-    const eventId = `daily-base-${month.key}`;
-    return [
-      {
-        id: eventId,
-        seriesId: eventId,
-        recurrenceKind: 'fixed',
-        repeatMode: 'monthly',
-        seriesOccurrences: 1,
-        day: 1,
-        label: 'diária base',
-        amount: month.dailyFixedCost,
-        type: 'daily'
-      }
-    ];
   }
 
   private deleteSeries(seriesId: string, triggerEventId?: string): void {
     const existingSeries = this.seriesDefinitions.find(s => s.id === seriesId);
-    const backups = new Map<string, FinancialEvent[]>();
+    const backups = new Map<string, { events: FinancialEvent[]; dailyFixedCost: number }>();
     const monthsToSave: MonthDefinition[] = [];
 
     for (const month of this.monthDefinitions) {
@@ -6328,8 +6339,12 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         continue;
       }
 
-      backups.set(month.key, [...month.events]);
+      const removesDailyEvents = month.events.some((event) => event.seriesId === seriesId && event.type === 'daily');
+      backups.set(month.key, { events: [...month.events], dailyFixedCost: month.dailyFixedCost });
       month.events = month.events.filter((event) => event.seriesId !== seriesId);
+      if (removesDailyEvents) {
+        month.dailyFixedCost = 0;
+      }
       monthsToSave.push(month);
     }
 
@@ -6355,6 +6370,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     forkJoin(saveOps).subscribe({
       next: () => {
+        this.invalidateProjectionCaches();
         this.refreshActiveDayDetails();
         if (triggerEventId) {
           this.deletingEventIds.delete(triggerEventId);
@@ -6362,10 +6378,11 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.entriesFeedback = 'Serie removida.';
       },
       error: () => {
-        for (const [monthKey, events] of backups) {
+        for (const [monthKey, backup] of backups) {
           const month = this.monthDefinitions.find((item) => item.key === monthKey);
           if (month) {
-            month.events = events;
+            month.events = backup.events;
+            month.dailyFixedCost = backup.dailyFixedCost;
           }
         }
         if (existingSeries) {
@@ -6375,6 +6392,7 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
         if (triggerEventId) {
           this.deletingEventIds.delete(triggerEventId);
         }
+        this.invalidateProjectionCaches();
         this.entriesFeedback = 'Não foi possivel excluir a serie. Confira o backend e tente novamente.';
       }
     });
