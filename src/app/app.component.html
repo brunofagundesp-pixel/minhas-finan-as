@@ -783,7 +783,7 @@
           <div class="day-context-backdrop" *ngIf="activeContextMenuEvent" (click)="closeDayEntryMenu()"></div>
 
           <ng-template #dayLaunchEvent let-event>
-            <div class="day-launch-item" [class.day-launch-item--paid]="isEventPaid(event)">
+            <div class="day-launch-item" [class.day-launch-item--paid]="isEventPaid(event)" [class.day-launch-item--menu-open]="activeContextMenuEvent === event">
               <div class="day-launch-border" [class]="'day-launch-border--' + event.type"></div>
               <div class="day-launch-body">
                 <div class="day-launch-body-left">

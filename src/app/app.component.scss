@@ -2958,7 +2958,7 @@
 	border: 1px solid #dce5ef;
 	border-radius: 12px;
 	background: #f8fafc;
-	overflow: hidden;
+	overflow: visible;
 
 	summary {
 		display: flex;
@@ -3028,10 +3028,14 @@
 	border-bottom: 1px solid #e2e8f0;
 	gap: 16px;
 	transition: background 140ms ease, opacity 140ms ease;
+	z-index: 0;
+
+	&--menu-open {
+		z-index: 40;
+	}
 
 	&--paid {
 		background: linear-gradient(90deg, rgba(22, 163, 74, 0.08) 0%, transparent 180px);
-		opacity: 0.82;
 
 		.day-launch-value {
 			opacity: 0.5;
@@ -3403,6 +3407,7 @@
 // ── Context Menu ─────────────────────────────────────────────────────────────
 .day-context-wrap {
 	position: relative;
+	z-index: 45;
 }
 
 .day-context-menu {
@@ -3416,7 +3421,7 @@
 	border-radius: 10px;
 	box-shadow: 0 12px 28px rgba(19, 34, 56, 0.18);
 	padding: 6px;
-	z-index: 30;
+	z-index: 50;
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
