@@ -845,52 +845,71 @@
             </div>
           </ng-template>
 
-          <ng-container *ngFor="let event of sortedPendingEvents; trackBy: trackEventBy">
+          <ng-container *ngFor="let event of sortedPendingRegularEvents; trackBy: trackEventBy">
             <ng-container *ngTemplateOutlet="dayLaunchEvent; context: { $implicit: event }"></ng-container>
           </ng-container>
 
-          <div class="day-launch-item day-launch-item--forecast" *ngFor="let forecast of activeDayDetails.day.cardInvoiceForecasts">
-            <div class="day-launch-left">
-              <div class="day-launch-icon day-launch-icon--card">💳</div>
-              <div class="day-launch-content">
-                <h4>{{ forecast.cardName }}</h4>
-                <div class="day-launch-meta">
-                  <span class="day-launch-chip day-launch-chip--fixed">Cartão</span>
-                  <span>{{ forecast.launchesCount }} {{ forecast.launchesCount === 1 ? 'compra' : 'compras' }}</span>
+          <details class="day-daily-launches" *ngIf="sortedPendingDailyEvents.length > 0">
+            <summary>
+              <span>Diárias</span>
+              <strong>{{ sortedPendingDailyEvents.length }}</strong>
+            </summary>
+            <ng-container *ngFor="let event of sortedPendingDailyEvents; trackBy: trackEventBy">
+              <ng-container *ngTemplateOutlet="dayLaunchEvent; context: { $implicit: event }"></ng-container>
+            </ng-container>
+          </details>
+
+          <ng-template #dayCardInvoiceForecast let-forecast>
+            <div class="day-launch-item day-launch-item--forecast">
+              <div class="day-launch-left">
+                <div class="day-launch-icon day-launch-icon--card">💳</div>
+                <div class="day-launch-content">
+                  <h4>{{ forecast.cardName }}</h4>
+                  <div class="day-launch-meta">
+                    <span class="day-launch-chip day-launch-chip--fixed">Cartão</span>
+                    <span>{{ forecast.launchesCount }} {{ forecast.launchesCount === 1 ? 'compra' : 'compras' }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="day-launch-right">
+                <span class="day-launch-value" [ngClass]="getBalanceClass(-forecast.amount)">{{ formatCurrency(forecast.amount) }}</span>
+                <div class="day-launch-actions">
+                  <button
+                    type="button"
+                    class="day-launch-pay-btn"
+                    [class.day-launch-pay-btn--paid]="forecast.isPaid"
+                    [disabled]="forecast.isPaid || isPayingInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
+                    (click)="payCardInvoiceForecast(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
+                  >
+                    {{ isPayingInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber) ? '...' : (forecast.isPaid ? '✓ Pago' : 'Pagar') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="day-launch-invoice-btn"
+                    (click)="goToCardInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
+                    title="Ver fatura deste cartão"
+                  >
+                    Ver fatura
+                  </button>
                 </div>
               </div>
             </div>
-            <div class="day-launch-right">
-              <span class="day-launch-value" [ngClass]="getBalanceClass(-forecast.amount)">{{ formatCurrency(forecast.amount) }}</span>
-              <div class="day-launch-actions">
-                <button
-                  type="button"
-                  class="day-launch-pay-btn"
-                  [class.day-launch-pay-btn--paid]="forecast.isPaid"
-                  [disabled]="forecast.isPaid || isPayingInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
-                  (click)="payCardInvoiceForecast(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
-                >
-                  {{ isPayingInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber) ? '...' : (forecast.isPaid ? '✓ Pago' : 'Pagar') }}
-                </button>
-                <button
-                  type="button"
-                  class="day-launch-invoice-btn"
-                  (click)="goToCardInvoice(forecast.cardId, activeDayDetails.month.year, activeDayDetails.month.monthNumber)"
-                  title="Ver fatura deste cartão"
-                >
-                  Ver fatura
-                </button>
-              </div>
-            </div>
-          </div>
+          </ng-template>
 
-          <details class="day-paid-launches" *ngIf="sortedPaidEvents.length > 0">
+          <ng-container *ngFor="let forecast of pendingCardInvoiceForecasts">
+            <ng-container *ngTemplateOutlet="dayCardInvoiceForecast; context: { $implicit: forecast }"></ng-container>
+          </ng-container>
+
+          <details class="day-paid-launches" *ngIf="paidDayLaunchesCount > 0">
             <summary>
               <span>Contas pagas</span>
-              <strong>{{ sortedPaidEvents.length }}</strong>
+              <strong>{{ paidDayLaunchesCount }}</strong>
             </summary>
             <ng-container *ngFor="let event of sortedPaidEvents; trackBy: trackEventBy">
               <ng-container *ngTemplateOutlet="dayLaunchEvent; context: { $implicit: event }"></ng-container>
+            </ng-container>
+            <ng-container *ngFor="let forecast of paidCardInvoiceForecasts">
+              <ng-container *ngTemplateOutlet="dayCardInvoiceForecast; context: { $implicit: forecast }"></ng-container>
             </ng-container>
           </details>
         </div>

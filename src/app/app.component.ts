@@ -3358,8 +3358,28 @@ export class AppComponent implements OnInit, AfterViewChecked, OnDestroy {
     return this.sortedEvents.filter((event) => !this.canTogglePaid(event) || !this.isEventPaid(event));
   }
 
+  get sortedPendingRegularEvents(): FinancialEvent[] {
+    return this.sortedPendingEvents.filter((event) => event.type !== 'daily');
+  }
+
+  get sortedPendingDailyEvents(): FinancialEvent[] {
+    return this.sortedPendingEvents.filter((event) => event.type === 'daily');
+  }
+
   get sortedPaidEvents(): FinancialEvent[] {
     return this.sortedEvents.filter((event) => this.canTogglePaid(event) && this.isEventPaid(event));
+  }
+
+  get pendingCardInvoiceForecasts(): CardInvoiceForecast[] {
+    return this.activeDayDetails?.day.cardInvoiceForecasts.filter((forecast) => !forecast.isPaid) ?? [];
+  }
+
+  get paidCardInvoiceForecasts(): CardInvoiceForecast[] {
+    return this.activeDayDetails?.day.cardInvoiceForecasts.filter((forecast) => !!forecast.isPaid) ?? [];
+  }
+
+  get paidDayLaunchesCount(): number {
+    return this.sortedPaidEvents.length + this.paidCardInvoiceForecasts.length;
   }
 
   onSortChange(): void {

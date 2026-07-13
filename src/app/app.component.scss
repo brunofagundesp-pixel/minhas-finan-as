@@ -2953,7 +2953,8 @@
 	-webkit-overflow-scrolling: touch;
 }
 
-.day-paid-launches {
+.day-paid-launches,
+.day-daily-launches {
 	margin-top: 18px;
 	border: 1px solid #dce5ef;
 	border-radius: 12px;
@@ -3011,6 +3012,11 @@
 		border-top: 1px solid #e2e8f0;
 		border-bottom: 0;
 	}
+}
+
+.day-daily-launches summary strong {
+	background: #fee2e2;
+	color: #dc2626;
 }
 
 .day-context-backdrop {
@@ -5667,7 +5673,8 @@
     border-color: var(--border);
     color: var(--ink-soft);
   }
-	.day-paid-launches {
+	.day-paid-launches,
+	.day-daily-launches {
 		background: var(--surface-raised);
 		border-color: var(--border);
 		summary {
@@ -5680,6 +5687,10 @@
 		.day-launch-item {
 			border-top-color: var(--border);
 		}
+	}
+	.day-daily-launches summary strong {
+		background: #3a1f24;
+		color: #fca5a5;
 	}
   .day-launch-item {
     border-bottom-color: var(--border);
