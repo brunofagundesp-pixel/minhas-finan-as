@@ -2339,6 +2339,52 @@
 	}
 }
 
+.ledger-balance-row:not(.ledger-balance-row--final) .ledger-balance-value {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--ink-soft);
+}
+
+.ledger-header .ledger-balance-row--final {
+	margin-top: 4px;
+	padding-top: 8px;
+	border-top: 1px dashed var(--border);
+	align-items: center;
+
+	.ledger-balance-value {
+		font-size: 1.05rem;
+		line-height: 1;
+		font-weight: 800;
+		padding: 5px 10px;
+		border-radius: 10px;
+		border: 1px solid transparent;
+
+		&.ledger-balance--negative {
+			color: #ba3a55;
+			background: #fff1f3;
+			border-color: #f4c7d0;
+		}
+
+		&.ledger-balance--low {
+			color: #c47d00;
+			background: #fff7e8;
+			border-color: #f2ddb4;
+		}
+
+		&.ledger-balance--mid {
+			color: #3a8c3a;
+			background: #f3fbef;
+			border-color: #cfe7c4;
+		}
+
+		&.ledger-balance--high {
+			color: #0d6b4f;
+			background: #ebfaf4;
+			border-color: #c6e9d9;
+		}
+	}
+}
+
 .ledger-balance-caption {
 	display: inline-flex;
 	margin-top: 2px;
@@ -4970,6 +5016,15 @@
 		font-size: 1.35rem;
 	}
 
+	.ledger-balance-row:not(.ledger-balance-row--final) .ledger-balance-value {
+		font-size: 1rem;
+		font-weight: 600;
+	}
+
+	.ledger-header .ledger-balance-row--final .ledger-balance-value {
+		font-size: 1.3rem;
+	}
+
 	.ledger-day-wrap,
 	.ledger-row span {
 		min-width: 0;
@@ -5348,6 +5403,33 @@
 	}
 	.ledger-footer-item strong.ledger-balance--high {
 		color: var(--ink-strong);
+	}
+
+	// Pílula do saldo final no header (dark mode)
+	.ledger-header .ledger-balance-row--final .ledger-balance-value {
+		&.ledger-balance--negative {
+			color: #f9a8ba;
+			background: #3a1f27;
+			border-color: #6b2f3f;
+		}
+
+		&.ledger-balance--low {
+			color: #fbbf6a;
+			background: #3a2e15;
+			border-color: #6b5320;
+		}
+
+		&.ledger-balance--mid {
+			color: #8edca0;
+			background: #1f3326;
+			border-color: #2f5a3f;
+		}
+
+		&.ledger-balance--high {
+			color: #6ec99a;
+			background: #15332a;
+			border-color: #1f5a45;
+		}
 	}
 
 	.ledger-footer-item.ledger-footer-item--empty .ledger-footer-label,
